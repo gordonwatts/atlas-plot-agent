@@ -76,6 +76,34 @@ class TestLoader(unittest.TestCase):
         with self.assertRaises(ValueError):
             create_agents(agent_configs, tools)
 
+    def test_create_agents_missing_handoff(self):
+        agent_configs = [
+            {
+                "name": "Agent1",
+                "instructions": "Do something",
+                "model": "gpt-3.5",
+                "handoffs": ["Agent2"],
+            }
+        ]
+        tools = {}
+        with self.assertRaises(ValueError):
+            create_agents(agent_configs, tools)
+
+    def test_create_agents_handoff_description(self):
+        agent_configs = [
+            {
+                "name": "Agent1",
+                "instructions": "Do something",
+                "model": "gpt-3.5",
+                "handoff_description": "Pass tasks to another agent",
+            }
+        ]
+        tools = {}
+        agents = create_agents(agent_configs, tools)
+        self.assertEqual(
+            agents["Agent1"].handoff_description, "Pass tasks to another agent"
+        )
+
     def test_load_tools(self):
         tool_configs = [
             {"name": "Tool1", "type": "module.func"},
