@@ -112,4 +112,4 @@ venv.bak/
 
 # Agent configuration
 .agent_config
-atlas-agent.yaml
+secrets.yaml

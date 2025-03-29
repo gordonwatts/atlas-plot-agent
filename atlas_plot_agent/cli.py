@@ -22,24 +22,9 @@ def load_config(config_file: str = ".agent_config"):
 
 
 # Load configuration
-load_config("atlas-agent.yaml")
+load_config("secrets.yaml")
 
 app = typer.Typer()
-
-# Define the local tool
-
-
-def verify_dataset(dataset_path: str) -> str:
-    """Verify the dataset at the given path.
-
-    Args:
-        dataset_path (str): Path to the dataset.
-
-    Returns:
-        str: Verification result.
-    """
-    # Placeholder logic for dataset verification
-    return f"Dataset at {dataset_path} has been verified."
 
 
 @app.command()
