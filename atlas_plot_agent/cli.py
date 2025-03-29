@@ -8,10 +8,15 @@ from atlas_plot_agent.loader import (
 )  # Refactored imports
 
 app = typer.Typer()
+ask_app = typer.Typer()
+web_app = typer.Typer()
+
+app.add_typer(ask_app, name="ask")
+app.add_typer(web_app, name="web")
 
 
-@app.command()
-def run_agent(task: str, agent_name: str = "Orchestrator"):
+@ask_app.callback(invoke_without_command=True)
+def ask(task: str, agent_name: str = "Orchestrator"):
     """Run a specific agent to perform a task.
 
     Args:
@@ -32,6 +37,13 @@ def run_agent(task: str, agent_name: str = "Orchestrator"):
     # Process the task using the agent
     result = Runner.run_sync(agent, task)
     print(result.final_output)
+
+
+@web_app.callback(invoke_without_command=True)
+def web(ctx: typer.Context):
+    """Run the web interface."""
+    if ctx.invoked_subcommand is None:
+        print("Web interface is running...")
 
 
 if __name__ == "__main__":
