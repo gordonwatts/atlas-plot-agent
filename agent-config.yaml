@@ -1,0 +1,12 @@
+agents:
+  - name: Orchestrator
+    instructions: "You will assist the LHC ATLAS user in analyzing experiment data."
+    model: "gpt-4o-mini"
+  - name: DataExpert
+    instructions: "You will help the user specify what ATLAS data they want to look at."
+    handoff_description: "Use to get an specific specification of what data to analyze"
+    model: "gpt-4o-mini"
+  - name: ReductionExpert
+    instructions: "You will help the user refine and specify exactly what they want to extract from the data."
+    handoff_description: "Use to determine exactly what the user wants to do with their data"
+    model: "gtp-4o-mini"
