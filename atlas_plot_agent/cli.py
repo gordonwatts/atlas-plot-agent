@@ -98,7 +98,7 @@ def web(agent_name: str = "Orchestrator"):
         for speaker, message in st.session_state.conversation:
             st.write(f"**{speaker}:** {message}")
 
-    # Add the input text. DIsabled if we are working on
+    # Add the input text. Disabled if we are working on
     # things.
     work_to_be_done = len(st.session_state.pending_input) != 0
     if work_to_be_done:
