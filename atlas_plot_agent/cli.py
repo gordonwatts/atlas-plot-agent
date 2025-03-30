@@ -1,13 +1,11 @@
 import asyncio
+
 import typer
 from agents import Agent, Runner, TResponseInputItem, function_tool
+from openai.types.responses import ResponseTextDeltaEvent
 
-from atlas_plot_agent.loader import (
-    create_agents,  # Refactored imports
-    load_config,
-    load_secrets,
-    load_tools,
-)
+from atlas_plot_agent.loader import create_agents  # Refactored imports
+from atlas_plot_agent.loader import load_config, load_secrets, load_tools
 
 app = typer.Typer()
 ask_app = typer.Typer()
@@ -27,6 +25,13 @@ def initialize_agents():
 
 @ask_app.callback(invoke_without_command=True)
 def ask(task: str, agent_name: str = "Orchestrator", one_shot: bool = False):
+    """Run the ask_async function in an event loop."""
+    asyncio.run(ask_async(task, agent_name, one_shot))
+
+
+async def ask_async(
+    task: str, agent_name: str = "Orchestrator", one_shot: bool = False
+):
     """Run a specific agent to perform a task.
 
     Args:
@@ -48,16 +53,21 @@ def ask(task: str, agent_name: str = "Orchestrator", one_shot: bool = False):
         input_items.append({"content": task, "role": "user"})
 
         # Process the task using the agent
-        result = Runner.run_sync(agent, input_items)
-        print(result.final_output)
+        result = Runner.run_streamed(agent, input_items)
+        async for event in result.stream_events():
+            if event.type == "raw_response_event" and isinstance(
+                event.data, ResponseTextDeltaEvent
+            ):
+                print(event.data.delta, end="", flush=True)
 
+        print("")
         input_items = result.to_input_list()
 
         if one_shot:
             break
 
         # Ask the user for new input
-        task = input("Enter a new task (or type 'exit' to quit): ").strip()
+        task = input("> ").strip()
         if task.lower() == "exit":
             break
 
