@@ -1,13 +1,12 @@
 import asyncio
-import typer
-from agents import Agent, Runner, function_tool
+from time import sleep
 
-from atlas_plot_agent.loader import (
-    create_agents,  # Refactored imports
-    load_config,
-    load_secrets,
-    load_tools,
-)
+import typer
+from agents import Agent, Runner, TResponseInputItem, function_tool
+from openai.types.responses import ResponseTextDeltaEvent
+
+from atlas_plot_agent.loader import create_agents  # Refactored imports
+from atlas_plot_agent.loader import load_config, load_secrets, load_tools
 
 app = typer.Typer()
 ask_app = typer.Typer()
@@ -26,7 +25,14 @@ def initialize_agents():
 
 
 @ask_app.callback(invoke_without_command=True)
-def ask(task: str, agent_name: str = "Orchestrator"):
+def ask(task: str, agent_name: str = "Orchestrator", one_shot: bool = False):
+    """Run the ask_async function in an event loop."""
+    asyncio.run(ask_async(task, agent_name, one_shot))
+
+
+async def ask_async(
+    task: str, agent_name: str = "Orchestrator", one_shot: bool = False
+):
     """Run a specific agent to perform a task.
 
     Args:
@@ -36,18 +42,43 @@ def ask(task: str, agent_name: str = "Orchestrator"):
     # Load secrets and configuration
     agents = initialize_agents()
 
+    input_items: list[TResponseInputItem] = []
+
     if agent_name not in agents:
         raise ValueError(f"Agent '{agent_name}' not found in configuration.")
 
     agent = agents[agent_name]
 
-    # Process the task using the agent
-    result = Runner.run_sync(agent, task)
-    print(result.final_output)
+    while True:
+        # Tee up the input next
+        input_items.append({"content": task, "role": "user"})
+
+        # Process the task using the agent
+        result = Runner.run_streamed(agent, input_items)
+        async for event in result.stream_events():
+            if event.type == "raw_response_event" and isinstance(
+                event.data, ResponseTextDeltaEvent
+            ):
+                print(event.data.delta, end="", flush=True)
+
+        print("")
+        input_items = result.to_input_list()
+
+        if one_shot:
+            break
+
+        # Ask the user for new input
+        task = input("> ").strip()
+        if task.lower() == "exit":
+            break
 
 
 @web_app.callback(invoke_without_command=True)
 def web(agent_name: str = "Orchestrator"):
+    asyncio.run(web_async(agent_name))
+
+
+async def web_async(agent_name: str = "Orchestrator"):
     """Run the web interface."""
     import streamlit as st
 
@@ -62,10 +93,6 @@ def web(agent_name: str = "Orchestrator"):
 
     agent = agents[agent_name]
 
-    # Deal with the fact we have an async library under us
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
     # Set the title
     st.title("ATLAS Plot Agent")
 
@@ -73,6 +100,7 @@ def web(agent_name: str = "Orchestrator"):
     # setup our state across invocations.
     if "conversation" not in st.session_state:
         st.session_state.conversation = []
+        st.session_state.agent_input_history = []
         st.session_state.pending_input = []
 
     # Display conversation history.
@@ -81,7 +109,11 @@ def web(agent_name: str = "Orchestrator"):
         for speaker, message in st.session_state.conversation:
             st.write(f"**{speaker}:** {message}")
 
-    # Add the input text. DIsabled if we are working on
+    # Write a placeholder for any messages we might be updating
+    # in realtime
+    response_placeholder = st.empty()
+
+    # Add the input text. Disabled if we are working on
     # things.
     work_to_be_done = len(st.session_state.pending_input) != 0
     if work_to_be_done:
@@ -111,8 +143,21 @@ def web(agent_name: str = "Orchestrator"):
     if work_to_be_done:
         input = st.session_state.pending_input.pop()
 
-        response = Runner.run_sync(agent, input)
-        st.session_state.conversation.append(("Agent", response.final_output))
+        st.session_state.agent_input_history.append({"role": "user", "content": input})
+
+        result = Runner.run_streamed(agent, st.session_state.agent_input_history)
+
+        with response_placeholder:
+            final_text = "**Agent:** "
+            async for event in result.stream_events():
+                if event.type == "raw_response_event" and isinstance(
+                    event.data, ResponseTextDeltaEvent
+                ):
+                    final_text += event.data.delta
+                    st.write(final_text)
+
+        st.session_state.agent_input_history = result.to_input_list()
+        st.session_state.conversation.append(("Agent", result.final_output))
 
         st.rerun()
 
