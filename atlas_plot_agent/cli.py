@@ -89,6 +89,7 @@ def web(agent_name: str = "Orchestrator"):
     # setup our state across invocations.
     if "conversation" not in st.session_state:
         st.session_state.conversation = []
+        st.session_state.agent_input_history = []
         st.session_state.pending_input = []
 
     # Display conversation history.
@@ -127,7 +128,10 @@ def web(agent_name: str = "Orchestrator"):
     if work_to_be_done:
         input = st.session_state.pending_input.pop()
 
-        response = Runner.run_sync(agent, input)
+        st.session_state.agent_input_history.append({"role": "user", "content": input})
+
+        response = Runner.run_sync(agent, st.session_state.agent_input_history)
+        st.session_state.agent_input_history = response.to_input_list()
         st.session_state.conversation.append(("Agent", response.final_output))
 
         st.rerun()
