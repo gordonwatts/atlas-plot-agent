@@ -1,6 +1,6 @@
 import asyncio
 import typer
-from agents import Agent, Runner, function_tool
+from agents import Agent, Runner, TResponseInputItem, function_tool
 
 from atlas_plot_agent.loader import (
     create_agents,  # Refactored imports
@@ -26,7 +26,7 @@ def initialize_agents():
 
 
 @ask_app.callback(invoke_without_command=True)
-def ask(task: str, agent_name: str = "Orchestrator"):
+def ask(task: str, agent_name: str = "Orchestrator", one_shot: bool = False):
     """Run a specific agent to perform a task.
 
     Args:
@@ -36,14 +36,30 @@ def ask(task: str, agent_name: str = "Orchestrator"):
     # Load secrets and configuration
     agents = initialize_agents()
 
+    input_items: list[TResponseInputItem] = []
+
     if agent_name not in agents:
         raise ValueError(f"Agent '{agent_name}' not found in configuration.")
 
     agent = agents[agent_name]
 
-    # Process the task using the agent
-    result = Runner.run_sync(agent, task)
-    print(result.final_output)
+    while True:
+        # Tee up the input next
+        input_items.append({"content": task, "role": "user"})
+
+        # Process the task using the agent
+        result = Runner.run_sync(agent, input_items)
+        print(result.final_output)
+
+        input_items = result.to_input_list()
+
+        if one_shot:
+            break
+
+        # Ask the user for new input
+        task = input("Enter a new task (or type 'exit' to quit): ").strip()
+        if task.lower() == "exit":
+            break
 
 
 @web_app.callback(invoke_without_command=True)
