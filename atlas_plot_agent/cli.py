@@ -1,4 +1,5 @@
 import asyncio
+from time import sleep
 
 import typer
 from agents import Agent, Runner, TResponseInputItem, function_tool
@@ -74,6 +75,10 @@ async def ask_async(
 
 @web_app.callback(invoke_without_command=True)
 def web(agent_name: str = "Orchestrator"):
+    asyncio.run(web_async(agent_name))
+
+
+async def web_async(agent_name: str = "Orchestrator"):
     """Run the web interface."""
     import streamlit as st
 
@@ -87,10 +92,6 @@ def web(agent_name: str = "Orchestrator"):
         raise ValueError(f"Agent '{agent_name}' not found in configuration.")
 
     agent = agents[agent_name]
-
-    # Deal with the fact we have an async library under us
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
 
     # Set the title
     st.title("ATLAS Plot Agent")
@@ -107,6 +108,10 @@ def web(agent_name: str = "Orchestrator"):
     with conversation_container:
         for speaker, message in st.session_state.conversation:
             st.write(f"**{speaker}:** {message}")
+
+    # Write a placeholder for any messages we might be updating
+    # in realtime
+    response_placeholder = st.empty()
 
     # Add the input text. Disabled if we are working on
     # things.
@@ -140,9 +145,19 @@ def web(agent_name: str = "Orchestrator"):
 
         st.session_state.agent_input_history.append({"role": "user", "content": input})
 
-        response = Runner.run_sync(agent, st.session_state.agent_input_history)
-        st.session_state.agent_input_history = response.to_input_list()
-        st.session_state.conversation.append(("Agent", response.final_output))
+        result = Runner.run_streamed(agent, st.session_state.agent_input_history)
+
+        with response_placeholder:
+            final_text = "**Agent:** "
+            async for event in result.stream_events():
+                if event.type == "raw_response_event" and isinstance(
+                    event.data, ResponseTextDeltaEvent
+                ):
+                    final_text += event.data.delta
+                    st.write(final_text)
+
+        st.session_state.agent_input_history = result.to_input_list()
+        st.session_state.conversation.append(("Agent", result.final_output))
 
         st.rerun()
 
