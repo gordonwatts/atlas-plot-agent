@@ -24,13 +24,13 @@ def initialize_agents():
 
 
 @ask_app.callback(invoke_without_command=True)
-def ask(task: str, agent_name: str = "Orchestrator", one_shot: bool = False):
+def ask(task: str, agent_name: str = "StarterAgent", one_shot: bool = False):
     """Run the ask_async function in an event loop."""
     asyncio.run(ask_async(task, agent_name, one_shot))
 
 
 async def ask_async(
-    task: str, agent_name: str = "Orchestrator", one_shot: bool = False
+    task: str, agent_name: str = "StarterAgent", one_shot: bool = False
 ):
     """Run a specific agent to perform a task.
 
@@ -73,11 +73,11 @@ async def ask_async(
 
 
 @web_app.callback(invoke_without_command=True)
-def web(agent_name: str = "Orchestrator"):
+def web(agent_name: str = "StarterAgent"):
     asyncio.run(web_async(agent_name))
 
 
-async def web_async(agent_name: str = "Orchestrator"):
+async def web_async(agent_name: str = "StarterAgent"):
     """Run the web interface."""
     import streamlit as st
 
@@ -163,8 +163,3 @@ async def web_async(agent_name: str = "Orchestrator"):
 
 if __name__ == "__main__":
     app()
-
-
-@function_tool
-def get_weather(city: str) -> str:
-    return f"The weather in {city} is cloudy."

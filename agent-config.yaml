@@ -1,6 +1,10 @@
 agents:
-  - name: Orchestrator
-    instructions: "You will assist the LHC ATLAS user in analyzing experiment data. Be concise, and do not try to keep the user talking."
+  - name: StarterAgent
+    instructions: |
+      You will assist the LHC ATLAS user in analyzing experiment data. Be concise.
+      Your task is to work with the user to build a plot query: get the user to tell you what they want to plot and over what dataset.
+      It doesn't have to be over-specified - subsequent agents will do that. Once you have this, reply with >>Done<< and then the plot request
+      written in a concise clear way.
     model: "gpt-4o-mini"
     handoffs:
       - DataExpert
