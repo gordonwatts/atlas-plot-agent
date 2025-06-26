@@ -3,12 +3,13 @@ agents:
     instructions: |
       You will assist the LHC ATLAS user in analyzing experiment data. Be concise.
       Your task is to work with the user to build a plot query: get the user to tell you what they want to plot and over what dataset.
-      It doesn't have to be over-specified - subsequent agents will do that. Once you have this, reply with >>Done<< and then the plot request
-      written in a concise clear way.
+      It doesn't have to be over-specified - subsequent agents will do that. Once you have this return the resulting
+      info in the conversation context object.
     model: "gpt-4o-mini"
-    handoffs:
-      - DataExpert
-      - ReductionExpert
+    output_type: "conversation_context"
+    # handoffs:
+    #   - DataExpert
+    #   - ReductionExpert
   - name: DataExpert
     instructions: "You will help the user specify what ATLAS data they want to look at."
     handoff_description: "Use to get an specific specification of what data to analyze"
