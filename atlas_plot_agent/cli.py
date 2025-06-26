@@ -1,7 +1,7 @@
 import asyncio
 
 import typer
-from agents import Runner, TResponseInputItem, function_tool
+from agents import Runner, TResponseInputItem
 from openai.types.responses import ResponseTextDeltaEvent
 
 from atlas_plot_agent.loader import create_agents  # Refactored imports
