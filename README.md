@@ -22,6 +22,12 @@ To start this using the web interface do the following:
 streamlit run ./atlas_plot_agent/cli.py web
 ```
 
+And to run this from the command line (with a cli interaction):
+
+```bash
+python ./atlas_plot_agent/cli.py ask "Plot the jet pT for all jets in mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697"
+```
+
 ## Contributing
 
 Contributions are welcome! Please follow these steps:
