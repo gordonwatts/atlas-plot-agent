@@ -62,6 +62,7 @@ async def ask_async(
 
         print("")
         input_items = result.to_input_list()
+        print(result.final_output)
 
         if one_shot:
             break
