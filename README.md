@@ -16,6 +16,12 @@ As things get implemented, I'll add them here.
 
 ## Usage
 
+To start this using the web interface do the following:
+
+```bash
+streamlit run ./atlas_plot_agent/cli.py web
+```
+
 ## Contributing
 
 Contributions are welcome! Please follow these steps:
