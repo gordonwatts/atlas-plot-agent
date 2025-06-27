@@ -113,3 +113,6 @@ venv.bak/
 # Agent configuration
 .agent_config
 secrets.yaml
+
+# Some temp files
+plot.png

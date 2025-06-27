@@ -3,6 +3,8 @@ import yaml  # Ensure PyYAML is installed: `pip install pyyaml`
 import importlib
 from agents import Agent
 
+from atlas_plot_agent.datamodel import dataclass_type_from_string
+
 
 def load_secrets(secrets_file: str = "secrets.yaml"):
     """Load API secrets from a YAML file and set environment variables.
@@ -58,6 +60,9 @@ def create_agents(agent_configs, tools):
             name=agent_config["name"],
             instructions=agent_config["instructions"],
             model=agent_config["model"],
+            output_type=dataclass_type_from_string(
+                agent_config.get("output_type", None)
+            ),
         )
         if "handoff_description" in agent_config:
             agent.handoff_description = agent_config["handoff_description"]

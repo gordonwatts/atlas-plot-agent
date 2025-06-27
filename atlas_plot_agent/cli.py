@@ -1,12 +1,12 @@
 import asyncio
-from time import sleep
 
 import typer
-from agents import Agent, Runner, TResponseInputItem, function_tool
+from agents import Runner, TResponseInputItem
 from openai.types.responses import ResponseTextDeltaEvent
 
 from atlas_plot_agent.loader import create_agents  # Refactored imports
 from atlas_plot_agent.loader import load_config, load_secrets, load_tools
+from atlas_plot_agent.plot_driver import make_plot
 
 app = typer.Typer()
 ask_app = typer.Typer()
@@ -25,13 +25,13 @@ def initialize_agents():
 
 
 @ask_app.callback(invoke_without_command=True)
-def ask(task: str, agent_name: str = "Orchestrator", one_shot: bool = False):
+def ask(task: str, agent_name: str = "StarterAgent", one_shot: bool = False):
     """Run the ask_async function in an event loop."""
     asyncio.run(ask_async(task, agent_name, one_shot))
 
 
 async def ask_async(
-    task: str, agent_name: str = "Orchestrator", one_shot: bool = False
+    task: str, agent_name: str = "StarterAgent", one_shot: bool = False
 ):
     """Run a specific agent to perform a task.
 
@@ -63,6 +63,15 @@ async def ask_async(
 
         print("")
         input_items = result.to_input_list()
+        if result.final_output is not None:
+            # We have a good plot spec for us to move onto the next step.
+            r = make_plot(result.final_output)
+            print(f"Plot source: {r.code}")
+            with open("plot.png", "wb") as f:
+                f.write(r.plot.getvalue())
+            print("Plot image saved to plot.png")
+
+            break
 
         if one_shot:
             break
@@ -74,11 +83,11 @@ async def ask_async(
 
 
 @web_app.callback(invoke_without_command=True)
-def web(agent_name: str = "Orchestrator"):
+def web(agent_name: str = "StarterAgent"):
     asyncio.run(web_async(agent_name))
 
 
-async def web_async(agent_name: str = "Orchestrator"):
+async def web_async(agent_name: str = "StarterAgent"):
     """Run the web interface."""
     import streamlit as st
 
@@ -164,8 +173,3 @@ async def web_async(agent_name: str = "Orchestrator"):
 
 if __name__ == "__main__":
     app()
-
-
-@function_tool
-def get_weather(city: str) -> str:
-    return f"The weather in {city} is cloudy."

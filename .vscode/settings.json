@@ -1,7 +1,16 @@
 {
     "cSpell.words": [
         "asyncio",
+        "DAOD",
+        "datamodel",
+        "ipywidgets",
+        "jupyterlab",
+        "mplhep",
+        "NNPDF",
+        "PHYSLITE",
+        "Rucio",
         "streamlit",
-        "typer"
+        "typer",
+        "xaodr"
     ]
 }
