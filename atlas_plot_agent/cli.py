@@ -6,6 +6,7 @@ from openai.types.responses import ResponseTextDeltaEvent
 
 from atlas_plot_agent.loader import create_agents  # Refactored imports
 from atlas_plot_agent.loader import load_config, load_secrets, load_tools
+from atlas_plot_agent.plot_driver import make_plot
 
 app = typer.Typer()
 ask_app = typer.Typer()
@@ -62,7 +63,15 @@ async def ask_async(
 
         print("")
         input_items = result.to_input_list()
-        print(result.final_output)
+        if result.final_output is not None:
+            # We have a good plot spec for us to move onto the next step.
+            r = make_plot(result.final_output)
+            print(f"Plot source: {r.code}")
+            with open("plot.png", "wb") as f:
+                f.write(r.plot.getvalue())
+            print("Plot image saved to plot.png")
+
+            break
 
         if one_shot:
             break
