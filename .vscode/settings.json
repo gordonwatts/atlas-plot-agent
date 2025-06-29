@@ -13,6 +13,7 @@
         "Rucio",
         "streamlit",
         "typer",
+        "Wenu",
         "xaodr",
         "xlabel",
         "ylabel"
