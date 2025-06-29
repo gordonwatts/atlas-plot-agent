@@ -116,3 +116,5 @@ secrets.yaml
 
 # Some temp files
 plot.png
+notebooks/*/*.png
+notebooks/*.png

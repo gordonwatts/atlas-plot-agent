@@ -11,6 +11,7 @@ notebook = [
     "func-adl-servicex-xaodr25",
     "hist",
     "awkward",
+    "vector",
     "matplotlib",
     "servicex_analysis_utils",
     "ipywidgets",

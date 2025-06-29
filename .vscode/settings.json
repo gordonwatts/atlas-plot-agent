@@ -3,6 +3,8 @@
         "asyncio",
         "DAOD",
         "datamodel",
+        "etmiss",
+        "histtype",
         "ipywidgets",
         "jupyterlab",
         "mplhep",
@@ -11,6 +13,8 @@
         "Rucio",
         "streamlit",
         "typer",
-        "xaodr"
+        "xaodr",
+        "xlabel",
+        "ylabel"
     ]
 }
