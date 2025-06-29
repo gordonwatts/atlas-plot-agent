@@ -8,6 +8,8 @@ The files in this folder contain examples of using various AI systems to generat
 1. The result is pasted into the notebook
 1. The example is updated until it runs, with a log kept of what changes had to be made.
 
+The top of each file discusses configuration of each of the tools.
+
 ## Questions
 
 See the original [site](https://github.com/iris-hep/adl-benchmarks-index) for the raw version of the questions. Of course, those questions were never meant to be fed to an AI, so some further context (e.g. datasets) had to be added. The questions are listed below:
