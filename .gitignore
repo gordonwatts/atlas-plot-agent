@@ -118,3 +118,6 @@ secrets.yaml
 plot.png
 notebooks/*/*.png
 notebooks/*.png
+
+# Data files
+DAOD_PHYS*
