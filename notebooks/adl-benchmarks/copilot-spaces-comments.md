@@ -2,7 +2,9 @@
 
 ## Question 6
 
-This is the first question that generated real trouble.
+This is the first question that generated real trouble. As a reminder, here is question 6:
+
+> For events with at least three jets, plot the pT of the trijet four-momentum that has the invariant mass closest to 172.5 GeV in each event and plot the maximum b-tagging discriminant value among the jets in this trijet in the rucio dataset mc23_13p6TeV:mc23_13p6TeV.601237.PhPy8EG_A14_ttbar_hdamp258p75_allhad.deriv.DAOD_PHYSLITE.e8514_s4369_r16083_p6697
 
 ### GPT-4.1
 
