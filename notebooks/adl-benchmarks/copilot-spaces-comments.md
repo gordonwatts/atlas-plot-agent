@@ -646,3 +646,451 @@ print("- max_btag_discriminant.png: Maximum b-tagging discriminant among jets in
 
 Wow - that worked!!
 
+### Gemini 2.5 Pro
+
+This failed to generate a proper ServiceX request, but did get the user of `argmax` correct (I suspect, I didn't run this since the SX stuff didn't make it).
+
+```python
+import awkward as ak
+import vector
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+import numpy as np
+
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+
+# Import the helper code for xAOD tool access as it is required for this analysis.
+# Normally this would be in a separate utility file.
+import ast
+from dataclasses import dataclass
+from typing import Callable, Iterable, List, Optional, Tuple, TypeVar
+from func_adl import ObjectStream
+from func_adl import func_adl_callable
+from func_adl_servicex_xaodr25.xAOD.jet_v1 import Jet_v1
+
+T = TypeVar("T")
+
+@dataclass
+class ToolInfo:
+    name: str
+
+def make_a_tool(
+    query: ObjectStream[T],
+    tool_name: str,
+    tool_type: str,
+    include_files: Optional[List[str]],
+    init_lines: List[str] = [],
+) -> Tuple[ObjectStream[T], ToolInfo]:
+    """
+    Injects C++ code into the query to initialize a tool of the specified type.
+    """
+    query_base = query.MetaData(
+        {
+            "metadata_type": "inject_code",
+            "name": tool_name,
+            "header_includes": include_files,
+            "private_members": [f"{tool_type} *{tool_name};"],
+            "instance_initialization": [
+                f'{tool_name}(new {tool_type} ("{tool_name}"))'
+            ],
+            "initialize_lines": [l.format(tool_name=tool_name) for l in init_lines],
+            "link_libraries": ["xAODBTaggingEfficiencyLib"],
+        }
+    )
+    return query_base, ToolInfo(name=tool_name)
+
+def make_tool_accessor(
+    t_info: ToolInfo,
+    function_name: str,
+    source_code: List[str],
+    arguments: Iterable[Tuple[str, type]],
+    return_type_cpp: str,
+    return_type_python: str
+):
+    """
+    Creates a Python-callable accessor for a C++ tool in the func_adl query.
+    """
+    def tool_callback(
+        s: ObjectStream[T], a: ast.Call
+    ) -> Tuple[ObjectStream[T], ast.Call]:
+        new_s = s.MetaData(
+            {
+                "metadata_type": "add_cpp_function",
+                "name": function_name,
+                "code": [
+                    "double result;",
+                    *[l.format(tool_name=t_info.name) for l in source_code],
+                ],
+                "result": "result",
+                "include_files": [],
+                "arguments": [a[0] for a in arguments],
+                "return_type": return_type_cpp,
+            }
+        )
+        return new_s, a
+
+    def tool_call(**arg_dict):
+        ...
+    tool_call.__name__ = function_name
+    tool_call.__annotations__['return'] = eval(return_type_python)
+    return func_adl_callable(tool_callback)(tool_call)
+
+# 1. Setup the data query
+# Dataset for the ttbar sample
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.601237.PhPy8EG_A14_ttbar_hdamp258p75_allhad.deriv.DAOD_PHYSLITE.e8514_s4369_r16083_p6697"
+
+# Base query for PHYSLITE format, filtering for events with at least 3 jets
+base_query = FuncADLQueryPHYSLITE().Where(lambda evt: evt.Jets().Count() >= 3)
+
+# Define the BTaggingSelectionTool to get the b-tagging discriminant (tag weight)
+# We will use the 'FixedCutBEff_77' working point as a default.
+query_with_tool, btag_tool_info = make_a_tool(
+    base_query,
+    "btag_tool",
+    "BTaggingSelectionTool",
+    include_files=["xAODBTaggingEfficiency/BTaggingSelectionTool.h"],
+    init_lines=[
+        'ANA_CHECK(asg::setProperty({tool_name}, "OperatingPoint", "FixedCutBEff_77"));',
+        "ANA_CHECK({tool_name}->initialize());",
+    ],
+)
+
+# Create an accessor function for the tag weight
+get_tag_weight = make_tool_accessor(
+    btag_tool_info,
+    function_name="get_tag_weight",
+    source_code=["ANA_CHECK({tool_name}->getTaggerWeight(*jet, result, false));"],
+    arguments=[("jet", Jet_v1)],
+    return_type_cpp="double",
+    return_type_python="float",
+)
+
+# Define the final query to select jet properties and the b-tagging weight
+jet_query = query_with_tool.Select(
+    lambda evt: {
+        "jets": evt.Jets().Select(
+            lambda j: {
+                "pt": j.pt() / 1000.0,
+                "eta": j.eta(),
+                "phi": j.phi(),
+                "m": j.m() / 1000.0,
+                "btag": get_tag_weight(jet=j),
+            }
+        )
+    }
+)
+
+# 2. Fetch the data using ServiceX
+print("Fetching data from ServiceX...")
+events_awk = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="ttbar_allhad",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=5, # Using 5 files for a quicker demonstration
+                    Query=jet_query,
+                )
+            ]
+        ),
+    )
+)["ttbar_allhad"]
+print("Data delivered.")
+
+# 3. Process the data with awkward and vector
+vector.register_awkward()
+
+# Combine jet kinematics into a Lorentz vector and add the b-tagging info
+jets = ak.with_name(
+    ak.zip(
+        {
+            "pt": events_awk.jets.pt,
+            "eta": events_awk.jets.eta,
+            "phi": events_awk.jets.phi,
+            "mass": events_awk.jets.m,
+        }
+    ),
+    "Momentum4D",
+)
+jets["btag"] = events_awk.jets.btag
+
+# Form all 3-jet combinations per event
+trijets = ak.combinations(jets, 3, fields=["j1", "j2", "j3"])
+
+# Calculate the invariant mass of each trijet
+trijet_p4 = trijets.j1 + trijets.j2 + trijets.j3
+trijet_mass = trijet_p4.mass
+
+# Find the trijet with mass closest to 172.5 GeV in each event
+target_mass = 172.5
+mass_diff = abs(trijet_mass - target_mass)
+best_trijet_idx = ak.argmin(mass_diff, axis=1, keepdims=True)
+
+# Select the best trijet system and its constituent jets
+best_trijet_p4 = ak.firsts(trijet_p4[best_trijet_idx])
+best_trijet_constituents = ak.firsts(trijets[best_trijet_idx])
+
+# Calculate the pT of the best trijet system
+best_trijet_pt = best_trijet_p4.pt
+
+# Find the maximum b-tagging discriminant among the jets in the best trijet
+j1_btag = best_trijet_constituents.j1.btag
+j2_btag = best_trijet_constituents.j2.btag
+j3_btag = best_trijet_constituents.j3.btag
+max_btag = ak.max(ak.concatenate([j1_btag[:, np.newaxis], j2_btag[:, np.newaxis], j3_btag[:, np.newaxis]], axis=1), axis=1)
+
+# 4. Create and save the plots
+plt.style.use(hep.style.ATLAS)
+
+# Plot 1: pT of the trijet system
+h_pt = hist.Hist.new.Reg(100, 0, 500, name="pt", label=r"Trijet $p_T$ [GeV]").Double()
+h_pt.fill(pt=best_trijet_pt)
+
+fig, ax = plt.subplots(figsize=(8, 6))
+h_pt.plot(ax=ax, histtype="fill", edgecolor="black", linewidth=1)
+ax.set_xlabel(r"Trijet $p_T$ [GeV]")
+ax.set_ylabel("Events")
+ax.set_title("Trijet $p_T$ (mass closest to 172.5 GeV)")
+plt.tight_layout()
+plt.savefig("trijet_pt.png")
+print("Saved trijet pT plot to trijet_pt.png")
+
+# Plot 2: Maximum b-tagging discriminant
+h_btag = hist.Hist.new.Reg(100, -10, 15, name="btag", label="Max B-tagging Discriminant").Double()
+h_btag.fill(btag=max_btag)
+
+fig, ax = plt.subplots(figsize=(8, 6))
+h_btag.plot(ax=ax, histtype="fill", edgecolor="black", linewidth=1)
+ax.set_xlabel("Max B-tagging Discriminant in Trijet")
+ax.set_ylabel("Events")
+ax.set_title("Max B-tagging Discriminant in Best Trijet")
+plt.tight_layout()
+plt.savefig("max_btag_discriminant.png")
+print("Saved max b-tagging discriminant plot to max_btag_discriminant.png")
+```
+
+### Claude Sonnet 3.7 Thinking
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import vector
+import numpy as np
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+from dataclasses import dataclass
+from typing import Callable, Iterable, List, Optional, Tuple, TypeVar
+from func_adl import ObjectStream
+from func_adl import func_adl_callable
+import ast
+
+# Register vector behaviors for physics calculations
+vector.register_awkward()
+
+# Template code for xAOD tool access
+T = TypeVar("T")
+
+@dataclass
+class ToolInfo:
+    name: str
+
+def make_a_tool(
+    query: ObjectStream[T],
+    tool_name: str,
+    tool_type: str,
+    include_files: Optional[List[str]],
+    init_lines: List[str] = [],
+) -> Tuple[ObjectStream[T], ToolInfo]:
+    """Injects C++ code into the query to initialize a tool of the specified type."""
+    query_base = query.MetaData(
+        {
+            "metadata_type": "inject_code",
+            "name": tool_name,
+            "header_includes": include_files,
+            "private_members": [f"{tool_type} *{tool_name};"],
+            "instance_initialization": [
+                f'{tool_name}(new {tool_type} ("{tool_name}"))'
+            ],
+            "initialize_lines": [l.format(tool_name=tool_name) for l in init_lines],
+            "link_libraries": ["xAODBTaggingEfficiencyLib"],
+        }
+    )
+    return query_base, ToolInfo(name=tool_name)
+
+def make_tool_accessor(
+    t_info: ToolInfo,
+    function_name: str,
+    source_code: List[str],
+    arguments: Iterable[Tuple[str, type]],
+    return_type_cpp: str,
+    return_type_python: str
+):
+    """Creates a Python-callable accessor for a C++ tool in the func_adl query."""
+    def tool_callback(
+        s: ObjectStream[T], a: ast.Call
+    ) -> Tuple[ObjectStream[T], ast.Call]:
+        new_s = s.MetaData(
+            {
+                "metadata_type": "add_cpp_function",
+                "name": function_name,
+                "code": [
+                    "double result;",
+                    *[l.format(tool_name=t_info.name) for l in source_code],
+                ],
+                "result": "result",
+                "include_files": [],
+                "arguments": [a[0] for a in arguments],
+                "return_type": return_type_cpp,
+            }
+        )
+        return new_s, a
+
+    def tool_call(**arg_dict):
+        """Dummy function that injects C++ into the object stream."""
+        ...
+    tool_call.__name__ = function_name
+    tool_call.__annotations__['return'] = eval(return_type_python)
+
+    return func_adl_callable(tool_callback)(tool_call)
+
+# The base query should run against PHYSLITE
+base_query = FuncADLQueryPHYSLITE()
+
+# Define the BTaggingSelectionTool to access b-tagging information
+from func_adl_servicex_xaodr25.xAOD.jet_v1 import Jet_v1
+query_with_tool, btag_tool_info = make_a_tool(
+    base_query,
+    "btag_discriminator",
+    "BTaggingSelectionTool",
+    include_files=["xAODBTaggingEfficiency/BTaggingSelectionTool.h"],
+    init_lines=[
+        'ANA_CHECK(asg::setProperty({tool_name}, "OperatingPoint", "FixedCutBEff_77"));',
+        "ANA_CHECK({tool_name}->initialize());",
+    ],
+)
+
+# Create accessor for b-tagging weight (using FixedCutBEff_77 working point)
+tag_weight = make_tool_accessor(
+    btag_tool_info,
+    function_name="tag_weight",
+    # false for b-tagging weight, true would be for c-tagging weight
+    source_code=["ANA_CHECK({tool_name}->getTaggerWeight(*jet, result, false));"],
+    arguments=[("jet", Jet_v1)],
+    return_type_cpp="double",
+    return_type_python="float",
+)
+
+# Define the query to get jet information
+jet_query = (query_with_tool
+    .Select(lambda evt: {
+        "jets_pt": evt.Jets().Select(lambda j: j.pt() / 1000.0),  # Convert MeV to GeV
+        "jets_eta": evt.Jets().Select(lambda j: j.eta()),
+        "jets_phi": evt.Jets().Select(lambda j: j.phi()),
+        "jets_e": evt.Jets().Select(lambda j: j.e() / 1000.0),    # Convert MeV to GeV
+        "jets_btag": evt.Jets().Select(lambda j: tag_weight(j))   # Get b-tagging discriminant
+    })
+    .Where(lambda evt: ak.num(evt["jets_pt"]) >= 3)  # Require at least 3 jets
+)
+
+# Define the ttbar dataset
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.601237.PhPy8EG_A14_ttbar_hdamp258p75_allhad.deriv.DAOD_PHYSLITE.e8514_s4369_r16083_p6697"
+
+# Fetch the data using ServiceX
+result = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="ttbar_jets",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,  # Using 1 file for testing/development
+                    Query=jet_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Extract the events data
+events = result["ttbar_jets"]
+
+# Create 4-vectors for each jet, including the b-tagging discriminant as an extra field
+jets = ak.zip({
+    "px": events.jets_pt * np.cos(events.jets_phi),
+    "py": events.jets_pt * np.sin(events.jets_phi),
+    "pz": events.jets_pt * np.sinh(events.jets_eta),
+    "E": events.jets_e,
+    "btag": events.jets_btag  # Store b-tagging discriminant as an extra field
+}, with_name="Momentum4D")
+
+# Create all possible trijet combinations in each event
+trijet_combos = ak.combinations(jets, 3, fields=["j1", "j2", "j3"], axis=1)
+
+# Calculate the 4-momentum of each trijet
+trijets = trijet_combos.j1 + trijet_combos.j2 + trijet_combos.j3
+
+# Calculate the invariant mass of each trijet
+trijet_mass = trijets.mass
+
+# Find the maximum b-tagging discriminant among the 3 jets in each trijet
+trijet_max_btag = ak.maximum(
+    ak.maximum(trijet_combos.j1.btag, trijet_combos.j2.btag),
+    trijet_combos.j3.btag
+)
+
+# Calculate the absolute difference between each trijet mass and the top mass
+TOP_MASS = 172.5  # GeV (top quark mass)
+mass_diff = abs(trijet_mass - TOP_MASS)
+
+# For each event, find the index of the trijet with mass closest to top mass
+best_trijet_idx = ak.argmin(mass_diff, axis=1, keepdims=True)
+
+# Get properties of the best trijet in each event
+best_trijet_pt = ak.flatten(trijets.pt[best_trijet_idx])
+best_trijet_max_btag = ak.flatten(trijet_max_btag[best_trijet_idx])
+
+# Create histograms
+h_pt = hist.Hist(hist.axis.Regular(50, 0, 500, name="pt", label="Trijet p_T [GeV]"))
+h_btag = hist.Hist(hist.axis.Regular(50, -10, 15, name="btag", label="Maximum b-tag Discriminant"))
+
+# Fill histograms
+h_pt.fill(best_trijet_pt)
+h_btag.fill(best_trijet_max_btag)
+
+# Plot the trijet pT histogram
+plt.figure(figsize=(10, 6))
+plt.style.use(hep.style.ATLAS)
+h_pt.plot(histtype="fill", color="skyblue", edgecolor="black", alpha=0.8)
+plt.xlabel("Trijet p_T [GeV]")
+plt.ylabel("Events")
+plt.title("pT of Trijet with Mass Closest to Top Quark Mass (172.5 GeV)")
+plt.savefig("trijet_pt.png")
+plt.close()
+
+# Plot the maximum b-tag discriminant histogram
+plt.figure(figsize=(10, 6))
+plt.style.use(hep.style.ATLAS)
+h_btag.plot(histtype="fill", color="lightgreen", edgecolor="black", alpha=0.8)
+plt.xlabel("Maximum b-tag Discriminant")
+plt.ylabel("Events")
+plt.title("Maximum b-tag Discriminant in Trijet with Mass Closest to Top Quark")
+plt.savefig("trijet_max_btag.png")
+plt.close()
+
+print("Analysis complete. Plots saved to trijet_pt.png and trijet_max_btag.png")
+```
+
+* Added some awkward code into the middle of `servicex` which is a good idea... but of course that didn't work.
+  * Convert to `.Where(lambda evt: evt["jets_pt"].Count() >= 3)`
+  * Interesting that it did the `Count()` after, not before, as the other models did. In the end, for ServiceX, this makes no difference other than not doing the cut *early* as instructed by the hint files.
+* Used `ak.maximum` rather than `ak.max`
+  * it also used a funny nested way of doing the three items - not incorrect, just "odd".
+  * It didn't specify the axis=-1 either, which meant that this didn't work at all.
+* Looks like proper handling of `argmin` and `flatten`.
