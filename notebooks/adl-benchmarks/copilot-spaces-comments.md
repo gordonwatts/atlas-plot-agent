@@ -1094,3 +1094,419 @@ print("Analysis complete. Plots saved to trijet_pt.png and trijet_max_btag.png")
   * it also used a funny nested way of doing the three items - not incorrect, just "odd".
   * It didn't specify the axis=-1 either, which meant that this didn't work at all.
 * Looks like proper handling of `argmin` and `flatten`.
+
+## Question 7
+
+As a reminder:
+
+> Plot the scalar sum in each event of the pT of jets with pT > 30 GeV that are not within 0.4 in ΔR of any light lepton with pT > 10 GeV in the rucio dataset mc23_13p6TeV:mc23_13p6TeV.601237.PhPy8EG_A14_ttbar_hdamp258p75_allhad.deriv.DAOD_PHYSLITE.e8514_s4369_r16083_p6697.
+
+### GPT-4.1
+
+* It invented a ServiceX `func_adl` operator `Concat` which would take the ele and mu results and put them together. Very clever! But not functional.
+
+```python
+# Plot the scalar sum (HT) of jet pT in each event, for jets (pT > 30 GeV) not within ΔR < 0.4 of any light lepton (e/mu, pT > 10 GeV)
+# Dataset: mc23_13p6TeV:mc23_13p6TeV.601237.PhPy8EG_A14_ttbar_hdamp258p75_allhad.deriv.DAOD_PHYSLITE.e8514_s4369_r16083_p6697
+
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import vector
+import numpy as np
+from hist import Hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+vector.register_awkward()
+
+# Build func_adl query
+base_query = FuncADLQueryPHYSLITE()
+
+def get_jets_electrons_muons(evt):
+    jets = evt.Jets()
+    electrons = evt.Electrons("Electrons")
+    muons = evt.Muons("Muons")
+    return (jets, electrons, muons)
+
+query = (
+    base_query
+    .Select(get_jets_electrons_muons)
+    .Select(lambda objs: {
+        # Filter electrons and muons: pT > 10 GeV, build Momentum4D records
+        "leptons": objs[1]
+            .Where(lambda e: e.pt()/1000.0 > 10.0)
+            .Select(lambda e: {
+                "pt": e.pt()/1000.0,
+                "eta": e.eta(),
+                "phi": e.phi(),
+                "mass": 0.000511,  # electron mass in GeV
+            })
+        .Concat(
+            objs[2]
+            .Where(lambda m: m.pt()/1000.0 > 10.0)
+            .Select(lambda m: {
+                "pt": m.pt()/1000.0,
+                "eta": m.eta(),
+                "phi": m.phi(),
+                "mass": 0.10566,  # muon mass in GeV
+            })
+        ),
+        # Jets: pT > 30 GeV, build Momentum4D records
+        "jets": objs[0]
+            .Where(lambda j: j.pt()/1000.0 > 30.0)
+            .Select(lambda j: {
+                "pt": j.pt()/1000.0,
+                "eta": j.eta(),
+                "phi": j.phi(),
+                "mass": j.m()/1000.0
+            })
+    })
+)
+
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.601237.PhPy8EG_A14_ttbar_hdamp258p75_allhad.deriv.DAOD_PHYSLITE.e8514_s4369_r16083_p6697"
+result = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="jet_ht_analysis",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,  # For test, use 1 file. Remove for full dataset.
+                    Query=query,
+                ),
+            ]
+        ),
+    )
+)
+
+data = result["jet_ht_analysis"]
+
+# Convert jets and leptons to Momentum4D awkward arrays
+jets = ak.zip(data.jets, with_name="Momentum4D")
+leptons = ak.zip(data.leptons, with_name="Momentum4D")
+
+# For each event, select jets not within ΔR < 0.4 of any lepton
+def jets_not_near_leptons(jet_array, lepton_array):
+    if len(lepton_array) == 0:
+        return jet_array
+    # Make all jet-lepton pairs for this event
+    pairs = ak.cartesian([jet_array, lepton_array], axis=1)
+    jets_p, leptons_p = ak.unzip(pairs)
+    dR = jets_p.deltaR(leptons_p)
+    # For each jet, find min dR to any lepton
+    jet_dRmin = ak.min(dR, axis=1)
+    # Select jets with min dR >= 0.4
+    mask = jet_dRmin >= 0.4
+    return jet_array[mask]
+
+# Apply to all events
+jets_clean = ak.Array([
+    jets_not_near_leptons(jet_evt, lep_evt)
+    for jet_evt, lep_evt in zip(jets, leptons)
+])
+
+# Scalar sum of pT per event
+ht = ak.sum(jets_clean.pt, axis=1)
+
+# Make and plot histogram
+plt.style.use(hep.style.ATLAS)
+h = (
+    Hist.new
+    .Reg(40, 0, 800, name="HT", label="Scalar sum pT of jets [GeV]")
+    .Int64()
+)
+h.fill(HT=ak.to_numpy(ht))
+
+h.plot(histtype="step", linewidth=2, color="navy", label="HT")
+plt.xlabel("Scalar sum pT of jets [GeV]")
+plt.ylabel("Events")
+plt.legend()
+plt.tight_layout()
+plt.savefig("jet_ht.png")
+```
+
+### o4-mini
+
+The original text (see the ipynb for everything that was done to fix it).
+
+* Worked the first time with no changes.
+* But note that it used python `list` and `for` loops! Lol. So, this is "bogus".
+
+```python
+# name=plot_sum_pt_jets_away_from_leptons.py
+import awkward as ak
+import numpy as np
+import vector
+import matplotlib.pyplot as plt
+import mplhep as hep
+from hist import Hist
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex import deliver, ServiceXSpec, Sample, dataset
+from servicex_analysis_utils import to_awk
+
+# Enable Vector behaviors on Awkward arrays
+vector.register_awkward()
+
+# Define the ServiceX query: select jets and leptons per event, applying pT cuts
+base = FuncADLQueryPHYSLITE()
+query = (
+    base
+    .Select(lambda e: {
+        # Jets with pT > 30 GeV
+        "jet_pt":  e.Jets().Where(lambda j: j.pt()/1000.0 > 30.0).Select(lambda j: j.pt()/1000.0),
+        "jet_eta": e.Jets().Where(lambda j: j.pt()/1000.0 > 30.0).Select(lambda j: j.eta()),
+        "jet_phi": e.Jets().Where(lambda j: j.pt()/1000.0 > 30.0).Select(lambda j: j.phi()),
+        # Electrons with pT > 10 GeV
+        "ele_pt":  e.Electrons().Where(lambda l: l.pt()/1000.0 > 10.0).Select(lambda l: l.pt()/1000.0),
+        "ele_eta": e.Electrons().Where(lambda l: l.pt()/1000.0 > 10.0).Select(lambda l: l.eta()),
+        "ele_phi": e.Electrons().Where(lambda l: l.pt()/1000.0 > 10.0).Select(lambda l: l.phi()),
+        # Muons with pT > 10 GeV
+        "mu_pt":   e.Muons().Where(lambda l: l.pt()/1000.0 > 10.0).Select(lambda l: l.pt()/1000.0),
+        "mu_eta":  e.Muons().Where(lambda l: l.pt()/1000.0 > 10.0).Select(lambda l: l.eta()),
+        "mu_phi":  e.Muons().Where(lambda l: l.pt()/1000.0 > 10.0).Select(lambda l: l.phi()),
+    })
+)
+
+# Deliver the query (use NFiles=1 for testing; increase for full stats)
+ds_name = (
+    "mc23_13p6TeV:mc23_13p6TeV."
+    "601237.PhPy8EG_A14_ttbar_hdamp258p75_allhad."
+    "deriv.DAOD_PHYSLITE.e8514_s4369_r16083_p6697"
+)
+spec = ServiceXSpec(
+    Sample=[
+        Sample(
+            Name="jets_near_lep",
+            Dataset=dataset.Rucio(ds_name),
+            NFiles=1,
+            Query=query,
+        )
+    ]
+)
+out = to_awk(deliver(spec))
+data = out["jets_near_lep"]
+
+# Helper function to compute ΔR
+def deltaR(eta1, phi1, eta2, phi2):
+    dphi = phi1 - phi2
+    dphi = (dphi + np.pi) % (2 * np.pi) - np.pi
+    return np.sqrt((eta1 - eta2)**2 + dphi**2)
+
+# Compute, for each event, the scalar sum of jet pT for jets
+# that are not within ΔR < 0.4 of any light lepton
+sum_pts = []
+for evt in data:
+    jets = list(zip(evt.jet_pt, evt.jet_eta, evt.jet_phi))
+    # combine electrons and muons into one lepton list
+    leps = (
+        list(zip(evt.ele_pt, evt.ele_eta, evt.ele_phi)) +
+        list(zip(evt.mu_pt,  evt.mu_eta,  evt.mu_phi))
+    )
+    total_pt = 0.0
+    for pt, eta, phi in jets:
+        # if no lepton is within ΔR < 0.4, include this jet
+        if all(deltaR(eta, phi, l_eta, l_phi) > 0.4 for l_pt, l_eta, l_phi in leps):
+            total_pt += pt
+    sum_pts.append(total_pt)
+
+# Create and fill the histogram of the per-event scalar sums
+h = (
+    Hist.new
+    .Reg(50, 0, max(sum_pts)*1.1 if sum_pts else 100, name="sum_pt",
+         label="Scalar Sum of Jet $p_T$ [GeV]")
+    .Int64()
+)
+h.fill(sum_pt=sum_pts)
+
+# Plot with ATLAS style and save to PNG
+plt.style.use(hep.style.ATLAS)
+h.plot(histtype="step", label=r"$\sum p_T$ of jets away from leptons")
+plt.xlabel("Scalar Sum $p_T$ [GeV]")
+plt.ylabel("Number of Events")
+plt.legend()
+plt.savefig("sum_jet_pt_away_from_leptons.png")
+plt.close()
+```
+
+## Claude Sonnet 4
+
+* Didn't do the cuts in ServiceX
+* Also used a `for` loop on events!!
+
+
+```python
+import awkward as ak
+import numpy as np
+import vector
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+from hist import Hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Register vector behaviors for physics calculations
+vector.register_awkward()
+
+# Set up ATLAS plotting style
+plt.style.use(hep.style.ATLAS)
+
+# Base query for PHYSLITE
+base_query = FuncADLQueryPHYSLITE()
+
+# Query to get jets and leptons with their kinematic properties
+query = base_query.Select(lambda e: {
+    # Get jets with basic kinematic info
+    "jet_pt": e.Jets().Select(lambda j: j.pt() / 1000.0),  # Convert to GeV
+    "jet_eta": e.Jets().Select(lambda j: j.eta()),
+    "jet_phi": e.Jets().Select(lambda j: j.phi()),
+    
+    # Get electrons with basic kinematic info
+    "ele_pt": e.Electrons().Select(lambda ele: ele.pt() / 1000.0),  # Convert to GeV
+    "ele_eta": e.Electrons().Select(lambda ele: ele.eta()),
+    "ele_phi": e.Electrons().Select(lambda ele: ele.phi()),
+    
+    # Get muons with basic kinematic info  
+    "mu_pt": e.Muons().Select(lambda mu: mu.pt() / 1000.0),  # Convert to GeV
+    "mu_eta": e.Muons().Select(lambda mu: mu.eta()),
+    "mu_phi": e.Muons().Select(lambda mu: mu.phi()),
+})
+
+# Define the dataset
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.601237.PhPy8EG_A14_ttbar_hdamp258p75_allhad.deriv.DAOD_PHYSLITE.e8514_s4369_r16083_p6697"
+
+# Fetch the data
+print("Fetching data from ServiceX...")
+data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="ttbar_jets_leptons",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,  # Start with 1 file for testing
+                    Query=query,
+                )
+            ]
+        ),
+    )
+)
+
+# Extract the data
+events = data["ttbar_jets_leptons"]
+
+print(f"Loaded {len(events)} events")
+
+# Create Momentum4D vectors for jets (assuming massless)
+jets = ak.zip({
+    "pt": events.jet_pt,
+    "eta": events.jet_eta,
+    "phi": events.jet_phi,
+    "mass": ak.zeros_like(events.jet_pt)  # Assume massless jets for ΔR calculation
+}, with_name="Momentum4D")
+
+# Create Momentum4D vectors for electrons
+electrons = ak.zip({
+    "pt": events.ele_pt,
+    "eta": events.ele_eta,
+    "phi": events.ele_phi,
+    "mass": ak.full_like(events.ele_pt, 0.0005)  # Electron mass ~0.5 MeV
+}, with_name="Momentum4D")
+
+# Create Momentum4D vectors for muons
+muons = ak.zip({
+    "pt": events.mu_pt,
+    "eta": events.mu_eta,
+    "phi": events.mu_phi,
+    "mass": ak.full_like(events.mu_pt, 0.106)  # Muon mass ~106 MeV
+}, with_name="Momentum4D")
+
+# Apply pT cuts
+jets_pt_cut = jets[jets.pt > 30.0]  # Jets with pT > 30 GeV
+electrons_pt_cut = electrons[electrons.pt > 10.0]  # Electrons with pT > 10 GeV
+muons_pt_cut = muons[muons.pt > 10.0]  # Muons with pT > 10 GeV
+
+# Combine electrons and muons into light leptons
+light_leptons = ak.concatenate([electrons_pt_cut, muons_pt_cut], axis=1)
+
+print(f"Average jets per event (pT > 30 GeV): {ak.mean(ak.num(jets_pt_cut)):.2f}")
+print(f"Average light leptons per event (pT > 10 GeV): {ak.mean(ak.num(light_leptons)):.2f}")
+
+# For each event, calculate ΔR between all jets and all light leptons
+# We need to handle events with no leptons separately
+def calculate_isolated_jet_sum(jets_in_event, leptons_in_event):
+    """Calculate scalar sum of isolated jet pT for a single event"""
+    if len(jets_in_event) == 0:
+        return 0.0
+    
+    if len(leptons_in_event) == 0:
+        # No leptons to isolate against, all jets are isolated
+        return ak.sum(jets_in_event.pt)
+    
+    # Create all jet-lepton pairs for this event
+    jet_lepton_pairs = ak.cartesian([jets_in_event, leptons_in_event])
+    jets_paired, leptons_paired = ak.unzip(jet_lepton_pairs)
+    
+    # Calculate ΔR for all pairs
+    deltaR_values = jets_paired.deltaR(leptons_paired)
+    
+    # For each jet, find the minimum ΔR to any lepton
+    # Reshape to group by jet index
+    deltaR_by_jet = ak.unflatten(deltaR_values, ak.num(leptons_in_event))
+    min_deltaR_per_jet = ak.min(deltaR_by_jet, axis=1)
+    
+    # Select jets that are isolated (ΔR > 0.4 from all leptons)
+    isolated_jets = jets_in_event[min_deltaR_per_jet > 0.4]
+    
+    # Return scalar sum of isolated jet pT
+    return ak.sum(isolated_jets.pt)
+
+# Calculate isolated jet scalar sum for each event
+print("Calculating ΔR isolation and scalar sums...")
+isolated_jet_ht = []
+
+for i in range(len(events)):
+    jets_event = jets_pt_cut[i]
+    leptons_event = light_leptons[i]
+    ht_value = calculate_isolated_jet_sum(jets_event, leptons_event)
+    isolated_jet_ht.append(ht_value)
+
+isolated_jet_ht = ak.Array(isolated_jet_ht)
+
+print(f"Events with isolated jets: {ak.sum(isolated_jet_ht > 0)}/{len(isolated_jet_ht)}")
+print(f"Mean isolated jet scalar sum: {ak.mean(isolated_jet_ht[isolated_jet_ht > 0]):.2f} GeV")
+
+# Create histogram
+h = Hist.new.Reg(50, 0, 1000, name="ht", label="Isolated Jet Scalar Sum HT [GeV]").Weight()
+
+# Fill histogram (only events with non-zero HT)
+non_zero_ht = isolated_jet_ht[isolated_jet_ht > 0]
+h.fill(ht=non_zero_ht, weight=np.ones(len(non_zero_ht)))
+
+# Plot the histogram
+fig, ax = plt.subplots(figsize=(10, 8))
+h.plot(histtype="step", linewidth=2, label=f"ttbar events (N={len(non_zero_ht)})")
+
+plt.xlabel("Isolated Jet Scalar Sum HT [GeV]")
+plt.ylabel("Events")
+plt.title("Scalar Sum of Isolated Jet pT per Event\n(Jets: pT > 30 GeV, ΔR > 0.4 from leptons with pT > 10 GeV)")
+plt.legend()
+plt.grid(True, alpha=0.3)
+
+# Add some statistics as text
+stats_text = f"Mean: {ak.mean(non_zero_ht):.1f} GeV\nStd: {ak.std(non_zero_ht):.1f} GeV"
+plt.text(0.7, 0.8, stats_text, transform=ax.transAxes, 
+         bbox=dict(boxstyle="round", facecolor="white", alpha=0.8))
+
+plt.tight_layout()
+plt.savefig("isolated_jet_scalar_sum.png", dpi=300, bbox_inches='tight')
+plt.show()
+
+print("Plot saved as 'isolated_jet_scalar_sum.png'")
+print(f"Final statistics:")
+print(f"  Total events processed: {len(events)}")
+print(f"  Events with isolated jets: {len(non_zero_ht)}")
+print(f"  Mean isolated jet HT: {ak.mean(non_zero_ht):.2f} ± {ak.std(non_zero_ht):.2f} GeV")
+```
