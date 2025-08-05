@@ -1,8 +1,15 @@
 {
     "cSpell.words": [
+        "allhad",
+        "AODB",
+        "argmin",
         "asyncio",
+        "btag",
         "DAOD",
         "datamodel",
+        "etmiss",
+        "hdamp",
+        "histtype",
         "ipywidgets",
         "jupyterlab",
         "mplhep",
@@ -10,7 +17,11 @@
         "PHYSLITE",
         "Rucio",
         "streamlit",
+        "ttbar",
         "typer",
-        "xaodr"
+        "Wenu",
+        "xaodr",
+        "xlabel",
+        "ylabel"
     ]
 }
