@@ -134,7 +134,10 @@ def ask(question: str = typer.Argument(..., help="The question to ask the API"))
     Command to ask a question using the default configuration.
     Loads config, loads .env for OpenAI API key, builds prompt, queries OpenAI, and prints result.
     Uses cache for prompt responses.
+    Output is formatted in markdown.
     """
+    import time
+
     # Load environment variables from .env
     load_dotenv()
     openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -161,30 +164,46 @@ def ask(question: str = typer.Argument(..., help="The question to ask the API"))
     logging.info(f"Built prompt: {prompt}")
 
     # Disk-backed cache for OpenAI responses
+    start_time = time.time()
     response = get_openai_response(prompt, config.model_name)
+    elapsed = time.time() - start_time
     message = None
     if response and response.choices and response.choices[0].message:  # type: ignore
         message = response.choices[0].message.content  # type: ignore
+
+    # Print markdown output
+    print(f"# {question}\n")
+    print(f"## Model: {config.model_name}\n")
     if message:
-        print(f"OpenAI response:\n{message.strip()}")
+        # Remove reply markers if present
+        cleaned_message = (
+            message.replace(">>start-reply<<", "").replace(">>end-reply<<", "").strip()
+        )
+        print(cleaned_message)
     else:
         print("No response content returned from OpenAI.")
 
-    # Print token usage and cost
+    # Print token usage and cost in markdown table
     usage = getattr(response, "usage", None)
     if usage:
         prompt_tokens = getattr(usage, "prompt_tokens", 0)
         completion_tokens = getattr(usage, "completion_tokens", 0)
         total_tokens = getattr(usage, "total_tokens", 0)
-        print(
-            f"Token usage: prompt={prompt_tokens}, "
-            f"completion={completion_tokens}, total={total_tokens}"
-        )
         cost = (prompt_tokens / 1_000_000) * input_cost + (
             completion_tokens / 1_000_000
         ) * output_cost
-        print(f"Estimated cost: ${cost:.4f}")
+        print("\n---\n")
+        print(
+            "| Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |"
+        )
+        print(
+            "|----------|--------------|------------------|--------------|--------------------|"
+        )
+        print(
+            f"| {elapsed:.2f} | {prompt_tokens} | {completion_tokens} | {total_tokens} | {cost:.4f} |"
+        )
     else:
+        print("\n---\n")
         print("Token usage information not available.")
 
 
