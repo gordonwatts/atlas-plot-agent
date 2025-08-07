@@ -1,6 +1,5 @@
 import logging
 import os
-
 import fsspec
 import openai
 import typer
@@ -8,6 +7,43 @@ import yaml
 from cachetools import TTLCache, cached
 from dotenv import load_dotenv
 from pydantic import BaseModel
+
+
+def load_yaml_file(filename: str) -> dict:
+    """
+    Load a YAML file from local or script directory and return its contents as a dict.
+    """
+    local_path = os.path.abspath(filename)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    script_path = os.path.join(script_dir, filename)
+
+    if os.path.exists(local_path):
+        logging.info(f"Loaded {filename} from local directory: {local_path}")
+        path_to_load = local_path
+    elif os.path.exists(script_path):
+        logging.info(f"Loaded {filename} from script directory: {script_path}")
+        path_to_load = script_path
+    else:
+        raise FileNotFoundError(
+            f"File not found in local or script directory: {filename}"
+        )
+
+    with open(path_to_load, "r") as f:
+        return yaml.safe_load(f)
+
+
+class ModelInfo(BaseModel):
+    input_cost_per_million: float
+    output_cost_per_million: float
+
+
+def load_models(models_path: str = "models.yaml") -> dict:
+    """
+    Load models and their costs from a YAML file, returning a dict of model_name to ModelInfo.
+    """
+    data = load_yaml_file(models_path)
+    raw_models = data["models"]
+    return {name: ModelInfo(**info) for name, info in raw_models.items()}
 
 
 class DirectQueryConfig(BaseModel):
@@ -24,28 +60,9 @@ class DirectQueryConfig(BaseModel):
 def load_config(config_path: str = "direct-query-config.yaml") -> DirectQueryConfig:
     """
     Load configuration from a YAML file and return a DirectQueryConfig instance.
-    Checks local directory first, then script directory, and logs which file is loaded.
     Sets default model_name to gpt-4-1106-preview if not present.
     """
-    local_path = os.path.abspath(config_path)
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    script_path = os.path.join(script_dir, config_path)
-
-    if os.path.exists(local_path):
-        logging.info(f"Loaded config from local directory: {local_path}")
-        path_to_load = local_path
-    elif os.path.exists(script_path):
-        logging.info(f"Loaded config from script directory: {script_path}")
-        path_to_load = script_path
-    else:
-        raise FileNotFoundError(
-            f"Config file not found in local or script directory: {config_path}"
-        )
-
-    with open(path_to_load, "r") as f:
-        data = yaml.safe_load(f)
-    if "model_name" not in data:
-        data["model_name"] = "gpt-4-1106-preview"
+    data = load_yaml_file(config_path)
     return DirectQueryConfig(**data)
 
 
@@ -99,6 +116,15 @@ def ask(question: str = typer.Argument(..., help="The question to ask the API"))
     config = load_config()
     hint_contents = load_hint_files(config.hint_files)
 
+    # Load models and validate model_name
+    models = load_models()
+    if config.model_name not in models:
+        print(f"Error: model_name '{config.model_name}' not found in models.yaml.")
+        return
+    model_info = models[config.model_name]
+    input_cost = model_info.input_cost_per_million
+    output_cost = model_info.output_cost_per_million
+
     # Build the prompt
     prompt = config.prompt.format(question=question, hints="\n".join(hint_contents))
     logging.info(f"Built prompt: {prompt}")
@@ -124,14 +150,20 @@ def ask(question: str = typer.Argument(..., help="The question to ask the API"))
     else:
         print("No response content returned from OpenAI.")
 
-    # Print token usage
+    # Print token usage and cost
     usage = getattr(response, "usage", None)
     if usage:
+        prompt_tokens = getattr(usage, "prompt_tokens", 0)
+        completion_tokens = getattr(usage, "completion_tokens", 0)
+        total_tokens = getattr(usage, "total_tokens", 0)
         print(
-            f"Token usage: prompt={getattr(usage, 'prompt_tokens', 'N/A')}, "
-            f"completion={getattr(usage, 'completion_tokens', 'N/A')}, "
-            f"total={getattr(usage, 'total_tokens', 'N/A')}"
+            f"Token usage: prompt={prompt_tokens}, "
+            f"completion={completion_tokens}, total={total_tokens}"
         )
+        cost = (prompt_tokens / 1_000_000) * input_cost + (
+            completion_tokens / 1_000_000
+        ) * output_cost
+        print(f"Estimated cost: ${cost:.4f}")
     else:
         print("Token usage information not available.")
 
