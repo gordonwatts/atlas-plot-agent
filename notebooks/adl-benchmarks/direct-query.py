@@ -3,6 +3,8 @@ import typer
 
 from pydantic import BaseModel
 import yaml
+import os
+import logging
 
 import fsspec
 from cachetools import cached
@@ -22,8 +24,24 @@ class DirectQueryConfig(BaseModel):
 def load_config(config_path: str = "direct-query-config.yaml") -> DirectQueryConfig:
     """
     Load configuration from a YAML file and return a DirectQueryConfig instance.
+    Checks local directory first, then script directory, and logs which file is loaded.
     """
-    with open(config_path, "r") as f:
+    local_path = os.path.abspath(config_path)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    script_path = os.path.join(script_dir, config_path)
+
+    if os.path.exists(local_path):
+        logging.info(f"Loaded config from local directory: {local_path}")
+        path_to_load = local_path
+    elif os.path.exists(script_path):
+        logging.info(f"Loaded config from script directory: {script_path}")
+        path_to_load = script_path
+    else:
+        raise FileNotFoundError(
+            f"Config file not found in local or script directory: {config_path}"
+        )
+
+    with open(path_to_load, "r") as f:
         data = yaml.safe_load(f)
     return DirectQueryConfig(**data)
 
@@ -41,7 +59,7 @@ def load_file_content(path: str) -> str:
     For remote filesystems, replace with fsspec.open or fsspec.open_files.
     """
     with fsspec.open(path, "r") as f:
-        return f.read()
+        return f.read()  # type: ignore
 
 
 def load_hint_files(hint_files: list[str]) -> list[str]:
@@ -66,11 +84,11 @@ def ask(question: str = typer.Argument(..., help="The question to ask the API"))
     Loads config and prints the question and config for demonstration.
     """
     config = load_config()
-    print(f"Loaded config: {config}")
     hint_contents = load_hint_files(config.hint_files)
-    print(f"Loaded hint files: {[f for f in config.hint_files]}")
-    print(f"Hint file contents: {hint_contents}")
-    print(f"Question: {question}")
+
+    # Build the prompt
+    prompt = config.prompt.format(question=question, hints="\n".join(hint_contents))
+    print(f"Built prompt: {prompt}")
 
 
 if __name__ == "__main__":
