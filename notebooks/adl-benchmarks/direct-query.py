@@ -1,14 +1,13 @@
-import typer
-
-
-from pydantic import BaseModel
-import yaml
-import os
 import logging
+import os
 
 import fsspec
-from cachetools import cached
-from cachetools import TTLCache
+import openai
+import typer
+import yaml
+from cachetools import TTLCache, cached
+from dotenv import load_dotenv
+from pydantic import BaseModel
 
 
 class DirectQueryConfig(BaseModel):
@@ -81,14 +80,39 @@ app = typer.Typer(
 def ask(question: str = typer.Argument(..., help="The question to ask the API")):
     """
     Command to ask a question using the default configuration.
-    Loads config and prints the question and config for demonstration.
+    Loads config, loads .env for OpenAI API key, builds prompt, queries OpenAI, and prints result.
+    Uses cache for prompt responses.
     """
+    # Load environment variables from .env
+    load_dotenv()
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if not openai_api_key:
+        logging.warning("OPENAI_API_KEY not found in environment.")
+        return
+    openai.api_key = openai_api_key
+
+    # Load configuration
     config = load_config()
     hint_contents = load_hint_files(config.hint_files)
 
     # Build the prompt
     prompt = config.prompt.format(question=question, hints="\n".join(hint_contents))
-    print(f"Built prompt: {prompt}")
+    logging.info(f"Built prompt: {prompt}")
+
+    # Cache for OpenAI responses (prompt -> response)
+    response_cache = TTLCache(maxsize=128, ttl=3600)
+
+    @cached(response_cache)
+    def get_openai_response(prompt: str) -> str:
+        client = openai.OpenAI(api_key=openai_api_key)
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}]
+        )
+        assert response.choices[0].message.content is not None, "No content in response"
+        return response.choices[0].message.content.strip()
+
+    result = get_openai_response(prompt)
+    print(f"OpenAI response:\n{result}")
 
 
 if __name__ == "__main__":
