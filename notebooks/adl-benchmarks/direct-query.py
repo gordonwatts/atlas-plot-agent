@@ -66,20 +66,37 @@ def load_config(config_path: str = "direct-query-config.yaml") -> DirectQueryCon
     return DirectQueryConfig(**data)
 
 
-# Disk-backed cache for file contents using diskcache
+# Generic diskcache-backed decorator
+import functools
+
+
+def diskcache_decorator(cache: Cache):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            key = (func.__name__, args, tuple(sorted(kwargs.items())))
+            if key in cache:
+                return cache[key]
+            result = func(*args, **kwargs)
+            cache[key] = result
+            return result
+
+        return wrapper
+
+    return decorator
+
+
 file_cache = Cache(".hint_file_cache")
 
 
+@diskcache_decorator(file_cache)
 def load_file_content(path: str) -> str:
     """
     Load file content using built-in open for local files, with disk-backed cache.
     For remote filesystems, replace with fsspec.open or fsspec.open_files.
     """
-    if path in file_cache:
-        return file_cache[path]  # type: ignore
     with fsspec.open(path, "r") as f:
         content = f.read()  # type: ignore
-    file_cache[path] = content
     return content
 
 
@@ -88,6 +105,19 @@ def load_hint_files(hint_files: list[str]) -> list[str]:
     Load all hint files into a list of strings, using cache for speed.
     """
     return [load_file_content(hint_file) for hint_file in hint_files]
+
+
+response_cache = Cache(".openai_response_cache")
+
+
+@diskcache_decorator(response_cache)
+def get_openai_response(prompt: str, model_name: str):
+    client = openai.OpenAI()
+    response = client.chat.completions.create(
+        model=model_name, messages=[{"role": "user", "content": prompt}]
+    )
+    assert response.choices[0].message.content is not None, "No content in response"
+    return response
 
 
 app = typer.Typer(
@@ -131,20 +161,7 @@ def ask(question: str = typer.Argument(..., help="The question to ask the API"))
     logging.info(f"Built prompt: {prompt}")
 
     # Disk-backed cache for OpenAI responses
-    response_cache = Cache(".openai_response_cache")
-
-    def get_openai_response(prompt: str):
-        if prompt in response_cache:
-            return response_cache[prompt]
-        client = openai.OpenAI()
-        response = client.chat.completions.create(
-            model=config.model_name, messages=[{"role": "user", "content": prompt}]
-        )
-        assert response.choices[0].message.content is not None, "No content in response"
-        response_cache[prompt] = response
-        return response
-
-    response = get_openai_response(prompt)
+    response = get_openai_response(prompt, config.model_name)
     message = None
     if response and response.choices and response.choices[0].message:  # type: ignore
         message = response.choices[0].message.content  # type: ignore
