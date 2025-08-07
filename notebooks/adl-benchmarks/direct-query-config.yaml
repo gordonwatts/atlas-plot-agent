@@ -1,0 +1,4 @@
+hint_files:
+  - "awkward-hints.md"
+  - "hist-hints.md"
+prompt: "You are an expert HEP programmer. Use the provided hints to answer questions and generate code."
