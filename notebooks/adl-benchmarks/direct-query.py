@@ -4,7 +4,7 @@ import fsspec
 import openai
 import typer
 import yaml
-from cachetools import TTLCache, cached
+from diskcache import Cache
 from dotenv import load_dotenv
 from pydantic import BaseModel
 
@@ -66,20 +66,21 @@ def load_config(config_path: str = "direct-query-config.yaml") -> DirectQueryCon
     return DirectQueryConfig(**data)
 
 
-# Disk-backed cache for file contents (TTLCache for demonstration, can be replaced with diskcache)
+# Disk-backed cache for file contents using diskcache
+file_cache = Cache(".hint_file_cache")
 
 
-file_cache = TTLCache(maxsize=128, ttl=3600)
-
-
-@cached(file_cache)
 def load_file_content(path: str) -> str:
     """
-    Load file content using built-in open for local files.
+    Load file content using built-in open for local files, with disk-backed cache.
     For remote filesystems, replace with fsspec.open or fsspec.open_files.
     """
+    if path in file_cache:
+        return file_cache[path]  # type: ignore
     with fsspec.open(path, "r") as f:
-        return f.read()  # type: ignore
+        content = f.read()  # type: ignore
+    file_cache[path] = content
+    return content
 
 
 def load_hint_files(hint_files: list[str]) -> list[str]:
@@ -129,22 +130,24 @@ def ask(question: str = typer.Argument(..., help="The question to ask the API"))
     prompt = config.prompt.format(question=question, hints="\n".join(hint_contents))
     logging.info(f"Built prompt: {prompt}")
 
-    # Cache for OpenAI responses (prompt -> response)
-    response_cache = TTLCache(maxsize=128, ttl=3600)
+    # Disk-backed cache for OpenAI responses
+    response_cache = Cache(".openai_response_cache")
 
-    @cached(response_cache)
     def get_openai_response(prompt: str):
+        if prompt in response_cache:
+            return response_cache[prompt]
         client = openai.OpenAI()
         response = client.chat.completions.create(
             model=config.model_name, messages=[{"role": "user", "content": prompt}]
         )
         assert response.choices[0].message.content is not None, "No content in response"
+        response_cache[prompt] = response
         return response
 
     response = get_openai_response(prompt)
     message = None
-    if response and response.choices and response.choices[0].message:
-        message = response.choices[0].message.content
+    if response and response.choices and response.choices[0].message:  # type: ignore
+        message = response.choices[0].message.content  # type: ignore
     if message:
         print(f"OpenAI response:\n{message.strip()}")
     else:

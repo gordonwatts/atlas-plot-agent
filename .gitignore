@@ -121,3 +121,6 @@ notebooks/*.png
 
 # Data files
 DAOD_PHYS*
+
+# Caches
+*.db
