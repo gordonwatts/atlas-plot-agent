@@ -107,16 +107,33 @@ def ask(question: str = typer.Argument(..., help="The question to ask the API"))
     response_cache = TTLCache(maxsize=128, ttl=3600)
 
     @cached(response_cache)
-    def get_openai_response(prompt: str) -> str:
+    def get_openai_response(prompt: str):
         client = openai.OpenAI()
         response = client.chat.completions.create(
             model=config.model_name, messages=[{"role": "user", "content": prompt}]
         )
         assert response.choices[0].message.content is not None, "No content in response"
-        return response.choices[0].message.content.strip()
+        return response
 
-    result = get_openai_response(prompt)
-    print(f"OpenAI response:\n{result}")
+    response = get_openai_response(prompt)
+    message = None
+    if response and response.choices and response.choices[0].message:
+        message = response.choices[0].message.content
+    if message:
+        print(f"OpenAI response:\n{message.strip()}")
+    else:
+        print("No response content returned from OpenAI.")
+
+    # Print token usage
+    usage = getattr(response, "usage", None)
+    if usage:
+        print(
+            f"Token usage: prompt={getattr(usage, 'prompt_tokens', 'N/A')}, "
+            f"completion={getattr(usage, 'completion_tokens', 'N/A')}, "
+            f"total={getattr(usage, 'total_tokens', 'N/A')}"
+        )
+    else:
+        print("Token usage information not available.")
 
 
 if __name__ == "__main__":
