@@ -17,9 +17,13 @@ prompt: |
   {hints}
   ** User Question **
   {question}
+
   ** Final Instructions **
   Please reply in the following format:
-  <text describing what you have done>
+  >>start-reply<<
+  <text describing what you have done as a bulleted list>
+
   ```python
   <code>
   ```
+  >>end-reply<<
