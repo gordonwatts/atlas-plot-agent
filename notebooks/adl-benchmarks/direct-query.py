@@ -13,17 +13,19 @@ from pydantic import BaseModel
 class DirectQueryConfig(BaseModel):
     """
     Configuration model for direct-query CLI.
-    Contains a list of hint files and a prompt string.
+    Contains a list of hint files, a prompt string, and a model name.
     """
 
     hint_files: list[str]
     prompt: str
+    model_name: str = "gpt-4-1106-preview"
 
 
 def load_config(config_path: str = "direct-query-config.yaml") -> DirectQueryConfig:
     """
     Load configuration from a YAML file and return a DirectQueryConfig instance.
     Checks local directory first, then script directory, and logs which file is loaded.
+    Sets default model_name to gpt-4-1106-preview if not present.
     """
     local_path = os.path.abspath(config_path)
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -42,6 +44,8 @@ def load_config(config_path: str = "direct-query-config.yaml") -> DirectQueryCon
 
     with open(path_to_load, "r") as f:
         data = yaml.safe_load(f)
+    if "model_name" not in data:
+        data["model_name"] = "gpt-4-1106-preview"
     return DirectQueryConfig(**data)
 
 
@@ -106,7 +110,7 @@ def ask(question: str = typer.Argument(..., help="The question to ask the API"))
     def get_openai_response(prompt: str) -> str:
         client = openai.OpenAI()
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}]
+            model=config.model_name, messages=[{"role": "user", "content": prompt}]
         )
         assert response.choices[0].message.content is not None, "No content in response"
         return response.choices[0].message.content.strip()
