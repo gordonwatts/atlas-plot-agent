@@ -104,7 +104,7 @@ def ask(question: str = typer.Argument(..., help="The question to ask the API"))
 
     @cached(response_cache)
     def get_openai_response(prompt: str) -> str:
-        client = openai.OpenAI(api_key=openai_api_key)
+        client = openai.OpenAI()
         response = client.chat.completions.create(
             model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}]
         )
