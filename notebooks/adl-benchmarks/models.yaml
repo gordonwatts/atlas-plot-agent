@@ -1,4 +1,5 @@
 models:
   gpt-4.1:
+    model_name: gpt-4.1
     input_cost_per_million: 2.00
     output_cost_per_million: 8.00

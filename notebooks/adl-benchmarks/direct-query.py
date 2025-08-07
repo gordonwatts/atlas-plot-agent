@@ -1,5 +1,7 @@
+import functools
 import logging
 import os
+
 import fsspec
 import openai
 import typer
@@ -33,6 +35,7 @@ def load_yaml_file(filename: str) -> dict:
 
 
 class ModelInfo(BaseModel):
+    model_name: str
     input_cost_per_million: float
     output_cost_per_million: float
 
@@ -67,9 +70,6 @@ def load_config(config_path: str = "direct-query-config.yaml") -> DirectQueryCon
 
 
 # Generic diskcache-backed decorator
-import functools
-
-
 def diskcache_decorator(cache: Cache):
     def decorator(func):
         @functools.wraps(func)
