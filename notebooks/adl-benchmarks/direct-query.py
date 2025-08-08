@@ -128,16 +128,67 @@ app = typer.Typer(
 )
 
 
-@app.command()
-def ask(question: str = typer.Argument(..., help="The question to ask the API")):
+def run_model(question: str, prompt: str, model_info):
     """
-    Command to ask a question using the default configuration.
-    Loads config, loads .env for OpenAI API key, builds prompt, queries OpenAI, and prints result.
-    Uses cache for prompt responses.
-    Output is formatted in markdown.
+    Run the model, print heading and result, and return info for the table.
     """
     import time
 
+    start_time = time.time()
+    response = get_openai_response(prompt, model_info.model_name)
+    elapsed = time.time() - start_time
+    message = None
+    if response and response.choices and response.choices[0].message:
+        message = response.choices[0].message.content
+
+    print("\n")
+    print(f"## Model: {model_info.model_name}\n")
+    if message:
+        cleaned_message = (
+            message.replace(">>start-reply<<", "").replace(">>end-reply<<", "").strip()
+        )
+        print(cleaned_message)
+    else:
+        print("No response content returned from OpenAI.")
+
+    usage = getattr(response, "usage", None)
+    if usage:
+        prompt_tokens = getattr(usage, "prompt_tokens", 0)
+        completion_tokens = getattr(usage, "completion_tokens", 0)
+        total_tokens = getattr(usage, "total_tokens", 0)
+        cost = (prompt_tokens / 1_000_000) * model_info.input_cost_per_million + (
+            completion_tokens / 1_000_000
+        ) * model_info.output_cost_per_million
+        return {
+            "model": model_info.model_name,
+            "elapsed": elapsed,
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": total_tokens,
+            "cost": cost,
+        }
+    else:
+        return {
+            "model": model_info.model_name,
+            "elapsed": elapsed,
+            "prompt_tokens": None,
+            "completion_tokens": None,
+            "total_tokens": None,
+            "cost": None,
+        }
+
+
+@app.command()
+def ask(
+    question: str = typer.Argument(..., help="The question to ask the API"),
+    models: str = typer.Option(
+        None, help="Comma-separated list of model names to run (default: config)"
+    ),
+):
+    """
+    Command to ask a question using the default configuration.
+    Runs the question against one or more models, prints results, and prints a summary table.
+    """
     # Load environment variables from .env
     load_dotenv()
     openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -150,61 +201,50 @@ def ask(question: str = typer.Argument(..., help="The question to ask the API"))
     config = load_config()
     hint_contents = load_hint_files(config.hint_files)
 
-    # Load models and validate model_name
-    models = load_models()
-    if config.model_name not in models:
-        print(f"Error: model_name '{config.model_name}' not found in models.yaml.")
+    # Load models
+    all_models = load_models()
+    if models:
+        model_names = [m.strip() for m in models.split(",") if m.strip()]
+    else:
+        model_names = [config.model_name]
+
+    # Validate model names
+    valid_model_names = [m for m in model_names if m in all_models]
+    invalid_model_names = [m for m in model_names if m not in all_models]
+    if invalid_model_names:
+        print(
+            f"Error: model(s) not found in models.yaml: {', '.join(invalid_model_names)}"
+        )
         return
-    model_info = models[config.model_name]
-    input_cost = model_info.input_cost_per_million
-    output_cost = model_info.output_cost_per_million
 
     # Build the prompt
     prompt = config.prompt.format(question=question, hints="\n".join(hint_contents))
     logging.info(f"Built prompt: {prompt}")
 
-    # Disk-backed cache for OpenAI responses
-    start_time = time.time()
-    response = get_openai_response(prompt, config.model_name)
-    elapsed = time.time() - start_time
-    message = None
-    if response and response.choices and response.choices[0].message:  # type: ignore
-        message = response.choices[0].message.content  # type: ignore
-
-    # Print markdown output
     print(f"# {question}\n")
-    print(f"## Model: {config.model_name}\n")
-    if message:
-        # Remove reply markers if present
-        cleaned_message = (
-            message.replace(">>start-reply<<", "").replace(">>end-reply<<", "").strip()
-        )
-        print(cleaned_message)
-    else:
-        print("No response content returned from OpenAI.")
+    table_rows = []
+    for model_name in valid_model_names:
+        model_info = all_models[model_name]
+        row = run_model(question, prompt, model_info)
+        table_rows.append(row)
 
-    # Print token usage and cost in markdown table
-    usage = getattr(response, "usage", None)
-    if usage:
-        prompt_tokens = getattr(usage, "prompt_tokens", 0)
-        completion_tokens = getattr(usage, "completion_tokens", 0)
-        total_tokens = getattr(usage, "total_tokens", 0)
-        cost = (prompt_tokens / 1_000_000) * input_cost + (
-            completion_tokens / 1_000_000
-        ) * output_cost
-        print("\n---\n")
+    # Print markdown table
+    print("## Summary")
+    print(
+        "| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |"
+    )
+    print(
+        "|-------|----------|--------------|------------------|--------------|--------------------|"
+    )
+    for row in table_rows:
         print(
-            "| Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |"
+            f"| {row['model']} | {row['elapsed']:.2f} | {row['prompt_tokens'] if row['prompt_tokens'] is not None else '-'} | "
+            f"{row['completion_tokens'] if row['completion_tokens'] is not None else '-'} | "
+            f"{row['total_tokens'] if row['total_tokens'] is not None else '-'} | "
+            f"{row['cost']:.4f} |"
+            if row["cost"] is not None
+            else "- |"
         )
-        print(
-            "|----------|--------------|------------------|--------------|--------------------|"
-        )
-        print(
-            f"| {elapsed:.2f} | {prompt_tokens} | {completion_tokens} | {total_tokens} | {cost:.4f} |"
-        )
-    else:
-        print("\n---\n")
-        print("Token usage information not available.")
 
 
 if __name__ == "__main__":
