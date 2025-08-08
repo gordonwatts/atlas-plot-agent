@@ -7,3 +7,39 @@ models:
     model_name: gpt-5
     input_cost_per_million: 1.25
     output_cost_per_million: 10.00
+  gpt-5-mini:
+    model_name: gpt-5-mini
+    input_cost_per_million: 0.25
+    output_cost_per_million: 2.00
+  gpt-5-nano:
+    model_name: gpt-5-nano
+    input_cost_per_million: 0.05
+    output_cost_per_million: 0.40
+  gpt-4o:
+    model_name: gpt-4o
+    input_cost_per_million: 2.50
+    output_cost_per_million: 10.00
+  o4-mini:
+    model_name: o4-mini
+    input_cost_per_million: 1.10
+    output_cost_per_million: 4.40
+  # Not supported in the API that I'm using here (chat completions).
+  # codex-mini-latest:
+  #   model_name: codex-mini-latest
+  #   input_cost_per_million: 1.50
+  #   output_cost_per_million: 6.00
+  qwen3:
+    model_name: ai/qwen3:8B-Q4_0
+    input_cost_per_million: 0.00
+    output_cost_per_million: 0.00
+    endpoint: http://localhost:12434/engines/llama.cpp/v1
+  # phi4:
+  #   model_name: ai/qwen3:8B-Q4_0
+  #   input_cost_per_million: 0.00
+  #   output_cost_per_million: 0.00
+  #   endpoint: http://localhost:12434/engines/llama.cpp/v1
+  deepseek-r1-8B:
+    model_name: ai/deepseek-r1-distill-llama:8B-Q4_K_M
+    input_cost_per_million: 0.00
+    output_cost_per_million: 0.00
+    endpoint: http://localhost:12434/engines/llama.cpp/v1
