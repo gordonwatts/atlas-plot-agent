@@ -1,6 +1,8 @@
 import functools
 import logging
 import os
+from typing import Optional
+import sys
 
 import fsspec
 import openai
@@ -38,6 +40,7 @@ class ModelInfo(BaseModel):
     model_name: str
     input_cost_per_million: float
     output_cost_per_million: float
+    endpoint: Optional[str] = None  # e.g., OpenAI API endpoint or local server URL
 
 
 def load_models(models_path: str = "models.yaml") -> dict:
@@ -111,8 +114,11 @@ response_cache = Cache(".openai_response_cache")
 
 
 @diskcache_decorator(response_cache)
-def get_openai_response(prompt: str, model_name: str):
-    client = openai.OpenAI()
+def get_openai_response(prompt: str, model_name: str, endpoint: Optional[str] = None):
+    if endpoint:
+        client = openai.OpenAI(base_url=endpoint)
+    else:
+        client = openai.OpenAI()
     response = client.chat.completions.create(
         model=model_name, messages=[{"role": "user", "content": prompt}]
     )
@@ -135,7 +141,7 @@ def run_model(question: str, prompt: str, model_info):
     import time
 
     start_time = time.time()
-    response = get_openai_response(prompt, model_info.model_name)
+    response = get_openai_response(prompt, model_info.model_name, model_info.endpoint)
     elapsed = time.time() - start_time
     message = None
     if response and response.choices and response.choices[0].message:
@@ -147,7 +153,7 @@ def run_model(question: str, prompt: str, model_info):
         cleaned_message = (
             message.replace(">>start-reply<<", "").replace(">>end-reply<<", "").strip()
         )
-        print(cleaned_message)
+        sys.stdout.buffer.write((cleaned_message + "\n").encode("utf-8"))
     else:
         print("No response content returned from OpenAI.")
 
