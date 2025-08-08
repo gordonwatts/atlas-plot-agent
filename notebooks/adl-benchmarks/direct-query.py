@@ -115,15 +115,20 @@ response_cache = Cache(".openai_response_cache")
 
 @diskcache_decorator(response_cache)
 def get_openai_response(prompt: str, model_name: str, endpoint: Optional[str] = None):
+    import time
+
     if endpoint:
         client = openai.OpenAI(base_url=endpoint)
     else:
         client = openai.OpenAI()
+    start_time = time.time()
     response = client.chat.completions.create(
         model=model_name, messages=[{"role": "user", "content": prompt}]
     )
+    elapsed = time.time() - start_time
     assert response.choices[0].message.content is not None, "No content in response"
-    return response
+    # Return both response and timing for caching
+    return {"response": response, "elapsed": elapsed}
 
 
 app = typer.Typer(
@@ -138,11 +143,10 @@ def run_model(question: str, prompt: str, model_info):
     """
     Run the model, print heading and result, and return info for the table.
     """
-    import time
-
-    start_time = time.time()
-    response = get_openai_response(prompt, model_info.model_name, model_info.endpoint)
-    elapsed = time.time() - start_time
+    # Get cached response and timing
+    result = get_openai_response(prompt, model_info.model_name, model_info.endpoint)
+    response = result["response"]
+    elapsed = result["elapsed"]
     message = None
     if response and response.choices and response.choices[0].message:
         message = response.choices[0].message.content
@@ -153,7 +157,9 @@ def run_model(question: str, prompt: str, model_info):
         cleaned_message = (
             message.replace(">>start-reply<<", "").replace(">>end-reply<<", "").strip()
         )
+        sys.stdout.flush()
         sys.stdout.buffer.write((cleaned_message + "\n").encode("utf-8"))
+        sys.stdout.flush()
     else:
         print("No response content returned from OpenAI.")
 
