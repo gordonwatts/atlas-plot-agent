@@ -182,7 +182,8 @@ def run_model(question: str, prompt: str, model_info):
 def ask(
     question: str = typer.Argument(..., help="The question to ask the API"),
     models: str = typer.Option(
-        None, help="Comma-separated list of model names to run (default: config)"
+        None,
+        help="Comma-separated list of model names to run (default: pulled from config). Use `all` to run all known.",
     ),
 ):
     """
@@ -205,6 +206,8 @@ def ask(
     all_models = load_models()
     if models:
         model_names = [m.strip() for m in models.split(",") if m.strip()]
+        if "all" in model_names:
+            model_names = list(all_models.keys())
     else:
         model_names = [config.model_name]
 
