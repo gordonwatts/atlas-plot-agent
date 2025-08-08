@@ -183,7 +183,8 @@ def ask(
     question: str = typer.Argument(..., help="The question to ask the API"),
     models: str = typer.Option(
         None,
-        help="Comma-separated list of model names to run (default: pulled from config). Use `all` to run all known.",
+        help="Comma-separated list of model names to run (default: pulled from config). "
+        "Use `all` to run all known models.",
     ),
 ):
     """
@@ -234,19 +235,27 @@ def ask(
     # Print markdown table
     print("## Summary")
     print(
-        "| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |"
+        "| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | "
+        "Estimated Cost ($) |"
     )
     print(
-        "|-------|----------|--------------|------------------|--------------|--------------------|"
+        "|-------|----------|--------------|------------------|--------------|"
+        "--------------------|"
     )
     for row in table_rows:
+        model = row["model"]
+        elapsed = f"{row['elapsed']:.2f}"
+        prompt_tokens = (
+            row["prompt_tokens"] if row["prompt_tokens"] is not None else "-"
+        )
+        completion_tokens = (
+            row["completion_tokens"] if row["completion_tokens"] is not None else "-"
+        )
+        total_tokens = row["total_tokens"] if row["total_tokens"] is not None else "-"
+        cost = f"{row['cost']:.4f}" if row["cost"] is not None else "-"
         print(
-            f"| {row['model']} | {row['elapsed']:.2f} | {row['prompt_tokens'] if row['prompt_tokens'] is not None else '-'} | "
-            f"{row['completion_tokens'] if row['completion_tokens'] is not None else '-'} | "
-            f"{row['total_tokens'] if row['total_tokens'] is not None else '-'} | "
-            f"{row['cost']:.4f} |"
-            if row["cost"] is not None
-            else "- |"
+            f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens}"
+            f" | {cost} |"
         )
 
 
