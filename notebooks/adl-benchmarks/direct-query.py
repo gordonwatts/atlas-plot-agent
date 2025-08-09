@@ -149,7 +149,7 @@ def run_model(question: str, prompt: str, model_info, ignore_cache=False):
         prompt,
         model_info.model_name,
         model_info.endpoint,
-        ignore_cache=ignore_cache,
+        ignore_cache=ignore_cache,  # type: ignore
     )
     response = result["response"]
     elapsed = result["elapsed"]
