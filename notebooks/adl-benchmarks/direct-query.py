@@ -77,8 +77,9 @@ def diskcache_decorator(cache: Cache):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
+            ignore_cache = kwargs.pop("ignore_cache", False)
             key = (func.__name__, args, tuple(sorted(kwargs.items())))
-            if key in cache:
+            if not ignore_cache and key in cache:
                 return cache[key]
             result = func(*args, **kwargs)
             cache[key] = result
@@ -139,12 +140,17 @@ app = typer.Typer(
 )
 
 
-def run_model(question: str, prompt: str, model_info):
+def run_model(question: str, prompt: str, model_info, ignore_cache=False):
     """
     Run the model, print heading and result, and return info for the table.
     """
     # Get cached response and timing
-    result = get_openai_response(prompt, model_info.model_name, model_info.endpoint)
+    result = get_openai_response(
+        prompt,
+        model_info.model_name,
+        model_info.endpoint,
+        ignore_cache=ignore_cache,
+    )
     response = result["response"]
     elapsed = result["elapsed"]
     message = None
@@ -198,6 +204,9 @@ def ask(
         help="Comma-separated list of model names to run (default: pulled from config). "
         "Use `all` to run all known models.",
     ),
+    ignore_cache: bool = typer.Option(
+        False, "--ignore-cache", help="Ignore disk cache for model queries."
+    ),
 ):
     """
     Command to ask a question using the default configuration.
@@ -241,7 +250,7 @@ def ask(
     table_rows = []
     for model_name in valid_model_names:
         model_info = all_models[model_name]
-        row = run_model(question, prompt, model_info)
+        row = run_model(question, prompt, model_info, ignore_cache=ignore_cache)
         table_rows.append(row)
 
     # Print markdown table
