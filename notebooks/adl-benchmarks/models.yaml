@@ -38,9 +38,8 @@ models:
   #   input_cost_per_million: 0.00
   #   output_cost_per_million: 0.00
   #   endpoint: http://localhost:12434/engines/llama.cpp/v1
-  # For some reason, calling deepseek and it responds with nothing
-  # deepseek-r1-8B:
-  #   model_name: ai/deepseek-r1-distill-llama:8B-Q4_K_M
-  #   input_cost_per_million: 0.00
-  #   output_cost_per_million: 0.00
-  #   endpoint: http://localhost:12434/engines/llama.cpp/v1
+  deepseek-r1-8B:
+    model_name: ai/deepseek-r1-distill-llama:8B-Q4_K_M
+    input_cost_per_million: 0.00
+    output_cost_per_million: 0.00
+    endpoint: http://localhost:12434/engines/llama.cpp/v1
