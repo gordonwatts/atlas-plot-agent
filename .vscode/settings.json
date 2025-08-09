@@ -15,6 +15,7 @@
         "histtype",
         "ipywidgets",
         "jupyterlab",
+        "lllvjj",
         "mplhep",
         "NNPDF",
         "PHYSLITE",
@@ -26,6 +27,7 @@
         "Wenu",
         "xaodr",
         "xlabel",
-        "ylabel"
+        "ylabel",
+        "Zmumu"
     ]
 }
