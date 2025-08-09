@@ -25,6 +25,8 @@ See the original [site](https://github.com/iris-hep/adl-benchmarks-index) for th
 
 Note: these DID's had files in them when the tests were run! Sample deletion comes for us all!
 
+Note: The above questions are parsed by code. Keep the format the same (each question is on one line, starts with a `1.`.)
+
 ## Comments
 
 ### Codespaces
@@ -33,11 +35,10 @@ Note: these DID's had files in them when the tests were run! Sample deletion com
 
 **Hints:** Often had to update hint files after catching the model's mistakes. The updates were in two forms: fixes where the hint files were incorrect, and trying to emphasize taking one approach or the other. Most models were good at following the hints, despite how big the hint files have gotten. That said, there are some things (like `ak.stack`) that seem to be totally baked into the model's training and nothing I can do will dissuade them. Might be one place where fine tuning our own models would be an advantage.
 
-**General Comments & Future Directions:** 
+**General Comments & Future Directions:**
 
 - Writing some of this code to manipulate arrays is subtle! And some of it is not obvious why you need to do it, even after you've written it (at least to me).
 - Complex queries will need a planning step.
 - The approach taken for ServiceX will affect things downstream. So probably best to split the task in two, tackle the ServiceX step, and then go back and revisit the downstream method.
 - Some of the awkward code will need to be run in order to sort out what went wrong.
 - Running on many files will require a different strategy than running on one file. But it might be worth getting the 1 file run working and then translating to a many file run. Much like how we as humans do it.
-
