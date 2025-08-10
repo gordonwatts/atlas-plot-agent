@@ -28,18 +28,18 @@ models:
   #   model_name: codex-mini-latest
   #   input_cost_per_million: 1.50
   #   output_cost_per_million: 6.00
-  qwen3:
-    model_name: ai/qwen3:8B-Q4_0
-    input_cost_per_million: 0.00
-    output_cost_per_million: 0.00
-    endpoint: http://localhost:12434/engines/llama.cpp/v1
+  # qwen3:
+  #   model_name: ai/qwen3:8B-Q4_0
+  #   input_cost_per_million: 0.00
+  #   output_cost_per_million: 0.00
+  #   endpoint: http://localhost:12434/engines/llama.cpp/v1
   # phi4:
   #   model_name: ai/qwen3:8B-Q4_0
   #   input_cost_per_million: 0.00
   #   output_cost_per_million: 0.00
   #   endpoint: http://localhost:12434/engines/llama.cpp/v1
-  deepseek-r1-8B:
-    model_name: ai/deepseek-r1-distill-llama:8B-Q4_K_M
-    input_cost_per_million: 0.00
-    output_cost_per_million: 0.00
-    endpoint: http://localhost:12434/engines/llama.cpp/v1
+  # deepseek-r1-8B:
+  #   model_name: ai/deepseek-r1-distill-llama:8B-Q4_K_M
+  #   input_cost_per_million: 0.00
+  #   output_cost_per_million: 0.00
+  #   endpoint: http://localhost:12434/engines/llama.cpp/v1
