@@ -42,3 +42,22 @@ Note: The above questions are parsed by code. Keep the format the same (each que
 - The approach taken for ServiceX will affect things downstream. So probably best to split the task in two, tackle the ServiceX step, and then go back and revisit the downstream method.
 - Some of the awkward code will need to be run in order to sort out what went wrong.
 - Running on many files will require a different strategy than running on one file. But it might be worth getting the 1 file run working and then translating to a many file run. Much like how we as humans do it.
+
+### Direct Query
+
+**Models**: It is hard to tell where they work and don't - there is just too much!
+
+- GPT5
+  - Sometimes creates a `def main` and calls it. Seems like it would work fine.
+  - GPT5 also parses the text in such a way it convinces itself that the user wants the whole dataset. This is an interesting problem - the user probably did. However, we don't want to emit code like that when testing! So we'll have to do something about that.
+    - Makes me wonder if we need a *compliance* phase when this actually runs - to make sure certain policies are followed (like running tests first).
+    - gpt5 mini includes the `nfiles=1`, and says "remove it once testing is done.
+  - Seems to understand using `np.stack` vs `ak.stack`!
+- gpt5-mini adds a bunch of extra stats (like numbers of events, etc.). Things it "thinks" might be helpful.
+- gpt5-nano seems to be concise and not add anything extra for q1!
+- gpt5-nano also converts `to_numpy` often, rather than staying in awkward. Sometimes it converts, and then converts back.
+- Where do the models obviously tap out?
+  - gpt 4o: Question 5 it gets in SX `e.Muons()` rather than each column.
+  - o4-mini: forgets the flatten in question 6
+  - gpt5-nano: inserts the b-tag tool stuff, but as a comment, not as actual code.
+  - I'm guessing the others have problems - but we need to run them to see! I just couldn't identify issues I'd seen previously.
