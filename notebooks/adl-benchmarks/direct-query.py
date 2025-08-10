@@ -1,3 +1,9 @@
+import sys
+
+if hasattr(sys.stdin, "reconfigure"):
+    sys.stdin.reconfigure(encoding="utf-8")
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 import functools
 import logging
 import os
@@ -167,7 +173,7 @@ def run_model(question: str, prompt: str, model_info, ignore_cache=False):
         sys.stdout.buffer.write((cleaned_message + "\n").encode("utf-8"))
         sys.stdout.flush()
     else:
-        print("No response content returned from OpenAI.")
+        print("No response content returned.")
 
     usage = getattr(response, "usage", None)
     if usage:
