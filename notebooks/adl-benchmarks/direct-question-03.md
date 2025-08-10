@@ -446,6 +446,322 @@ ax.set_xlabel("Jet $p_{T}$ [GeV]")
 ax.set_ylabel("Entries")
 fig.savefig("jet_pt_hist.png")
 ```
+
+
+## Model: openai/gpt-oss-120b
+
+- Imported the necessary ServiceX, FuncADL, Awkward, and plotting libraries.  
+- Built a FuncADL query that:
+  1. Flattens all jets in each event.  
+  2. Keeps only jets with pseudorapidity |η| < 1.  
+  3. Returns the jet transverse momentum (pt) in **GeV**.  
+- Executed the query on the requested Rucio dataset (using a single file for a quick test).  
+- Converted the ServiceX result to an Awkward array.  
+- Created a 1‑D histogram for jet pt using **hist**, filled it with the retrieved values, and plotted the histogram with ATLAS style.  
+- Saved the plot to `jet_pt_eta_lt1.png`.  
+
+```python
+# -------------------------------------------------
+# 1. Imports
+# -------------------------------------------------
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+
+import awkward as ak
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# -------------------------------------------------
+# 2. Define the FuncADL query
+# -------------------------------------------------
+base_query = FuncADLQueryPHYSLITE()
+
+jet_pt_query = (
+    base_query
+    .SelectMany(lambda e: e.Jets())                     # flatten jets across events
+    .Where(lambda j: abs(j.eta()) < 1.0)               # |η| < 1
+    .Select(lambda j: {"jet_pt": j.pt() / 1000.0})     # pt in GeV
+)
+
+# -------------------------------------------------
+# 3. Run the query with ServiceX
+# -------------------------------------------------
+ds_name = (
+    "mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2."
+    "deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697"
+)
+
+# Use NFiles=1 for a quick test; increase for full dataset if desired
+result = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="jet_pt_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=jet_pt_query,
+                )
+            ]
+        ),
+    )
+)
+
+# -------------------------------------------------
+# 4. Extract the Awkward array of jet pt
+# -------------------------------------------------
+jet_pts = result["jet_pt_fetch"].jet_pt  # Awkward array of pt (GeV)
+
+# -------------------------------------------------
+# 5. Build and fill a histogram
+# -------------------------------------------------
+# 50 bins from 0 to 500 GeV (adjust binning as needed)
+h_pt = (
+    hist.Hist.new.Reg(50, 0, 500, name="pt", label=r"$p_T$ [GeV]")
+    .Weight()
+)
+
+# Fill directly from the Awkward array
+h_pt.fill(pt=jet_pts)
+
+# -------------------------------------------------
+# 6. Plot and save the histogram
+# -------------------------------------------------
+plt.style.use(hep.style.ATLAS)
+
+fig, ax = plt.subplots(figsize=(8, 6))
+h_pt.plot(ax=ax, histtype="stepfilled", linewidth=1.5, edgecolor="black", label=r"Jets $|\eta|<1$")
+ax.set_xlabel(r"$p_T$ [GeV]")
+ax.set_ylabel("Events")
+ax.legend()
+plt.tight_layout()
+plt.savefig("jet_pt_eta_lt1.png")
+plt.close(fig)
+```
+
+
+## Model: openai/gpt-oss-20b
+
+- Built a FuncADL query to select all jets from the specified PHYSLITE dataset.
+- Applied a filter to keep only jets with |η| < 1 before fetching the data (reduces data transfer).
+- Extracted the transverse momentum (pT) of the remaining jets and converted it to GeV.
+- Created a 1‑D histogram with 50 bins spanning 0–400 GeV using `hist`.
+- Plotted the histogram in the ATLAS style and saved it as `jet_pt_histogram.png`.
+
+```python
+# -------------------------------------------------------------------
+# 1. Imports
+# -------------------------------------------------------------------
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex import deliver, ServiceXSpec, Sample, dataset
+from servicex_analysis_utils import to_awk
+
+import awkward as ak
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# -------------------------------------------------------------------
+# 2. Build the FuncADL query: jets with |eta| < 1, store pT (GeV)
+# -------------------------------------------------------------------
+base_query = FuncADLQueryPHYSLITE()
+
+jet_pt_query = (
+    base_query
+    .SelectMany(lambda evt: evt.Jets())
+    .Where(lambda jet: abs(jet.eta()) < 1)          # |η| < 1 cut (applied at ServiceX level)
+    .Select(lambda jet: {"pt": jet.pt() / 1000.0})  # convert MeV → GeV
+)
+
+# -------------------------------------------------------------------
+# 3. Define dataset and fetch
+# -------------------------------------------------------------------
+ds_name = (
+    "mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE."
+    "e8514_e8528_a911_s4114_r15224_r15225_p6697"
+)
+
+data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="jets",
+                    Dataset=dataset.Rucio(ds_name),
+                    Query=jet_pt_query,
+                )
+            ]
+        ),
+    )
+)
+
+# -------------------------------------------------------------------
+# 4. Extract the Awkward array of jet pT values
+# -------------------------------------------------------------------
+jet_pts = data["jets"].pt   # 1‑D Awkward array of GOF GeV
+
+# -------------------------------------------------------------------
+# 5. Histogramming with hist
+# -------------------------------------------------------------------
+h = hist.Hist.new.Reg(50, 0, 400, name="pt", label="Jet $p_{T}$ [GeV]").Int64()
+h.fill(pt=jet_pts)  # auto-binned fill
+
+# -------------------------------------------------------------------
+# 6. Plotting (ATLAS style) and saving to PNG
+# -------------------------------------------------------------------
+plt.style.use(hep.style.ATLAS)
+fig, ax = plt.subplots(figsize=(6, 4))
+h.plot(ax=ax, histtype="fill", linewidth=1, edgecolor="gray", label="|η| < 1")
+ax.set_xlabel("Jet $p_{T}$ [GeV]")
+ax.set_ylabel("Events")
+ax.legend()
+plt.tight_layout()
+plt.savefig("jet_pt_histogram.png")
+```
+
+
+## Model: Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8
+
+- I will fetch jet data from the specified PHYSLITE dataset using ServiceX.
+- Only jets with |η| < 1 are selected at the ServiceX level to reduce data transfer.
+- The transverse momentum (pT) of these jets is extracted and converted to GeV.
+- A histogram of jet pT is created and saved as a PNG file using Hist and mplhep.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Base query for PHYSLITE
+base_query = FuncADLQueryPHYSLITE()
+
+# Query to select jet pT with |eta| < 1
+jet_query = (
+    base_query
+    .SelectMany(lambda evt: evt.Jets())
+    .Where(lambda jet: abs(jet.eta()) < 1.0)
+    .Select(lambda jet: {
+        "jet_pt": jet.pt() / 1000.0  # Convert MeV to GeV
+    })
+)
+
+# Dataset
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697"
+
+# Fetch data
+result = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="jet_pt_eta_cut",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=jet_query,
+                )
+            ]
+        )
+    )
+)
+
+# Extract jet pT
+jet_pts = result["jet_pt_eta_cut"].jet_pt
+
+# Create histogram
+h = (
+    hist.Hist.new.Reg(100, 0, 1000, name="jet_pt", label="Jet pT [GeV]")
+    .Int64()
+)
+
+# Fill histogram
+h.fill(jet_pt=ak.flatten(jet_pts))
+
+# Plotting
+plt.style.use(hep.style.ATLAS)
+fig, ax = plt.subplots()
+h.plot(ax=ax, histtype="fill", linewidth=1, edgecolor="gray")
+ax.set_xlabel("Jet pT [GeV]")
+ax.set_ylabel("Events")
+plt.savefig("jet_pt_eta_cut.png")
+```
+
+
+## Model: arcee-ai/coder-large
+
+- Constructed a query to fetch jet $p_T$ and $\eta$ from the specified Rucio dataset.
+- Applied a filter to select jets with $|\eta| < 1$.
+- Fetched the data using ServiceX and converted it to an Awkward Array.
+- Extracted the $p_T$ values of the filtered jets.
+- Created a histogram of the jet $p_T$ values using the Hist library.
+- Saved the histogram as a PNG file.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# The base query should run against PHYSLITE.
+base_query = FuncADLQueryPHYSLITE()
+
+# Query: get jet pT and eta, filter jets with |eta| < 1
+jet_query = (base_query
+    .SelectMany(lambda evt: evt.Jets())
+    .Where(lambda jet: abs(jet.eta()) < 1)
+    .Select(lambda jet: {
+        "jet_pt": jet.pt() / 1000.0,  # Convert MeV to GeV
+    })
+)
+
+# Do the fetch
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697")
+
+all_jet_pts = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="jet_pt_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,  # For testing, use NFiles=1. Change if needed.
+                    Query=jet_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Extract the jet pT values
+jet_pts = all_jet_pts["jet_pt_fetch"].jet_pt
+
+# Create a histogram of jet pT
+h = (
+    hist.Hist.new.Reg(50, 0, 500, name="jet_pt", label="Jet $p_T$ [GeV]")
+    .Int64()
+)
+h.fill(jet_pt=jet_pts)
+
+# Plot the histogram
+plt.style.use(hep.style.ATLAS)
+h.plot(histtype="fill", linewidth=1, edgecolor="gray", label="Jet $p_T$ with $|\eta| < 1$")
+plt.legend()
+plt.xlabel("Jet $p_T$ [GeV]")
+plt.ylabel("Counts")
+plt.title("Jet $p_T$ Distribution")
+plt.savefig("jet_pt_distribution.png")
+plt.show()
+```
+>>end-reply<
 ## Summary
 | Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |
 |-------|----------|--------------|------------------|--------------|--------------------|
@@ -455,3 +771,7 @@ fig.savefig("jet_pt_hist.png")
 | gpt-5-nano | 15.44 | 11645 | 3706 | 15351 | 0.0021 |
 | gpt-4o | 8.09 | 11646 | 584 | 12230 | 0.0350 |
 | o4-mini | 12.37 | 11645 | 1414 | 13059 | 0.0190 |
+| openai/gpt-oss-120b | 19.31 | 11710 | 1334 | 13044 | 0.0026 |
+| openai/gpt-oss-20b | 8.31 | 11710 | 1584 | 13294 | 0.0009 |
+| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 9.77 | 11910 | 575 | 12485 | 0.0250 |
+| arcee-ai/coder-large | 8.64 | 11931 | 641 | 12572 | 0.0065 |

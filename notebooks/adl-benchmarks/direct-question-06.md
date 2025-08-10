@@ -1411,6 +1411,614 @@ plt.xlabel("Max b-tag discriminant")
 plt.ylabel("Entries")
 plt.savefig("trijet_bdisc.png")
 ```
+
+
+## Model: openai/gpt-oss-120b
+
+- Imported the required libraries (`servicex`, `awkward`, `vector`, `hist`, `mplhep`, and the FuncADL utilities).
+- Defined a ServiceX query that:
+  - Selects events containing **≥ 3 jets**.
+  - Retrieves jet kinematics (`pt`, `eta`, `phi`, `mass`) and the **b‑tagging discriminant** using a `BTaggingSelectionTool` (operating point *FixedCutBEff_77*).
+- Executed the query on the provided `rucio` dataset (`mc23_13p6TeV…DAOD_PHYSLITE`).
+- Built Lorentz‑vector objects from the jet kinematics with *vector*.
+- Formed all possible **trijet combinations**, summed their four‑momenta, and computed the invariant mass.
+- For each event, selected the trijet whose invariant mass is **closest to 172.5 GeV**, extracted its **pT**, and obtained the **maximum b‑tag discriminant** among its three jets.
+- Filled a 2‑D histogram (`trijet pT` vs `max b‑tag`) using *Hist*.
+- Plotted the histogram with ATLAS styling via *mplhep* and saved it to `trijet_pt_vs_maxbtag.png`.
+
+```python
+# --------------------------------------------------------------
+# 1. Imports
+# --------------------------------------------------------------
+import awkward as ak
+import numpy as np
+import vector
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+
+# Tool helpers (copy‑paste from the hint)
+from dataclasses import dataclass
+from typing import Tuple, List, Optional, Callable, Iterable, TypeVar
+from func_adl import ObjectStream, func_adl_callable
+from func_adl_servicex_xaodr25.xAOD.jet_v1 import Jet_v1
+
+T = TypeVar("T")
+
+@dataclass
+class ToolInfo:
+    name: str
+
+def make_a_tool(
+    query: ObjectStream[T],
+    tool_name: str,
+    tool_type: str,
+    include_files: Optional[List[str]],
+    init_lines: List[str] = [],
+) -> Tuple[ObjectStream[T], ToolInfo]:
+    query_base = query.MetaData(
+        {
+            "metadata_type": "inject_code",
+            "name": tool_name,
+            "header_includes": include_files,
+            "private_members": [f"{tool_type} *{tool_name};"],
+            "instance_initialization": [f'{tool_name}(new {tool_type} ("{tool_name}"))'],
+            "initialize_lines": [l.format(tool_name=tool_name) for l in init_lines],
+            "link_libraries": ["xAODBTaggingEfficiencyLib"],
+        }
+    )
+    return query_base, ToolInfo(name=tool_name)
+
+
+def make_tool_accessor(
+    t_info: ToolInfo,
+    function_name: str,
+    source_code: List[str],
+    arguments: Iterable[Tuple[str, type]],
+    return_type_cpp: str,
+    return_type_python: str,
+):
+    def tool_callback(s: ObjectStream[T], a: Callable) -> Tuple[ObjectStream[T], Callable]:
+        new_s = s.MetaData(
+            {
+                "metadata_type": "add_cpp_function",
+                "name": function_name,
+                "code": ["double result;"] + [l.format(tool_name=t_info.name) for l in source_code],
+                "result": "result",
+                "include_files": [],
+                "arguments": [arg[0] for arg in arguments],
+                "return_type": return_type_cpp,
+            }
+        )
+        return new_s, a
+
+    def tool_call(**kwargs):
+        ...
+
+    tool_call.__name__ = function_name
+    tool_call.__annotations__["return"] = eval(return_type_python)
+    return func_adl_callable(tool_callback)(tool_call)
+
+
+# --------------------------------------------------------------
+# 2. Build the query (events with ≥3 jets, get kinematics + b‑tag)
+# --------------------------------------------------------------
+# Base query
+base = FuncADLQueryPHYSLITE()
+
+# Attach the B‑tagging tool (FixedCutBEff_77)
+base, btag_tool = make_a_tool(
+    base,
+    "btag_tool",
+    "BTaggingSelectionTool",
+    include_files=["xAODBTaggingEfficiency/BTaggingSelectionTool.h"],
+    init_lines=[
+        'ANA_CHECK(asg::setProperty({tool_name}, "OperatingPoint", "FixedCutBEff_77"));',
+        "ANA_CHECK({tool_name}->initialize());",
+    ],
+)
+
+# Accessor for the b‑tag discriminant (weight)
+btag_weight = make_tool_accessor(
+    btag_tool,
+    function_name="btag_weight",
+    source_code=["ANA_CHECK({tool_name}->getTaggerWeight(*jet, result, false));"],
+    arguments=[("jet", Jet_v1)],
+    return_type_cpp="double",
+    return_type_python="float",
+)
+
+# Query: keep per‑event jet collections (pt, eta, phi, mass) + b‑tag weight
+jets_per_event = (
+    base
+    .Select(lambda ev: ev.Jets())
+    .Select(
+        lambda jets: {
+            "pt":   jets.Select(lambda j: j.pt() / 1000.0),          # GeV
+            "eta":  jets.Select(lambda j: j.eta()),
+            "phi":  jets.Select(lambda j: j.phi()),
+            "mass": jets.Select(lambda j: j.m() / 1000.0),           # GeV
+            "btag": jets.Select(lambda j: btag_weight(j)),          # discriminant (float)
+        }
+    )
+    # Keep only events with >=3 jets
+    .Where(lambda ev: ev["pt"].Count() >= 3)
+)
+
+# --------------------------------------------------------------
+# 3. Execute the query via ServiceX
+# --------------------------------------------------------------
+dataset_name = ("mc23_13p6TeV:mc23_13p6TeV.601237."
+                "PhPy8EG_A14_ttbar_hdamp258p75_allhad.deriv."
+                "DAOD_PHYSLITE.e8514_s4369_r16083_p6697")
+
+result = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="ttbar_trijet",
+                    Dataset=dataset.Rucio(dataset_name),
+                    NFiles=1,                     # use 1 file for testing; drop for full run
+                    Query=jets_per_event,
+                )
+            ]
+        ),
+    ),
+)
+
+# The awkward array for the sample
+events = result["ttbar_trijet"]
+
+# --------------------------------------------------------------
+# 4. Build Lorentz vectors and find the best trijet per event
+# --------------------------------------------------------------
+vector.register_awkward()   # Enable vector behaviours
+
+# Jet four‑vectors (Momentum4D)
+jets_vec = ak.zip(
+    {
+        "pt":   events.pt,
+        "eta":  events.eta,
+        "phi":  events.phi,
+        "mass": events.mass,
+    },
+    with_name="Momentum4D",
+)
+
+# B‑tag array (same nesting as jets)
+jets_btag = events.btag
+
+# --------------------------------------------------------------
+# 5. Trijet combinations
+# --------------------------------------------------------------
+# All unique 3‑jet combos per event
+trijet_combo = ak.combinations(jets_vec, 3,
+                               fields=["j1", "j2", "j3"],
+                               axis=1)
+
+btag_combo = ak.combinations(jets_btag, 3,
+                             fields=["b1", "b2", "b3"],
+                             axis=1)
+
+# Sum of the three four‑vectors → combined trijet four‑momentum
+trijet_vec = trijet_combo.j1 + trijet_combo.j2 + trijet_combo.j3
+
+# Invariant mass of each trijet (GeV)
+trijet_mass = trijet_vec.mass
+
+# Distance of each mass from the target (172.5 GeV)
+mass_diff = ak.abs(trijet_mass - 172.5)
+
+# Index of the trijet with mass closest to 172.5 GeV (per event)
+best_idx = ak.argmin(mass_diff, axis=1, keepdims=False)
+
+# Select the best trijet four‑momentum and its pT
+best_vec = ak.take(trijet_vec, best_idx, axis=1)   # shape: (events, 1)
+best_pt  = best_vec.pt  # GeV
+
+# Maximum b‑tag discriminant among the three jets of the best trijet
+# First get max b‑tag per combination
+max_btag_per_combo = ak.max(
+    ak.Array([btag_combo.b1, btag_combo.b2, btag_combo.b3]),
+    axis=0,
+)
+# Then pick the entry corresponding to the best combination
+best_max_btag = ak.take(max_btag_per_combo, best_idx, axis=1)
+
+# Flatten (remove the extra nesting introduced by `keepdims`)
+best_pt       = ak.flatten(best_pt)
+best_max_btag = ak.flatten(best_max_btag)
+
+# --------------------------------------------------------------
+# 6. Fill a 2‑D histogram (pT vs max b‑tag)
+# --------------------------------------------------------------
+h = (
+    hist.Hist.new.Reg(80, 0, 500, name="pt", label=r"Trijet $p
+
+
+## Model: openai/gpt-oss-20b
+
+No response content returned.
+
+
+## Model: Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8
+
+- Used ServiceX to query the PHYSLITE dataset for events with at least three jets.
+- For each event, formed all possible trijet combinations using `ak.combinations`.
+- Calculated the invariant mass of each trijet using the Vector library.
+- Identified the trijet with the invariant mass closest to 172.5 GeV.
+- Retrieved the pT of that trijet and the maximum b-tagging discriminant among its constituents.
+- Plotted both distributions using Hist and saved them as PNG files for further analysis.
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+
+from dataclasses import dataclass
+from typing import Callable, Iterable, List, Optional, Tuple, TypeVar
+import ast
+from func_adl import ObjectStream, func_adl_callable
+
+import awkward as ak
+import numpy as np
+import vector
+
+vector.register_awkward()
+
+T = TypeVar("T")
+
+@dataclass
+class ToolInfo:
+    name: str
+
+def make_a_tool(
+    query: ObjectStream[T],
+    tool_name: str,
+    tool_type: str,
+    include_files: Optional[List[str]],
+    init_lines: List[str] = [],
+) -> Tuple[ObjectStream[T], ToolInfo]:
+    query_base = query.MetaData(
+        {
+            "metadata_type": "inject_code",
+            "name": tool_name,
+            "header_includes": include_files,
+            "private_members": [f"{tool_type} *{tool_name};"],
+            "instance_initialization": [
+                f'{tool_name}(new {tool_type} ("{tool_name}"))'
+            ],
+            "initialize_lines": [l.format(tool_name=tool_name) for l in init_lines],
+            "link_libraries": ["xAODBTaggingEfficiencyLib"],
+        }
+    )
+    return query_base, ToolInfo(name=tool_name)
+
+def make_tool_accessor(
+    t_info: ToolInfo,
+    function_name: str,
+    source_code: List[str],
+    arguments: Iterable[Tuple[str, type]],
+    return_type_cpp: str,
+    return_type_python: str,
+):
+    def tool_callback(
+        s: ObjectStream[T], a: ast.Call
+    ) -> Tuple[ObjectStream[T], ast.Call]:
+        new_s = s.MetaData(
+            {
+                "metadata_type": "add_cpp_function",
+                "name": function_name,
+                "code": [
+                    "double result;",
+                    *[l.format(tool_name=t_info.name) for l in source_code],
+                ],
+                "result": "result",
+                "include_files": [],
+                "arguments": [a[0] for a in arguments],
+                "return_type": return_type_cpp,
+            }
+        )
+        return new_s, a
+
+    def tool_call(**arg_dict):
+        ...
+    tool_call.__name__ = function_name
+    tool_call.__annotations__['return'] = eval(return_type_python)
+
+    return func_adl_callable(tool_callback)(tool_call)
+
+# Define the base query
+physlite = FuncADLQueryPHYSLITE()
+
+# Set up BTaggingSelectionTool for tag weights
+query_with_tool, tag_tool_info = make_a_tool(
+    physlite,
+    "btag_discriminator",
+    "BTaggingSelectionTool",
+    include_files=["xAODBTaggingEfficiency/BTaggingSelectionTool.h"],
+    init_lines=[
+        'ANA_CHECK(asg::setProperty({tool_name}, "OperatingPoint", "FixedCutBEff_77"));',
+        "ANA_CHECK({tool_name}->initialize());",
+    ],
+)
+
+# Accessor for getting tag weight
+from func_adl_servicex_xaodr25.xAOD.jet_v1 import Jet_v1
+
+tag_weight = make_tool_accessor(
+    tag_tool_info,
+    function_name="tag_weight",
+    source_code=["ANA_CHECK({tool_name}->getTaggerWeight(*jet, result, false));"],
+    arguments=[("jet", Jet_v1)],
+    return_type_cpp="double",
+    return_type_python="float",
+)
+
+# Query to extract jets with pT, eta, phi, m and b-tag weights
+jet_query = (
+    query_with_tool
+    .Where(lambda e: e.Jets().Count() >= 3)
+    .Select(lambda e: {
+        "trijet_jets": e.Jets().Select(lambda j: {
+            "pt": j.pt() / 1000.0,
+            "eta": j.eta(),
+            "phi": j.phi(),
+            "mass": j.m() / 1000.0,
+            "btag_weight": tag_weight(j),
+        })
+    })
+)
+
+# Deliver the data
+result = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="trijet_data",
+                    Dataset=dataset.Rucio("mc23_13p6TeV:mc23_13p6TeV.601237.PhPy8EG_A14_ttbar_hdamp258p75_allhad.deriv.DAOD_PHYSLITE.e8514_s4369_r16083_p6697"),
+                    NFiles=1,
+                    Query=jet_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Extract the jet data
+jets_flat = result["trijet_data"].trijet_jets
+
+# Convert to vectors
+jets_vec = ak.zip(
+    {
+        "pt": jets_flat.pt,
+        "eta": jets_flat.eta,
+        "phi": jets_flat.phi,
+        "mass": jets_flat.mass,
+    },
+    with_name="Momentum4D"
+)
+
+# Form trijet combinations
+trijet_combos = ak.combinations(jets_vec, 3, fields=["j1", "j2", "j3"])
+trijet_sum = trijet_combos.j1 + trijet_combos.j2 + trijet_combos.j3
+trijet_mass = trijet_sum.mass
+
+# Compute delta from target mass
+delta_mass = abs(trijet_mass - 172.5)
+
+# Find index of the best trijet per event
+best_indices = ak.argmin(delta_mass, axis=1, keepdims=True)
+best_trijet_pT = ak.flatten(trijet_sum[best_indices].pt)
+best_trijet_jets = ak.flatten(trijet_combos[best_indices])
+
+# Extract max b-tag weight among the trijet constituents
+jet_collection_per_trijet = ak.concatenate([
+    best_trijet_jets.j1.btag_weight[:, np.newaxis],
+    best_trijet_jets.j2.btag_weight[:, np.newaxis],
+    best_trijet_jets.j3.btag_weight[:, np.newaxis]
+], axis=1)
+
+max_btag = ak.max(jet_collection_per_trijet, axis=1)
+
+# Remove NaNs or None values (in case of missing b-tag weights)
+is_valid_pT = ~ak.is_none(best_trijet_pT) & (best_trijet_pT > 0)
+is_valid_btag = ~ak.is_none(max_btag)
+
+# Final arrays for plotting
+final_pT = best_trijet_pT[is_valid_pT]
+final_btag = max_btag[is_valid_btag]
+
+# Plotting
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+plt.style.use(hep.style.ATLAS)
+
+# Histogram for trijet pT
+h_pT = (
+    hist.Hist.new.Reg(50, 0, 1000, name="pT", label="Trijet pT [GeV]")
+    .Int64()
+)
+h_pT.fill(pT=final_pT)
+plt.figure()
+h_pT.plot(histtype="fill", edgecolor='black')
+plt.xlabel("Trijet pT [GeV]")
+plt.ylabel("Events")
+plt.title("Trijet pT (Closest to 172.5 GeV)")
+plt.savefig("trijet_pT.png")
+
+# Histogram for max b-tag
+h_btag = (
+    hist.Hist.new.Reg(50, -10, 15, name="btag", label="Max b-tag discriminant")
+    .Int64()
+)
+h_btag.fill(btag=final_btag)
+plt.figure()
+h_btag.plot(histtype="fill", edgecolor='black')
+plt.xlabel("Max b-tag discriminant")
+plt.ylabel("Events")
+plt.title("Max b-tag in selected trijet")
+plt.savefig("trijet_max_btag.png")
+```
+
+
+## Model: arcee-ai/coder-large
+
+- Constructed a query to fetch jets from the specified Rucio dataset.
+- Filtered events to include only those with at least three jets.
+- Computed the invariant mass of all possible trijet combinations in each event.
+- Identified the trijet combination with the invariant mass closest to 172.5 GeV in each event.
+- Calculated the pT of the trijet four-momentum for these combinations.
+- Determined the maximum b-tagging discriminant value among the jets in the identified trijet.
+- Used Hist to create and plot histograms of the trijet pT and the maximum b-tagging discriminant.
+- Saved the plots to `png` files.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex import deliver, ServiceXSpec, Sample, dataset
+from servicex_analysis_utils import to_awk
+import awkward as ak
+import vector
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Register Vector behaviors for Awkward Array
+vector.register_awkward()
+
+# Base query for PHYSLITE
+base_query = FuncADLQueryPHYSLITE()
+
+# Define the tool for b-tagging
+query_base, tag_tool_info = make_a_tool(
+    base_query,
+    "btag_discriminator",
+    "BTaggingSelectionTool",
+    include_files=["xAODBTaggingEfficiency/BTaggingSelectionTool.h"],
+    init_lines=[
+        'ANA_CHECK(asg::setProperty({tool_name}, "OperatingPoint", "FixedCutBEff_77"));',
+        "ANA_CHECK({tool_name}->initialize());",
+    ],
+)
+
+# Define the accessor for b-tagging weight
+tag_weight = make_tool_accessor(
+    tag_tool_info,
+    function_name="tag_weight",
+    source_code=["ANA_CHECK({tool_name}->getTaggerWeight(*jet, result, false));"],
+    arguments=[("jet", Jet_v1)],
+    return_type_cpp="double",
+    return_type_python="float",
+)
+
+# Query to get jets and their b-tagging weights
+query = (query_base
+    .Where(lambda e: e.Jets().Count() >= 3)
+    .Select(lambda e: {
+        "jets": e.Jets().Select(lambda j: {
+            "pt": j.pt() / 1000.0,
+            "eta": j.eta(),
+            "phi": j.phi(),
+            "m": j.m() / 1000.0,
+            "btag_weight": tag_weight(j)
+        })
+    })
+)
+
+# Define the dataset
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.601237.PhPy8EG_A14_ttbar_hdamp258p75_allhad.deriv.DAOD_PHYSLITE.e8514_s4369_r16083_p6697"
+
+# Fetch the data
+all_jets = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="jet_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=query,
+                )
+            ]
+        ),
+    )
+)
+
+# Extract jets
+jets = all_jets["jet_fetch"].jets
+
+# Function to compute invariant mass of a trijet
+def trijet_mass(trijet):
+    px = ak.sum(trijet.pt * ak.cos(trijet.phi), axis=1)
+    py = ak.sum(trijet.pt * ak.sin(trijet.phi), axis=1)
+    pz = ak.sum(trijet.pt * ak.sinh(trijet.eta), axis=1)
+    e = ak.sum(ak.sqrt(trijet.pt**2 + trijet.m**2), axis=1)
+    return ak.sqrt(e**2 - (px**2 + py**2 + pz**2))
+
+# Generate all combinations of 3 jets per event
+trijets = ak.combinations(jets, 3, fields=["j1", "j2", "j3"], axis=1)
+
+# Stack the jet properties into a single array for each trijet
+trijet_pts = ak.zip({"pt": trijets.j1.pt + trijets.j2.pt + trijets.j3.pt})
+trijet_masses = trijet_mass(trijets)
+
+# Find the index of the trijet with mass closest to 172.5 GeV in each event
+target_mass = 172.5
+mass_diff = ak.abs(trijet_masses - target_mass)
+closest_trijet_indices = ak.argmin(mass_diff, axis=1, keepdims=True)
+
+# Select the closest trijet in each event
+closest_trijets = trijets[closest_trijet_indices]
+
+# Calculate the pT of the closest trijet
+closest_trijet_pts = ak.first(closest_trijets.j1.pt + closest_trijets.j2.pt + closest_trijets.j3.pt)
+
+# Find the maximum b-tagging discriminant in the closest trijet
+max_btag_discriminant = ak.max(ak.concatenate([closest_trijets.j1.btag_weight, closest_trijets.j2.btag_weight, closest_trijets.j3.btag_weight], axis=1), axis=1)
+
+# Create histograms
+h_trijet_pt = (
+    hist.Hist.new.Reg(50, 0, 500, name="trijet_pt", label="Trijet pT [GeV]")
+    .Int64()
+)
+h_max_btag_discriminant = (
+    hist.Hist.new.Reg(50, 0, 1, name="max_btag_discriminant", label="Max B-Tagging Discriminant")
+    .Int64()
+)
+
+# Fill histograms
+h_trijet_pt.fill(trijet_pt=closest_trijet_pts)
+h_max_btag_discriminant.fill(max_btag_discriminant=max_btag_discriminant)
+
+# Plotting
+plt.style.use(hep.style.ATLAS)
+
+# Trijet pT plot
+fig, ax = plt.subplots()
+h_trijet_pt.plot(histtype="fill", linewidth=1, edgecolor="gray", label="Trijet pT")
+plt.legend()
+plt.xlabel("Trijet pT [GeV]")
+plt.ylabel("Events")
+plt.savefig("trijet_pt.png")
+plt.close(fig)
+
+# Max b-tagging discriminant plot
+fig, ax = plt.subplots()
+h_max_btag_discriminant.plot(histtype="fill", linewidth=1, edgecolor="gray", label="Max B-Tagging Discriminant")
+plt.legend()
+plt.xlabel("Max B-Tagging Discriminant")
+plt.ylabel("Events")
+plt.savefig("max_btag_discriminant.png")
+plt.close(fig)
+```
+>>end-reply<
 ## Summary
 | Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |
 |-------|----------|--------------|------------------|--------------|--------------------|
@@ -1420,3 +2028,7 @@ plt.savefig("trijet_bdisc.png")
 | gpt-5-nano | 68.13 | 11676 | 19404 | 31080 | 0.0083 |
 | gpt-4o | 26.62 | 11677 | 1315 | 12992 | 0.0423 |
 | o4-mini | 40.67 | 11676 | 5480 | 17156 | 0.0370 |
+| openai/gpt-oss-120b | 55.34 | 11741 | 4096 | 15837 | 0.0042 |
+| openai/gpt-oss-20b | 10.65 | 11741 | 2048 | 13789 | 0.0010 |
+| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 36.77 | 11938 | 1839 | 13777 | 0.0276 |
+| arcee-ai/coder-large | 17.57 | 11959 | 1456 | 13415 | 0.0071 |

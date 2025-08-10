@@ -710,6 +710,391 @@ ax.set_title("Missing $E_T$ for Opposite-Charge μμ Pairs")
 ax.legend()
 fig.savefig("etmiss.png")
 ```
+
+
+## Model: openai/gpt-oss-120b
+
+- Built a **FuncADL** query to retrieve per‑event muon kinematics (pt, eta, phi, charge) and the missing‑ET (`met`) from the specified PHYSLITE dataset.
+- Used **ServiceX** (`deliver` + `to_awk`) to pull the data into an **Awkward Array**.
+- Constructed muon four‑vectors with the **vector** library (using a muon mass of 0.105 GeV) and formed all muon‑pair combinations per event.
+- Computed the invariant mass of each pair, applied the opposite‑charge and 60–120 GeV mass window, and kept events that contain at least one qualifying pair.
+- Filled a 1‑D histogram of the selected `met` values with **hist**, plotted it with **matplotlib** and **mplhep**, and saved the figure as `met_distribution.png`.
+
+```python
+# -------------------------------------------------
+#   Imports
+# -------------------------------------------------
+import awkward as ak
+import numpy as np
+import vector
+import matplotlib.pyplot as plt
+import mplhep as hep
+from hist import Hist
+
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+
+# -------------------------------------------------
+#   Register vector behaviours (needed for Lorentz vectors)
+# -------------------------------------------------
+vector.register_awkward()
+
+# -------------------------------------------------
+#   Define the ServiceX query
+# -------------------------------------------------
+# Dataset name (as given in the prompt)
+ds_name = (
+    "mc23_13p6TeV:mc23_13p6TeV.513109.MGPy8EG_Zmumu_FxFx3jHT2bias_SW_CFilterBVeto."
+    "deriv.DAOD_PHYSLITE.e8514_e8528_s4162_s4114_r14622_r14663_p6697"
+)
+
+# Build a query that returns, for each event:
+#   * Lists of muon pt, eta, phi, charge (all in GeV/radians)
+#   * The missing‑ET value (MET) in GeV
+base = FuncADLQueryPHYSLITE()
+query = (
+    base.Select(
+        lambda e: {
+            "mu_pt": e.Muons().Select(lambda m: m.pt() / 1000.0),      # GeV
+            "mu_eta": e.Muons().Select(lambda m: m.eta()),
+            "mu_phi": e.Muons().Select(lambda m: m.phi()),
+            "mu_charge": e.Muons().Select(lambda m: m.charge()),
+            # MissingET is a singleton collection: take the first entry
+            "met": e.MissingET().First().met() / 1000.0,               # GeV
+        }
+    )
+)
+
+# -------------------------------------------------
+#   Execute the query via ServiceX (use a single file for a quick test)
+# -------------------------------------------------
+result = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="zmumu_met",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,               # change/remove for full dataset
+                    Query=query,
+                )
+            ]
+        ),
+    )
+)
+
+# The result is a dict keyed by the Sample name
+events = result["zmumu_met"]
+
+# -------------------------------------------------
+#   Build muon four‑vectors (Momentum4D) and apply event selection
+# -------------------------------------------------
+MUON_MASS_GEV = 0.105  # GeV
+
+# Create a Momentum4D array of muons (pt, eta, phi, mass)
+muons_vec = ak.zip(
+    {
+        "pt": events["mu_pt"],
+        "eta": events["mu_eta"],
+        "phi": events["mu_phi"],
+        "mass": MUON_MASS_GEV,
+    },
+    with_name="Momentum4D",
+)
+
+# Charge array (kept separate)
+muons_charge = events["mu_charge"]
+
+# Build all distinct muon pairs per event
+pairs_vec = ak.combinations(muons_vec, 2, fields=["mu1", "mu2"], axis=1)
+pairs_charge = ak.combinations(muons_charge, 2, fields=["c1", "c2"], axis=1)
+
+# Invariant mass of each pair
+pair_mass = (pairs_vec.mu1 + pairs_vec.mu2).mass  # GeV
+
+# Opposite‑charge mask
+opp_charge = pairs_charge.c1 * pairs_charge.c2 < 0
+
+# Mass window mask (60–120 GeV)
+mass_window = (pair_mass > 60.0) & (pair_mass < 120.0)
+
+# Event passes if **any** pair satisfies both conditions
+event_mask = ak.any(opp_charge & mass_window, axis=1)
+
+# Select MET values for the passing events
+selected_met = events["met"][event_mask]
+
+# -------------------------------------------------
+#   Histogram the MET distribution
+# -------------------------------------------------
+# Example: 50 bins from 0 to 200 GeV
+h_met = Hist.new.Reg(50, 0, 200, name="met", label="Missing $E_{T}$ [GeV]").Weight()
+
+# Fill the histogram (weight = 1 for each event)
+h_met.fill(met=ak.to_numpy(selected_met), weight=np.ones_like(selected_met))
+
+# -------------------------------------------------
+#   Plot and save the histogram
+# -------------------------------------------------
+plt.style.use(hep.style.ATLAS)
+fig, ax = plt.subplots(figsize=(8, 6))
+
+h_met.plot(ax=ax, histtype="fill", edgecolor="black", linewidth=1, label="Z→μμ events")
+ax.set_xlabel("Missing $E_{T}$ [GeV]")
+ax.set_ylabel("Events")
+ax.legend()
+plt.tight_layout()
+plt.savefig("met_distribution.png")
+plt.close()
+
+print("Histogram saved to 'met_distribution.png'")
+```
+
+
+## Model: openai/gpt-oss-20b
+
+- Built two ServiceX queries: one to retrieve the full set of muon kinematic and charge information, and a second to get the event‐level missing transverse energy (MET).
+- Converted the two ServiceX deliveries into Awkward arrays using `to_awk`.
+- Constructed four‑momentum vectors for each muon with the Vector library, then generated all opposite‑charge muon pairs per event.
+- Selected pairs whose invariant mass lies between 60 and 120 GeV and required that at least one such pair exists in the event.
+- Filtered the MET array to keep only events passing the pair selection.
+- Filled a 1‑D Histogram with `hist` and plotted the MET distribution using `mplhep` ATLAS style. The plot is saved to `met_opp_charge_muonpair.png`.
+```python
+# ------------------------------------------------------------
+# 1. Imports
+# ------------------------------------------------------------
+import awkward as ak
+import vector
+import matplotlib.pyplot as plt
+import mplhep as hep
+from hist import Hist
+
+
+## Model: Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8
+
+- I'll create a query to fetch data from the specified PHYSLITE dataset
+- The query will select events that contain muon pairs with opposite charges and invariant mass between 60-120 GeV
+- For these events, I'll extract the missing ET (MET) values
+- I'll use Awkward Array and Vector for physics calculations like invariant mass
+- Finally, I'll create and save a histogram of the MET distribution to a PNG file
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import vector
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Register vector behaviors
+vector.register_awkward()
+
+# Create the base query
+base_query = FuncADLQueryPHYSLITE()
+
+# Query to get muon pairs with opposite charge and invariant mass between 60-120 GeV
+# and extract the ETmiss for those events
+query = (base_query
+    .Select(lambda evt: (
+        evt.Muons(),
+        evt.MissingET().First()
+    ))
+    .Where(lambda muon_met_pair: 
+        muon_met_pair[0].Count() >= 2  # At least 2 muons
+    )
+    .Select(lambda muon_met_pair: {
+        "muons_pt": muon_met_pair[0].Select(lambda mu: mu.pt() / 1000.0),
+        "muons_eta": muon_met_pair[0].Select(lambda mu: mu.eta()),
+        "muons_phi": muon_met_pair[0].Select(lambda mu: mu.phi()),
+        "muons_m": muon_met_pair[0].Select(lambda mu: mu.m() / 1000.0),
+        "muons_charge": muon_met_pair[0].Select(lambda mu: mu.charge()),
+        "met": muon_met_pair[1].met() / 1000.0
+    })
+)
+
+# Define the dataset
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.513109.MGPy8EG_Zmumu_FxFx3jHT2bias_SW_CFilterBVeto.deriv.DAOD_PHYSLITE.e8514_e8528_s4162_s4114_r14622_r14663_p6697"
+
+# Execute the query
+result = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="zmm_met",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,  # Start with 1 file for testing
+                    Query=query,
+                )
+            ]
+        ),
+    )
+)
+
+# Get the data
+data = result["zmm_met"]
+
+# Convert to Momentum4D vectors for physics calculations
+muons = ak.zip({
+    "pt": data.muons_pt,
+    "eta": data.muons_eta,
+    "phi": data.muons_phi,
+    "mass": data.muons_m
+}, with_name="Momentum4D")
+
+# Get all muon pairs in each event
+mu1, mu2 = ak.unzip(ak.combinations(muons, 2, axis=1))
+charge1 = ak.combinations(data.muons_charge, 2, axis=1)[0]
+charge2 = ak.combinations(data.muons_charge, 2, axis=1)[1]
+
+# Calculate invariant mass for each pair
+inv_mass = (mu1 + mu2).mass
+
+# Apply cuts: opposite charge and mass between 60-120 GeV
+opposite_charge = (charge1 * charge2) < 0
+mass_cut = (inv_mass >= 60) & (inv_mass <= 120)
+
+# Combine cuts
+valid_pairs = opposite_charge & mass_cut
+
+# For events with at least one valid pair, we keep the MET value
+# We need to check if any pair in each event passes the cuts
+events_with_valid_pairs = ak.any(valid_pairs, axis=1)
+
+# Extract MET values for events that pass our selection
+selected_met = data.met[events_with_valid_pairs]
+
+# Create histogram
+h_met = hist.Hist.new.Reg(50, 0, 200, name="met", label="E_{T}^{miss} [GeV]").Weight()
+
+# Fill histogram
+h_met.fill(met=selected_met)
+
+# Plot using ATLAS style
+plt.style.use(hep.style.ATLAS)
+fig, ax = plt.subplots(figsize=(10, 8))
+
+# Plot the histogram
+h_met.plot(ax=ax, histtype="fill", linewidth=1, edgecolor="gray")
+
+# Add labels and title
+plt.xlabel("E_{T}^{miss} [GeV]")
+plt.ylabel("Events")
+plt.title("Missing Transverse Energy Distribution\n(Z → μ⁺μ⁻ Events, 60 < m_{μμ} < 120 GeV)")
+
+# Save to PNG file
+plt.savefig("met_distribution_zmumu.png")
+
+print(f"Saved MET distribution plot to met_distribution_zmumu.png")
+print(f"Number of events passing selection: {len(selected_met)}")
+```
+
+
+## Model: arcee-ai/coder-large
+
+- Constructed a query to fetch muons and missing ET from the specified dataset.
+- Filtered events to include only those with an opposite-charge muon pair with an invariant mass between 60 and 120 GeV.
+- Calculated the invariant mass of muon pairs using the Vector library.
+- Extracted the ETmiss for the filtered events.
+- Created a histogram of the ETmiss values.
+- Saved the histogram as a PNG file.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import vector
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Register Vector behaviors for Awkward Array
+vector.register_awkward()
+
+# The base query should run against PHYSLITE.
+base_query = FuncADLQueryPHYSLITE()
+
+# Query: get muons and missing ET
+muon_met_query = (base_query
+    .Select(lambda evt: {
+        "muons": evt.Muons().Select(lambda mu: {
+            "pt": mu.pt() / 1000.0,
+            "eta": mu.eta(),
+            "phi": mu.phi(),
+            "charge": mu.charge()
+        }),
+        "met": evt.MissingET().First().met() / 1000.0
+    })
+)
+
+# Do the fetch
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.513109.MGPy8EG_Zmumu_FxFx3jHT2bias_SW_CFilterBVeto.deriv.DAOD_PHYSLITE.e8514_e8528_s4162_s4114_r14622_r14663_p6697")
+
+muon_met_data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="muon_met_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=muon_met_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Extract muons and MET from the fetched data
+muons = muon_met_data["muon_met_fetch"].muons
+met = muon_met_data["muon_met_fetch"].met
+
+# Convert muons to Lorentz vectors
+muon_vectors = ak.zip({
+    "pt": muons.pt,
+    "eta": muons.eta,
+    "phi": muons.phi,
+    "mass": 0.105658  # Muon mass in GeV
+}, with_name="Momentum4D")
+
+# Find opposite-charge muon pairs
+muon_pairs = ak.combinations(muon_vectors, 2, fields=["mu1", "mu2"], axis=1)
+opposite_charge_pairs = muon_pairs[muon_pairs.mu1.charge != muon_pairs.mu2.charge]
+
+# Calculate invariant mass of muon pairs
+invariant_mass = (opposite_charge_pairs.mu1 + opposite_charge_pairs.mu2).mass
+
+# Filter events with invariant mass between 60 and 120 GeV
+valid_pairs = opposite_charge_pairs[invariant_mass > 60]
+valid_pairs = valid_pairs[invariant_mass < 120]
+
+# Extract MET for valid events
+valid_met = met[ak.num(valid_pairs, axis=1) > 0]
+
+# Create a histogram of ETmiss
+h_met = (
+    hist.Hist.new.Reg(50, 0, 500, name="ETmiss", label="ETmiss [GeV]")
+    .Int64()
+)
+
+# Fill the histogram with ETmiss values
+h_met.fill(ETmiss=valid_met)
+
+# Plot the histogram
+plt.style.use(hep.style.ATLAS)
+h_met.plot(histtype="fill", linewidth=1, edgecolor="gray", label="ETmiss")
+plt.legend()
+plt.xlabel("ETmiss [GeV]")
+plt.ylabel("Events")
+plt.title("ETmiss for Opposite-Charge Muon Pairs with 60 < m($\mu\mu$) < 120 GeV")
+plt.savefig("etmiss_histogram.png")
+```
+>>end-reply<
 ## Summary
 | Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |
 |-------|----------|--------------|------------------|--------------|--------------------|
@@ -719,3 +1104,7 @@ fig.savefig("etmiss.png")
 | gpt-5-nano | 53.31 | 11665 | 14360 | 26025 | 0.0063 |
 | gpt-4o | 19.30 | 11666 | 871 | 12537 | 0.0379 |
 | o4-mini | 22.34 | 11665 | 2840 | 14505 | 0.0253 |
+| openai/gpt-oss-120b | 27.93 | 11730 | 2342 | 14072 | 0.0032 |
+| openai/gpt-oss-20b | 10.51 | 11730 | 2048 | 13778 | 0.0010 |
+| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 21.03 | 11932 | 1154 | 13086 | 0.0262 |
+| arcee-ai/coder-large | 11.37 | 11953 | 935 | 12888 | 0.0067 |

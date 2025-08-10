@@ -461,6 +461,315 @@ ax.legend(["ETmiss"])
 fig.tight_layout()
 fig.savefig("met.png")
 ```
+
+
+## Model: openai/gpt-oss-120b
+
+- Imported the necessary ServiceX, FuncADL, and ATLAS PHYSLITE query utilities.
+- Built a minimal query that **only** retrieves the missing‑transverse‑energy (MET) of each event, converting it from MeV to GeV.
+- Executed the query on the requested Rucio dataset (using `NFiles=1` for a quick test; change or remove `NFiles` to run over the whole sample).
+- Converted the ServiceX result to an Awkward Array.
+- Created a 1‑D histogram of MET with 100 GeV‑wide bins from 0 to 500 GeV using `hist.Hist`.
+- Filled the histogram, plotted it with ATLAS‑style Matplotlib (`mplhep`), added axis labels and a legend, and saved the figure as **`etmiss_hist.png`**.
+
+```python
+# --------------------------------------------------------------
+# 1. Imports
+# --------------------------------------------------------------
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+
+import awkward as ak
+import numpy as np
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# --------------------------------------------------------------
+# 2. Define the ServiceX query (PHYSLITE sample)
+# --------------------------------------------------------------
+base_query = FuncADLQueryPHYSLITE()
+
+# MissingET is stored as a collection with a single entry per event.
+# We take the first object and read its met() value, converting MeV → GeV.
+met_query = (
+    base_query
+    .Select(lambda evt: evt.MissingET().First())          # get the single MissingET object
+    .Select(lambda met: {"met": met.met() / 1000.0})      # convert to GeV and store under key "met"
+)
+
+# --------------------------------------------------------------
+# 3. Execute the query with ServiceX
+# --------------------------------------------------------------
+ds_name = (
+    "mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2."
+    "deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697"
+)
+
+# NFiles=1 is a safe default for testing; remove it to run over the full dataset.
+result = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="etmiss_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=met_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Awkward array of MET values (GeV)
+met_awk = result["etmiss_fetch"].met  # this is an Awkward 1‑D array (flattened across events)
+
+# --------------------------------------------------------------
+# 4. Build a histogram with Hist
+# --------------------------------------------------------------
+# Choose a reasonable range for MET in this sample; adjust as needed.
+h_met = (
+    hist.Hist.new.Reg(100, 0, 500, name="met", label=r"$E_{\mathrm{T}}^{\mathrm{miss}}$ [GeV]")
+    .Weight()
+)
+
+# Fill the histogram – "weight" defaults to 1.0 for each entry
+h_met.fill(met=ak.to_numpy(met_awk))
+
+# --------------------------------------------------------------
+# 5. Plot and save the histogram
+# --------------------------------------------------------------
+plt.style.use(hep.style.ATLAS)  # ATLAS publication style
+
+fig, ax = plt.subplots(figsize=(8, 6))
+h_met.plot(ax=ax, histtype="stepfilled", linewidth=1.2, edgecolor="black", label="MET")
+ax.set_xlabel(r"$E_{\mathrm{T}}^{\mathrm{miss}}$ [GeV]")
+ax.set_ylabel("Events")
+ax.legend()
+plt.tight_layout()
+
+# Save to PNG
+plt.savefig("etmiss_hist.png")
+plt.close()
+```
+
+
+## Model: openai/gpt-oss-20b
+
+- built a ServiceX query to pull the first `MissingET` object from each event in the specified PHYSLITE dataset  
+- converted the raw MET from MeV to GeV (`met/1000`)  
+- fetched the data with a single file (for expediency) and got an Awkward array of MET values  
+- filled a ROOT‑style histogram using `hist` with 50 bins from 0 to 200 GeV  
+- plotted the histogram with matplotlib (ATLAS style) and saved it as `met_histogram.png`  
+
+```python
+# Imports
+import matplotlib.pyplot as plt
+import mplhep as hep
+import hist
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+
+# 1.  Build the ServiceX query (MET in GeV)
+met_query = (
+    FuncADLQueryPHYSLITE()
+    .Select(lambda e: e.MissingET().First())          # only one MissingET per event
+    .Select(lambda m: {"met": m.met() / 1000.0})       # convert to GeV
+)
+
+# 2.  Define the dataset (pick one file for quick test)
+rucio_name = (
+    "mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE."
+    "e8514_e8528_a911_s4114_r15224_r15225_p6697"
+)
+
+# 3.  Execute the query
+all_met = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="Met_fetch",
+                    Dataset=dataset.Rucio(rucio_name),
+                    NFiles=1,          # NFiles=1 for a quick test; use full dataset in production
+                    Query=met_query,
+                )
+            ]
+        )
+    )
+)
+
+# 4.  Extract the Awkward array of MET values
+met_arr = all_met["Met_fetch"].met
+
+# 5.  Make a histogram (50 bins, 0–200 GeV)
+h = (
+    hist.Hist.new
+    .Reg(50, 0, 200, name="met", label="Missing ET [GeV]")
+    .Int64()                               # 64‑bit integer counts
+)
+
+h.fill(met=met_arr)
+
+# 6.  Plot and save
+plt.figure(figsize=(8,6))
+hep.style.use("ATLAS")                      # ATLAS style
+h.plot(histtype="step", linewidth=1.5, color="navy", label="Missing ET")
+
+plt.xlabel("E$_{T}^{miss}$ [GeV]")
+plt.ylabel("Events / bin")
+plt.title("Missing transverse energy distribution")
+plt.legend()
+plt.grid(alpha=0.4)
+plt.tight_layout()
+
+plt.savefig("met_histogram.png")
+plt.close()
+```
+
+
+## Model: Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8
+
+- I will create a query using ServiceX to fetch MissingET data from the specified PHYSLITE dataset.
+- The query will extract the MET (Missing Transverse Energy) values from all events, converting from MeV to GeV.
+- I'll use `FuncADLQueryPHYSLITE` because the dataset is a PHYSLITE derivation.
+- The MET is accessed via `e.MissingET().First().met()`, as it's stored as a collection with one element per event.
+- I'll process the data with Awkward Array and create a histogram using the Hist library.
+- Finally, I'll plot the histogram and save it as a PNG file named `met_distribution.png`.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Configure the ATLAS style for plots
+plt.style.use(hep.style.ATLAS)
+
+# Define the query to fetch MET values from PHYSLITE
+base_query = FuncADLQueryPHYSLITE()
+met_query = base_query.Select(lambda e: {
+    "met": e.MissingET().First().met() / 1000.0  # Convert from MeV to GeV
+})
+
+# Specify the dataset
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697"
+
+# Execute the query using ServiceX (using 1 file for testing)
+result = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="met_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=met_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Extract the MET values as an Awkward Array
+met_values = result["met_fetch"].met
+
+# Create a histogram using the Hist library
+h_met = (
+    hist.Hist.new.Reg(50, 0, 1000, name="met", label="Missing E_T [GeV]")
+    .Int64()
+)
+
+# Fill the histogram with MET values
+h_met.fill(met=met_values)
+
+# Plot the histogram
+fig, ax = plt.subplots()
+h_met.plot(ax=ax, histtype="fill", linewidth=1, edgecolor="gray")
+ax.set_xlabel("Missing E_T [GeV]")
+ax.set_ylabel("Events")
+ax.set_title("Missing Transverse Energy Distribution")
+
+# Save the plot to a PNG file
+plt.savefig("met_distribution.png")
+plt.close()
+```
+
+
+## Model: arcee-ai/coder-large
+
+- Constructed a query to fetch the ETmiss from the specified Rucio dataset.
+- Executed the query using ServiceX and converted the result to an Awkward Array.
+- Extracted the ETmiss values from the Awkward Array.
+- Created a histogram of the ETmiss values using the Hist library.
+- Saved the histogram as a PNG file.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# The base query should run against PHYSLITE.
+base_query = FuncADLQueryPHYSLITE()
+
+# Query: get ETmiss
+etmiss_query = (base_query
+    .Select(lambda evt: evt.MissingET().First())
+    .Select(lambda m: {
+        "etmiss": m.met() / 1000.0,
+    })
+)
+
+# Do the fetch
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697")
+
+all_etmiss = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="etmiss_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,  # For testing, use NFiles=1. Change if needed.
+                    Query=etmiss_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Extract ETmiss values
+etmiss_values = all_etmiss["etmiss_fetch"].etmiss
+
+# Create a histogram
+h = (
+    hist.Hist.new.Reg(50, 0, 500, name="etmiss", label="ETmiss [GeV]")
+    .Int64()
+)
+
+# Fill the histogram
+h.fill(etmiss=etmiss_values)
+
+# Plot the histogram
+plt.style.use(hep.style.ATLAS)
+h.plot(histtype="fill", linewidth=1, edgecolor="gray", label="ETmiss")
+plt.legend()
+plt.xlabel("ETmiss [GeV]")
+plt.ylabel("Events")
+plt.title("ETmiss Distribution")
+plt.savefig("etmiss_distribution.png")
+```
+>>end-reply<
 ## Summary
 | Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |
 |-------|----------|--------------|------------------|--------------|--------------------|
@@ -470,3 +779,7 @@ fig.savefig("met.png")
 | gpt-5-nano | 14.52 | 11639 | 3619 | 15258 | 0.0020 |
 | gpt-4o | 7.01 | 11640 | 568 | 12208 | 0.0348 |
 | o4-mini | 12.23 | 11639 | 1343 | 12982 | 0.0187 |
+| openai/gpt-oss-120b | 16.98 | 11704 | 1076 | 12780 | 0.0024 |
+| openai/gpt-oss-20b | 6.34 | 11704 | 1209 | 12913 | 0.0008 |
+| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 11.20 | 11904 | 641 | 12545 | 0.0251 |
+| arcee-ai/coder-large | 7.45 | 11925 | 559 | 12484 | 0.0064 |
