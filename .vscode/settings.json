@@ -7,14 +7,21 @@
         "btag",
         "DAOD",
         "datamodel",
+        "deepseek",
+        "diskcache",
+        "dotenv",
         "etmiss",
         "hdamp",
         "histtype",
         "ipywidgets",
         "jupyterlab",
+        "lllvjj",
         "mplhep",
+        "nfiles",
         "NNPDF",
+        "numpy",
         "PHYSLITE",
+        "qwen",
         "Rucio",
         "streamlit",
         "ttbar",
@@ -22,6 +29,7 @@
         "Wenu",
         "xaodr",
         "xlabel",
-        "ylabel"
+        "ylabel",
+        "Zmumu"
     ]
 }

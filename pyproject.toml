@@ -16,6 +16,7 @@ notebook = [
     "servicex_analysis_utils",
     "ipywidgets",
     "mplhep",
+    "diskcache",
 ]
 
 dev = ["pytest", "pytest-asyncio", "pytest-coverage", "black", "flake8"]

@@ -25,6 +25,8 @@ See the original [site](https://github.com/iris-hep/adl-benchmarks-index) for th
 
 Note: these DID's had files in them when the tests were run! Sample deletion comes for us all!
 
+Note: The above questions are parsed by code. Keep the format the same (each question is on one line, starts with a `1.`.)
+
 ## Comments
 
 ### Codespaces
@@ -33,7 +35,7 @@ Note: these DID's had files in them when the tests were run! Sample deletion com
 
 **Hints:** Often had to update hint files after catching the model's mistakes. The updates were in two forms: fixes where the hint files were incorrect, and trying to emphasize taking one approach or the other. Most models were good at following the hints, despite how big the hint files have gotten. That said, there are some things (like `ak.stack`) that seem to be totally baked into the model's training and nothing I can do will dissuade them. Might be one place where fine tuning our own models would be an advantage.
 
-**General Comments & Future Directions:** 
+**General Comments & Future Directions:**
 
 - Writing some of this code to manipulate arrays is subtle! And some of it is not obvious why you need to do it, even after you've written it (at least to me).
 - Complex queries will need a planning step.
@@ -41,3 +43,21 @@ Note: these DID's had files in them when the tests were run! Sample deletion com
 - Some of the awkward code will need to be run in order to sort out what went wrong.
 - Running on many files will require a different strategy than running on one file. But it might be worth getting the 1 file run working and then translating to a many file run. Much like how we as humans do it.
 
+### Direct Query
+
+**Models**: It is hard to tell where they work and don't - there is just too much!
+
+- GPT5
+  - Sometimes creates a `def main` and calls it. Seems like it would work fine.
+  - GPT5 also parses the text in such a way it convinces itself that the user wants the whole dataset. This is an interesting problem - the user probably did. However, we don't want to emit code like that when testing! So we'll have to do something about that.
+    - Makes me wonder if we need a *compliance* phase when this actually runs - to make sure certain policies are followed (like running tests first).
+    - gpt5 mini includes the `nfiles=1`, and says "remove it once testing is done.
+  - Seems to understand using `np.stack` vs `ak.stack`!
+- gpt5-mini adds a bunch of extra stats (like numbers of events, etc.). Things it "thinks" might be helpful.
+- gpt5-nano seems to be concise and not add anything extra for q1!
+- gpt5-nano also converts `to_numpy` often, rather than staying in awkward. Sometimes it converts, and then converts back.
+- Where do the models obviously tap out?
+  - gpt 4o: Question 5 it gets in SX `e.Muons()` rather than each column.
+  - o4-mini: forgets the flatten in question 6
+  - gpt5-nano: inserts the b-tag tool stuff, but as a comment, not as actual code.
+  - I'm guessing the others have problems - but we need to run them to see! I just couldn't identify issues I'd seen previously.
