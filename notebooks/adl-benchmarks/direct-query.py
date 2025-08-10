@@ -1,9 +1,9 @@
 import sys
 
 if hasattr(sys.stdin, "reconfigure"):
-    sys.stdin.reconfigure(encoding="utf-8")
+    sys.stdin.reconfigure(encoding="utf-8")  # type: ignore
 if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
 import functools
 import logging
 import os
