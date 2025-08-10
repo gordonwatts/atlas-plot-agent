@@ -1,22 +1,21 @@
 import sys
-
-if hasattr(sys.stdin, "reconfigure"):
-    sys.stdin.reconfigure(encoding="utf-8")  # type: ignore
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
 import functools
 import logging
 import os
 from typing import Optional
-import sys
-
 import fsspec
 import openai
 import typer
 import yaml
 from diskcache import Cache
-from dotenv import load_dotenv
+from dotenv import dotenv_values, find_dotenv
 from pydantic import BaseModel
+from urllib.parse import urlparse
+
+if hasattr(sys.stdin, "reconfigure"):
+    sys.stdin.reconfigure(encoding="utf-8")  # type: ignore
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
 
 
 def load_yaml_file(filename: str) -> dict:
@@ -150,7 +149,25 @@ def run_model(question: str, prompt: str, model_info, ignore_cache=False):
     """
     Run the model, print heading and result, and return info for the table.
     """
-    # Get cached response and timing
+    # Set API key based on endpoint hostname, using <node-name>_API_KEY
+    endpoint_host = None
+    if model_info.endpoint:
+        endpoint_host = urlparse(model_info.endpoint).hostname
+    if not endpoint_host:
+        endpoint_host = "api.openai.com"
+    env_var = f"{endpoint_host.replace('.', '_')}_API_KEY"
+    env_path = find_dotenv()
+    env_vars = dotenv_values(env_path)
+    api_key = env_vars.get(env_var)
+    if api_key:
+        os.environ["OPENAI_API_KEY"] = api_key
+        openai.api_key = api_key
+    else:
+        logging.warning(f"API key not found for {env_var}")
+        if "OPENAI_API_KEY" in env_vars:
+            del os.environ["OPENAI_API_KEY"]
+
+    # Do the query
     result = get_openai_response(
         prompt,
         model_info.model_name,
@@ -218,13 +235,6 @@ def ask(
     Command to ask a question using the default configuration.
     Runs the question against one or more models, prints results, and prints a summary table.
     """
-    # Load environment variables from .env
-    load_dotenv()
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    if not openai_api_key:
-        logging.warning("OPENAI_API_KEY not found in environment.")
-        return
-    openai.api_key = openai_api_key
 
     # Load configuration
     config = load_config()
