@@ -61,3 +61,5 @@ Note: The above questions are parsed by code. Keep the format the same (each que
   - o4-mini: forgets the flatten in question 6
   - gpt5-nano: inserts the b-tag tool stuff, but as a comment, not as actual code.
   - I'm guessing the others have problems - but we need to run them to see! I just couldn't identify issues I'd seen previously.
+
+**Open Source Models**: Added a few OSS models run on `together.ai`. The results are about what you expect, though they seem cheaper than the `openai`. But we need an independent way of evaluating this.

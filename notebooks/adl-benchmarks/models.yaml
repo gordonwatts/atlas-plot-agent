@@ -23,6 +23,26 @@ models:
     model_name: o4-mini
     input_cost_per_million: 1.10
     output_cost_per_million: 4.40
+  gpt-oss-120b:
+    model_name: openai/gpt-oss-120b
+    input_cost_per_million: 0.15
+    output_cost_per_million: 0.60
+    endpoint: https://api.together.xyz/v1
+  gpt-oss-20b:
+    model_name: openai/gpt-oss-20b
+    input_cost_per_million: 0.05
+    output_cost_per_million: 0.20
+    endpoint: https://api.together.xyz/v1
+  Qwen3-Coder-480B:
+    model_name: Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8
+    input_cost_per_million: 2.00
+    output_cost_per_million: 2.00
+    endpoint: https://api.together.xyz/v1
+  coder-large:
+    model_name: arcee-ai/coder-large
+    input_cost_per_million: 0.50
+    output_cost_per_million: 0.80
+    endpoint: https://api.together.xyz/v1
   # Not supported in the API that I'm using here (chat completions).
   # codex-mini-latest:
   #   model_name: codex-mini-latest
