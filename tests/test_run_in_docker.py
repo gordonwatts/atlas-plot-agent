@@ -1,6 +1,5 @@
 import yaml
 import os
-import shutil
 from atlas_plot_agent.run_in_docker import copy_servicex_yaml_if_exists
 from atlas_plot_agent.run_in_docker import run_python_in_docker, DockerRunResult
 
