@@ -1,11 +1,30 @@
-from dataclasses import dataclass
-from typing import List, Tuple
-import tempfile
-import shutil
-import subprocess
-import time
 import os
+import subprocess
+import tempfile
+import time
+from dataclasses import dataclass
 from pathlib import Path
+from typing import List, Tuple
+
+import yaml
+
+
+def copy_servicex_yaml_if_exists(target_dir: str):
+    """
+    Copies servicex.yaml from the user's home directory to target_dir if it exists.
+    """
+
+    home_servicex = os.path.expanduser("~/servicex.yaml")
+    target_servicex = os.path.join(target_dir, "servicex.yaml")
+    if os.path.exists(home_servicex):
+        with open(home_servicex, "r", encoding="utf-8") as f:
+            loaded = yaml.safe_load(f)
+        # If loaded is not a dict, make it a dict
+        if not isinstance(loaded, dict):
+            loaded = {}  # treat as empty config
+        loaded["cache_path"] = "/cache"
+        with open(target_servicex, "w", encoding="utf-8") as f:
+            yaml.safe_dump(loaded, f)
 
 
 @dataclass
@@ -34,9 +53,7 @@ def run_python_in_docker(python_code: str) -> DockerRunResult:
         f.write(python_code)
 
     # Copy servicex.yaml from home directory if it exists
-    home_servicex = os.path.expanduser("~/servicex.yaml")
-    if os.path.exists(home_servicex):
-        shutil.copy(home_servicex, os.path.join(temp_dir, "servicex.yaml"))
+    copy_servicex_yaml_if_exists(temp_dir)
 
     # Run the docker container
     docker_image = "atlasplotagent:latest"

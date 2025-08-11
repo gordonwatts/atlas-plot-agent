@@ -1,4 +1,52 @@
+import yaml
+import os
+import shutil
+from atlas_plot_agent.run_in_docker import copy_servicex_yaml_if_exists
 from atlas_plot_agent.run_in_docker import run_python_in_docker, DockerRunResult
+
+
+def test_copy_servicex_yaml_adds_cache_path(tmp_path, monkeypatch):
+    servicex_path = tmp_path / "home1" / "servicex.yaml"
+    servicex_path.parent.mkdir()
+    no_cache_yaml = {"some_key": "some_value"}
+    servicex_path.write_text(yaml.safe_dump(no_cache_yaml))
+    monkeypatch.setattr(
+        os.path,
+        "expanduser",
+        lambda p: str(servicex_path) if p == "~/servicex.yaml" else p,
+    )
+    monkeypatch.setattr(os.path, "exists", lambda p: str(p) == str(servicex_path))
+    monkeypatch.setattr("shutil.copy", lambda src, dst: None)
+    target_dir = tmp_path / "target1"
+    target_dir.mkdir()
+    copy_servicex_yaml_if_exists(str(target_dir))
+    copied_path = target_dir / "servicex.yaml"
+    with open(copied_path, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+    assert data["cache_path"] == "/cache"
+    assert data["some_key"] == "some_value"
+
+
+def test_copy_servicex_yaml_overwrites_cache_path(tmp_path, monkeypatch):
+    servicex_path = tmp_path / "home2" / "servicex.yaml"
+    servicex_path.parent.mkdir()
+    with_cache_yaml = {"cache_path": "/old_cache", "other": 123}
+    servicex_path.write_text(yaml.safe_dump(with_cache_yaml))
+    monkeypatch.setattr(
+        os.path,
+        "expanduser",
+        lambda p: str(servicex_path) if p == "~/servicex.yaml" else p,
+    )
+    monkeypatch.setattr(os.path, "exists", lambda p: str(p) == str(servicex_path))
+    monkeypatch.setattr("shutil.copy", lambda src, dst: None)
+    target_dir = tmp_path / "target2"
+    target_dir.mkdir()
+    copy_servicex_yaml_if_exists(str(target_dir))
+    copied_path = target_dir / "servicex.yaml"
+    with open(copied_path, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+    assert data["cache_path"] == "/cache"
+    assert data["other"] == 123
 
 
 def test_run_python_in_docker_success():
