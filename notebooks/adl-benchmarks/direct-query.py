@@ -1,8 +1,10 @@
-import sys
 import functools
 import logging
 import os
+import sys
 from typing import Optional
+from urllib.parse import urlparse
+
 import fsspec
 import openai
 import typer
@@ -10,7 +12,8 @@ import yaml
 from diskcache import Cache
 from dotenv import dotenv_values, find_dotenv
 from pydantic import BaseModel
-from urllib.parse import urlparse
+
+from atlas_plot_agent.usage_info import get_usage_info
 
 if hasattr(sys.stdin, "reconfigure"):
     sys.stdin.reconfigure(encoding="utf-8")  # type: ignore
@@ -192,31 +195,7 @@ def run_model(question: str, prompt: str, model_info, ignore_cache=False):
     else:
         print("No response content returned.")
 
-    usage = getattr(response, "usage", None)
-    if usage:
-        prompt_tokens = getattr(usage, "prompt_tokens", 0)
-        completion_tokens = getattr(usage, "completion_tokens", 0)
-        total_tokens = getattr(usage, "total_tokens", 0)
-        cost = (prompt_tokens / 1_000_000) * model_info.input_cost_per_million + (
-            completion_tokens / 1_000_000
-        ) * model_info.output_cost_per_million
-        return {
-            "model": model_info.model_name,
-            "elapsed": elapsed,
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "total_tokens": total_tokens,
-            "cost": cost,
-        }
-    else:
-        return {
-            "model": model_info.model_name,
-            "elapsed": elapsed,
-            "prompt_tokens": None,
-            "completion_tokens": None,
-            "total_tokens": None,
-            "cost": None,
-        }
+    return get_usage_info(response, model_info, elapsed)
 
 
 @app.command()
@@ -280,16 +259,14 @@ def ask(
         "--------------------|"
     )
     for row in table_rows:
-        model = row["model"]
-        elapsed = f"{row['elapsed']:.2f}"
-        prompt_tokens = (
-            row["prompt_tokens"] if row["prompt_tokens"] is not None else "-"
-        )
+        model = row.model
+        elapsed = f"{row.elapsed:.2f}"
+        prompt_tokens = row.prompt_tokens if row.prompt_tokens is not None else "-"
         completion_tokens = (
-            row["completion_tokens"] if row["completion_tokens"] is not None else "-"
+            row.completion_tokens if row.completion_tokens is not None else "-"
         )
-        total_tokens = row["total_tokens"] if row["total_tokens"] is not None else "-"
-        cost = f"{row['cost']:.4f}" if row["cost"] is not None else "-"
+        total_tokens = row.total_tokens if row.total_tokens is not None else "-"
+        cost = f"{row.cost:.4f}" if row.cost is not None else "-"
         print(
             f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens}"
             f" | {cost} |"

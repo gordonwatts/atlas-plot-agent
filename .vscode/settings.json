@@ -26,6 +26,7 @@
         "streamlit",
         "ttbar",
         "typer",
+        "venv",
         "Wenu",
         "xaodr",
         "xlabel",
