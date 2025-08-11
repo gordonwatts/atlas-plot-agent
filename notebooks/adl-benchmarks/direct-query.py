@@ -1,8 +1,10 @@
-import sys
 import functools
 import logging
 import os
+import sys
 from typing import Optional
+from urllib.parse import urlparse
+
 import fsspec
 import openai
 import typer
@@ -10,7 +12,9 @@ import yaml
 from diskcache import Cache
 from dotenv import dotenv_values, find_dotenv
 from pydantic import BaseModel
-from urllib.parse import urlparse
+
+from atlas_plot_agent.usage_info import get_usage_info, UsageInfo
+from atlas_plot_agent.run_in_docker import run_python_in_docker
 
 if hasattr(sys.stdin, "reconfigure"):
     sys.stdin.reconfigure(encoding="utf-8")  # type: ignore
@@ -137,6 +141,30 @@ def get_openai_response(prompt: str, model_name: str, endpoint: Optional[str] = 
     return {"response": response, "elapsed": elapsed}
 
 
+def extract_code_from_response(response) -> Optional[str]:
+    """
+    Extract Python code from an OpenAI response object.
+    Looks for code blocks in the message content and returns the first Python block
+    found.
+    """
+    if not response or not hasattr(response, "choices") or not response.choices:
+        return None
+    message = response.choices[0].message.content if response.choices[0].message else ""
+    if not message:
+        return None
+    import re
+
+    # Find all Python code blocks
+    code_blocks = re.findall(r"```python(.*?)```", message, re.DOTALL | re.IGNORECASE)
+    if code_blocks:
+        return code_blocks[0].strip()
+    # Fallback: any code block
+    code_blocks = re.findall(r"```(.*?)```", message, re.DOTALL)
+    if code_blocks:
+        return code_blocks[0].strip()
+    return None
+
+
 app = typer.Typer(
     help=(
         "use default configuration to ask the api a question and "
@@ -145,7 +173,7 @@ app = typer.Typer(
 )
 
 
-def run_model(question: str, prompt: str, model_info, ignore_cache=False):
+def run_model(question: str, prompt: str, model_info, ignore_cache=False) -> UsageInfo:
     """
     Run the model, print heading and result, and return info for the table.
     """
@@ -192,31 +220,29 @@ def run_model(question: str, prompt: str, model_info, ignore_cache=False):
     else:
         print("No response content returned.")
 
-    usage = getattr(response, "usage", None)
-    if usage:
-        prompt_tokens = getattr(usage, "prompt_tokens", 0)
-        completion_tokens = getattr(usage, "completion_tokens", 0)
-        total_tokens = getattr(usage, "total_tokens", 0)
-        cost = (prompt_tokens / 1_000_000) * model_info.input_cost_per_million + (
-            completion_tokens / 1_000_000
-        ) * model_info.output_cost_per_million
-        return {
-            "model": model_info.model_name,
-            "elapsed": elapsed,
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "total_tokens": total_tokens,
-            "cost": cost,
-        }
+    usage_info = get_usage_info(response, model_info, elapsed)
+
+    # Run the code.
+    print("### Running\n")
+    code = extract_code_from_response(response)
+    if code is not None:
+        # Run code in Docker and capture output and files
+        result = run_python_in_docker(code)
+
+        print(f"*Output:*\n```\n{result.stdout}\n```")
+        print(f"*Error:*\n```\n{result.stderr}\n```")
+
+        # Save PNG files locally, prefixed with model name
+        for f_name, data in result.png_files:
+            local_name = f"{model_info.model_name}_{f_name}"
+            with open(local_name, "wb") as dst:
+                dst.write(data)
+            print(f"![{local_name}]({local_name})")  # Markdown image include
+
     else:
-        return {
-            "model": model_info.model_name,
-            "elapsed": elapsed,
-            "prompt_tokens": None,
-            "completion_tokens": None,
-            "total_tokens": None,
-            "cost": None,
-        }
+        print("No code found to run.")
+
+    return usage_info
 
 
 @app.command()
@@ -280,16 +306,14 @@ def ask(
         "--------------------|"
     )
     for row in table_rows:
-        model = row["model"]
-        elapsed = f"{row['elapsed']:.2f}"
-        prompt_tokens = (
-            row["prompt_tokens"] if row["prompt_tokens"] is not None else "-"
-        )
+        model = row.model
+        elapsed = f"{row.elapsed:.2f}"
+        prompt_tokens = row.prompt_tokens if row.prompt_tokens is not None else "-"
         completion_tokens = (
-            row["completion_tokens"] if row["completion_tokens"] is not None else "-"
+            row.completion_tokens if row.completion_tokens is not None else "-"
         )
-        total_tokens = row["total_tokens"] if row["total_tokens"] is not None else "-"
-        cost = f"{row['cost']:.4f}" if row["cost"] is not None else "-"
+        total_tokens = row.total_tokens if row.total_tokens is not None else "-"
+        cost = f"{row.cost:.4f}" if row.cost is not None else "-"
         print(
             f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens}"
             f" | {cost} |"
