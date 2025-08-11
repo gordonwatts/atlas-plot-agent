@@ -63,3 +63,7 @@ Note: The above questions are parsed by code. Keep the format the same (each que
   - I'm guessing the others have problems - but we need to run them to see! I just couldn't identify issues I'd seen previously.
 
 **Open Source Models**: Added a few OSS models run on `together.ai`. The results are about what you expect, though they seem cheaper than the `openai`. But we need an independent way of evaluating this.
+
+**Running the Python**:
+
+- Note that downloads are cached in a `docker` volume to make constant-re-running faster.
