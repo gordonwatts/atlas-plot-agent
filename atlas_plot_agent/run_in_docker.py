@@ -41,12 +41,16 @@ def run_python_in_docker(python_code: str) -> DockerRunResult:
     # Run the docker container
     docker_image = "atlasplotagent:latest"
     container_dir = "/app"
+    # Mount a docker volume at /cache
+    cache_volume = "atlasplotagent_servicex_cache"
     command = [
         "docker",
         "run",
         "--rm",
         "-v",
         f"{temp_dir}:{container_dir}",
+        "-v",
+        f"{cache_volume}:/cache",
         docker_image,
         "bash",
         "-i",  # so it executes the `.bashrc` file which defines the venv

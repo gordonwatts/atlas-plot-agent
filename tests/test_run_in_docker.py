@@ -55,5 +55,29 @@ assert os.path.exists('servicex.yaml'), 'servicex.yaml not found in working dire
 """
     result = run_python_in_docker(code)
     assert isinstance(result, DockerRunResult)
+
     assert result.stderr == "" or "Traceback" not in result.stderr
     assert result.elapsed > 0
+
+
+def test_run_python_in_docker_cache_persistence():
+    # First run: create a file in /cache
+    code_create = """
+with open('/cache/testfile.txt', 'w') as f:
+    f.write('persistent data')
+"""
+    result_create = run_python_in_docker(code_create)
+    assert isinstance(result_create, DockerRunResult)
+    assert result_create.stderr == "" or "Traceback" not in result_create.stderr
+
+    # Second run: check that the file exists and contents are correct, then remove it
+    code_check_and_remove = """
+import os
+with open('/cache/testfile.txt', 'r') as f:
+    content = f.read()
+print('CACHE_CONTENT:', content)
+os.remove('/cache/testfile.txt')
+"""
+    result_check = run_python_in_docker(code_check_and_remove)
+    assert isinstance(result_check, DockerRunResult)
+    assert "CACHE_CONTENT: persistent data" in result_check.stdout
