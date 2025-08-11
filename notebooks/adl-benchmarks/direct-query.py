@@ -13,8 +13,8 @@ from diskcache import Cache
 from dotenv import dotenv_values, find_dotenv
 from pydantic import BaseModel
 
-from atlas_plot_agent.usage_info import get_usage_info
-from atlas_plot_agent.run_in_docker import run_python_in_docker, DockerRunResult
+from atlas_plot_agent.usage_info import get_usage_info, UsageInfo
+from atlas_plot_agent.run_in_docker import run_python_in_docker
 
 if hasattr(sys.stdin, "reconfigure"):
     sys.stdin.reconfigure(encoding="utf-8")  # type: ignore
@@ -173,9 +173,7 @@ app = typer.Typer(
 )
 
 
-def run_model(
-    question: str, prompt: str, model_info, ignore_cache=False
-) -> DockerRunResult:
+def run_model(question: str, prompt: str, model_info, ignore_cache=False) -> UsageInfo:
     """
     Run the model, print heading and result, and return info for the table.
     """
