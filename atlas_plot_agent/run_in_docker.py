@@ -55,8 +55,13 @@ def run_python_in_docker(python_code: str) -> DockerRunResult:
     ]
     start = time.time()
     proc = subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
     )
+
     stdout, stderr = proc.communicate()
     elapsed = time.time() - start
 
