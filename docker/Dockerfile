@@ -10,7 +10,17 @@ WORKDIR /work
 
 # Create virtual environment in /work and install dependencies
 RUN cd /work && uv venv .venv --python=3.13
-RUN cd /work; uv pip install awkward numpy pandas hist vector func_adl_servicex_xaodr25 matplotlib mplhep
+RUN cd /work; uv pip install \
+    awkward \
+    numpy \
+    pandas \
+    hist \
+    vector \
+    func_adl_servicex_xaodr25 \
+    matplotlib \
+    mplhep \
+    jinja2 \
+    servicex_analysis_utils
 
 # Add venv activation to bash profile
 RUN echo 'source /work/.venv/bin/activate' >> /etc/bash.bashrc
