@@ -98,3 +98,53 @@ def run_python_in_docker(python_code: str) -> DockerRunResult:
     return DockerRunResult(
         stdout=stdout, stderr=stderr, elapsed=elapsed, png_files=png_files
     )
+
+
+def check_code_policies(python_code: str) -> bool | DockerRunResult:
+    """Check to make sure the code follows all of our policies
+
+    * Uses `NFiles=1`
+
+    Args:
+        python_code (str): The code to be checked
+
+    Returns:
+        bool | DockerRunResult: True if the code follows all policies, otherwise a DockerRunResult
+                                with details.
+    """
+    # Remove all comments: both full-line and trailing inline comments
+    import re
+
+    code_lines = []
+    for line in python_code.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#") or not stripped:
+            continue
+        # Remove trailing inline comments
+        if "#" in line:
+            line = line.split("#", 1)[0]
+        code_lines.append(line)
+    code_no_comments = "\n".join(code_lines)
+
+    # Remove string literals (single, double, triple quotes)
+    def remove_strings(s):
+        # Remove triple-quoted strings
+        s = re.sub(r"'''[\s\S]*?'''", "", s)
+        s = re.sub(r'"""[\s\S]*?"""', "", s)
+        # Remove single-quoted and double-quoted strings
+        s = re.sub(r"'(?:\\.|[^'])*'", "", s)
+        s = re.sub(r'"(?:\\.|[^"])*"', "", s)
+        return s
+
+    code_no_comments_no_strings = remove_strings(code_no_comments)
+
+    # Make sure the string "NFiles=1" appears in the code (not in comments or strings)
+    if "NFiles=1" not in code_no_comments_no_strings:
+        return DockerRunResult(
+            stdout="",
+            stderr="Policy violation: NFiles=1 not found",
+            elapsed=0,
+            png_files=[],
+        )
+
+    return True
