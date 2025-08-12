@@ -1,4 +1,5 @@
 import functools
+import hashlib
 import logging
 import os
 import sys
@@ -243,7 +244,6 @@ def run_model(
     code = extract_code_from_response(response)
     run_result = False
     if code is not None:
-        # Check policy
         result = check_code_policies(code)
         if result is True:
             # Run code in Docker and capture output and files, using cache
@@ -257,10 +257,11 @@ def run_model(
         run_result = "Traceback" not in result.stderr
 
         # Save PNG files locally, prefixed with model name
+        question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
         for f_name, data in result.png_files:
             # Sanitize model_name for filesystem
             safe_model_name = model_info.model_name.replace("/", "_")
-            local_name = f"{safe_model_name}_{f_name}"
+            local_name = f"{question_hash}_{safe_model_name}_{f_name}"
             with open(local_name, "wb") as dst:
                 dst.write(data)
             print(f"![{local_name}]({local_name})")  # Markdown image include
