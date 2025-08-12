@@ -145,6 +145,16 @@ def get_openai_response(prompt: str, model_name: str, endpoint: Optional[str] = 
     return {"response": response, "elapsed": elapsed}
 
 
+# Diskcache for docker results
+docker_cache = Cache(".docker_run_cache")
+
+
+@diskcache_decorator(docker_cache)
+def cached_run_python_in_docker(code: str, ignore_cache=False):
+    "Caching version"
+    return run_python_in_docker(code)
+
+
 def extract_code_from_response(response) -> Optional[str]:
     """
     Extract Python code from an OpenAI response object.
@@ -233,8 +243,8 @@ def run_model(question: str, prompt: str, model_info, ignore_cache=False) -> Usa
         # Check policy
         result = check_code_policies(code)
         if result is True:
-            # Run code in Docker and capture output and files
-            result = run_python_in_docker(code)
+            # Run code in Docker and capture output and files, using cache
+            result = cached_run_python_in_docker(code, ignore_cache=ignore_cache)
 
         assert isinstance(result, DockerRunResult)
         print(f"*Output:*\n```\n{result.stdout}\n```")
