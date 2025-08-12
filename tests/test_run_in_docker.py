@@ -3,6 +3,8 @@ import os
 from atlas_plot_agent.run_in_docker import copy_servicex_yaml_if_exists
 from atlas_plot_agent.run_in_docker import run_python_in_docker, DockerRunResult
 
+from atlas_plot_agent.run_in_docker import check_code_policies
+
 
 def test_copy_servicex_yaml_adds_cache_path(tmp_path, monkeypatch):
     servicex_path = tmp_path / "home1" / "servicex.yaml"
@@ -128,3 +130,50 @@ os.remove('/cache/testfile.txt')
     result_check = run_python_in_docker(code_check_and_remove)
     assert isinstance(result_check, DockerRunResult)
     assert "CACHE_CONTENT: persistent data" in result_check.stdout
+
+
+def test_check_code_policies_pass():
+    code = """
+NFiles=1
+print('ok')
+"""
+    result = check_code_policies(code)
+    assert result is True
+
+
+def test_check_code_policies_missing_nfiles():
+    code = """
+print('no NFiles')
+"""
+    result = check_code_policies(code)
+    assert isinstance(result, DockerRunResult)
+    assert "Policy violation" in result.stderr
+
+
+def test_check_code_policies_comment_handling():
+    code = """
+# NFiles=1 in comment
+print('no NFiles')
+"""
+    result = check_code_policies(code)
+    assert isinstance(result, DockerRunResult)
+    assert "Policy violation" in result.stderr
+
+
+def test_check_code_policies_comment_trailing():
+    code = """
+i = 1 # NFiles=1 in comment
+print('no NFiles')
+"""
+    result = check_code_policies(code)
+    assert isinstance(result, DockerRunResult)
+    assert "Policy violation" in result.stderr
+
+
+def test_check_code_policies_comment_string():
+    code = """
+print('no NFiles=1 in code')
+"""
+    result = check_code_policies(code)
+    assert isinstance(result, DockerRunResult)
+    assert "Policy violation" in result.stderr

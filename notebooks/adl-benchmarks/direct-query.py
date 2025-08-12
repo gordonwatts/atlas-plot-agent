@@ -14,7 +14,11 @@ from dotenv import dotenv_values, find_dotenv
 from pydantic import BaseModel
 
 from atlas_plot_agent.usage_info import get_usage_info, UsageInfo
-from atlas_plot_agent.run_in_docker import run_python_in_docker
+from atlas_plot_agent.run_in_docker import (
+    DockerRunResult,
+    run_python_in_docker,
+    check_code_policies,
+)
 
 if hasattr(sys.stdin, "reconfigure"):
     sys.stdin.reconfigure(encoding="utf-8")  # type: ignore
@@ -226,9 +230,13 @@ def run_model(question: str, prompt: str, model_info, ignore_cache=False) -> Usa
     print("### Running\n")
     code = extract_code_from_response(response)
     if code is not None:
-        # Run code in Docker and capture output and files
-        result = run_python_in_docker(code)
+        # Check policy
+        result = check_code_policies(code)
+        if result is True:
+            # Run code in Docker and capture output and files
+            result = run_python_in_docker(code)
 
+        assert isinstance(result, DockerRunResult)
         print(f"*Output:*\n```\n{result.stdout}\n```")
         print(f"*Error:*\n```\n{result.stderr}\n```")
 
