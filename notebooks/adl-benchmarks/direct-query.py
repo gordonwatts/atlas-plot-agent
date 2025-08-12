@@ -327,11 +327,15 @@ def ask(
     # Determine max number of python run attempts
     max_attempts = max(len(row[1]) for row in table_rows) if table_rows else 0
     # Build header
-    base_header = "| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |"
+    base_header = (
+        "| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens "
+        "| Estimated Cost ($) |"
+    )
     attempt_headers = "".join([f" Python Run {i+1} |" for i in range(max_attempts)])
     print(base_header + attempt_headers)
     print(
-        "|-------|----------|--------------|------------------|--------------|--------------------|"
+        "|-------|----------|--------------|------------------|--------------"
+        "|--------------------|"
         + "".join(["--------------|" for _ in range(max_attempts)])
     )
     for row in table_rows:
@@ -358,8 +362,8 @@ def ask(
             else:
                 run_cells.append(" N/A |")
         print(
-            f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens} | {cost} |"
-            + "".join(run_cells)
+            f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens} "
+            f"| {cost} |" + "".join(run_cells)
         )
 
 
