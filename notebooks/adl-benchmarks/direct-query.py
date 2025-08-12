@@ -258,7 +258,9 @@ def run_model(
 
         # Save PNG files locally, prefixed with model name
         for f_name, data in result.png_files:
-            local_name = f"{model_info.model_name}_{f_name}"
+            # Sanitize model_name for filesystem
+            safe_model_name = model_info.model_name.replace("/", "_")
+            local_name = f"{safe_model_name}_{f_name}"
             with open(local_name, "wb") as dst:
                 dst.write(data)
             print(f"![{local_name}]({local_name})")  # Markdown image include
@@ -319,47 +321,45 @@ def ask(
         row = run_model(question, prompt, model_info, ignore_cache=ignore_cache)
         table_rows.append(row)
 
-        # Print markdown table
-        print("## Summary\n")
-        # Determine max number of python run attempts
-        max_attempts = max(len(row[1]) for row in table_rows) if table_rows else 0
-        # Build header
-        base_header = "| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |"
-        attempt_headers = "".join([f" Python Run {i+1} |" for i in range(max_attempts)])
-        print(base_header + attempt_headers)
-        print(
-            "|-------|----------|--------------|------------------|--------------|--------------------|"
-            + "".join(["--------------|" for _ in range(max_attempts)])
+    # Print markdown table
+    print("## Summary\n")
+    # Determine max number of python run attempts
+    max_attempts = max(len(row[1]) for row in table_rows) if table_rows else 0
+    # Build header
+    base_header = "| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |"
+    attempt_headers = "".join([f" Python Run {i+1} |" for i in range(max_attempts)])
+    print(base_header + attempt_headers)
+    print(
+        "|-------|----------|--------------|------------------|--------------|--------------------|"
+        + "".join(["--------------|" for _ in range(max_attempts)])
+    )
+    for row in table_rows:
+        usage_info, run_results = row
+        model = usage_info.model
+        elapsed = f"{usage_info.elapsed:.2f}"
+        prompt_tokens = (
+            usage_info.prompt_tokens if usage_info.prompt_tokens is not None else "-"
         )
-        for row in table_rows:
-            usage_info, run_results = row
-            model = usage_info.model
-            elapsed = f"{usage_info.elapsed:.2f}"
-            prompt_tokens = (
-                usage_info.prompt_tokens
-                if usage_info.prompt_tokens is not None
-                else "-"
-            )
-            completion_tokens = (
-                usage_info.completion_tokens
-                if usage_info.completion_tokens is not None
-                else "-"
-            )
-            total_tokens = (
-                usage_info.total_tokens if usage_info.total_tokens is not None else "-"
-            )
-            cost = f"{usage_info.cost:.4f}" if usage_info.cost is not None else "-"
-            # Format python run results
-            run_cells = []
-            for i in range(max_attempts):
-                if i < len(run_results):
-                    run_cells.append(" Success |" if run_results[i] else " Fail |")
-                else:
-                    run_cells.append(" N/A |")
-            print(
-                f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens} | {cost} |"
-                + "".join(run_cells)
-            )
+        completion_tokens = (
+            usage_info.completion_tokens
+            if usage_info.completion_tokens is not None
+            else "-"
+        )
+        total_tokens = (
+            usage_info.total_tokens if usage_info.total_tokens is not None else "-"
+        )
+        cost = f"{usage_info.cost:.4f}" if usage_info.cost is not None else "-"
+        # Format python run results
+        run_cells = []
+        for i in range(max_attempts):
+            if i < len(run_results):
+                run_cells.append(" Success |" if run_results[i] else " Fail |")
+            else:
+                run_cells.append(" N/A |")
+        print(
+            f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens} | {cost} |"
+            + "".join(run_cells)
+        )
 
 
 if __name__ == "__main__":
