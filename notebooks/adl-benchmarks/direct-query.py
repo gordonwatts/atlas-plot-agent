@@ -190,10 +190,11 @@ app = typer.Typer(
 
 
 def run_model(
-    question: str, prompt: str, model_info, ignore_cache=False
+    question: str, prompt: str, model_info, ignore_cache=False, n_iter: int = 1
 ) -> Tuple[UsageInfo, List[bool]]:
     """
     Run the model, print heading and result, and return info for the table.
+    Runs the code n_iter times and returns a list of run results.
     """
     # Set API key based on endpoint hostname, using <node-name>_API_KEY
     endpoint_host = None
@@ -284,6 +285,9 @@ def ask(
     ignore_cache: bool = typer.Option(
         False, "--ignore-cache", help="Ignore disk cache for model queries."
     ),
+    n_iter: int = typer.Option(
+        1, "--n-iter", "-n", min=1, help="Number of iterations to run (must be >= 1)."
+    ),
 ):
     """
     Command to ask a question using the default configuration.
@@ -312,6 +316,12 @@ def ask(
         )
         return
 
+    if n_iter < 1:
+        logging.error(
+            f"Error: command line option `n_iter` must be >= 1 (got {n_iter})"
+        )
+        return
+
     # Build the prompt
     prompt = config.prompt.format(question=question, hints="\n".join(hint_contents))
     logging.info(f"Built prompt: {prompt}")
@@ -320,7 +330,9 @@ def ask(
     table_rows = []
     for model_name in valid_model_names:
         model_info = all_models[model_name]
-        row = run_model(question, prompt, model_info, ignore_cache=ignore_cache)
+        row = run_model(
+            question, prompt, model_info, ignore_cache=ignore_cache, n_iter=n_iter
+        )
         table_rows.append(row)
 
     # Print markdown table
