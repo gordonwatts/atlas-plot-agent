@@ -19,7 +19,7 @@ from atlas_plot_agent.run_in_docker import (
     check_code_policies,
     run_python_in_docker,
 )
-from atlas_plot_agent.usage_info import UsageInfo, get_usage_info
+from atlas_plot_agent.usage_info import UsageInfo, get_usage_info, sum_usage_infos
 
 if hasattr(sys.stdin, "reconfigure"):
     sys.stdin.reconfigure(encoding="utf-8")  # type: ignore
@@ -321,22 +321,37 @@ def ask(
         )
         return
 
-    # Build the prompt
-    prompt = config.prompt.format(question=question, hints="\n".join(hint_contents))
-    logging.info(f"Built prompt: {prompt}")
-
     print(f"# {question}\n")
     table_rows = []
     question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
+    code = None
+    errors = None
     for model_name in valid_model_names:
-        model_info = all_models[model_name]
-        row = run_model(prompt, model_info, question_hash, ignore_cache=ignore_cache)
-        table_rows.append(row)
+        run_info = []
+        for iter in range(n_iter):
+            # Build the prompt
+            base_prompt = config.prompt if iter == 0 else config.modify_prompt
+            prompt = base_prompt.format(
+                question=question,
+                hints="\n".join(hint_contents),
+                errors=errors,
+                old_code=code,
+            )
+            logging.info(f"Built prompt for iteration {iter}: {prompt}")
+
+            model_info = all_models[model_name]
+            row = run_model(
+                prompt, model_info, question_hash, ignore_cache=ignore_cache
+            )
+            run_info.append(row)
+        total_usage = sum_usage_infos([u for u, _ in run_info])
+        attempt_results = [r for _, r in run_info]
+        table_rows.append([total_usage, attempt_results])
 
     # Print markdown table
     print("## Summary\n")
     # Determine max number of python run attempts
-    max_attempts = 1 if table_rows else 0
+    max_attempts = max(len(attempts) for _, attempts in table_rows) if table_rows else 0
     # Build header
     base_header = (
         "| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens "
@@ -365,7 +380,7 @@ def ask(
             usage_info.total_tokens if usage_info.total_tokens is not None else "-"
         )
         cost = f"{usage_info.cost:.4f}" if usage_info.cost is not None else "-"
-        run_cell = " Success |" if run_result else " Fail |"
+        run_cell = "".join(" Success |" if r else " Fail |" for r in run_result)
         print(
             f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens} "
             f"| {cost} |" + run_cell
