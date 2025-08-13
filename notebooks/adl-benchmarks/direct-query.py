@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 
 import fsspec
 import openai
+from streamlit.runtime.caching.cache_errors import R
 import typer
 import yaml
 from diskcache import Cache
@@ -191,10 +192,14 @@ app = typer.Typer(
 
 def run_model(
     prompt: str, model_info, png_prefix: str, ignore_cache=False
-) -> Tuple[UsageInfo, bool]:
+) -> Tuple[UsageInfo, bool, Optional[DockerRunResult], Optional[str]]:
     """
     Run the model, print heading and result, and return info for the table.
-    Runs the code once and returns the result.
+    Runs the code once and returns:
+        - UsageInfo for the run
+        - True/False if the run succeeded
+        - DockerRunResult
+        - The code
     """
     # Set API key based on endpoint hostname, using <node-name>_API_KEY
     endpoint_host = None
@@ -215,14 +220,14 @@ def run_model(
             del os.environ["OPENAI_API_KEY"]
 
     # Do the query
-    result = get_openai_response(
+    llm_result = get_openai_response(
         prompt,
         model_info.model_name,
         model_info.endpoint,
         ignore_cache=ignore_cache,  # type: ignore
     )
-    response = result["response"]
-    elapsed = result["elapsed"]
+    response = llm_result["response"]
+    elapsed = llm_result["elapsed"]
     message = None
     if response and response.choices and response.choices[0].message:
         message = response.choices[0].message.content
@@ -245,11 +250,15 @@ def run_model(
     print("### Running\n")
     code = extract_code_from_response(response)
     run_result = False
+    result: Optional[DockerRunResult] = None
     if code is not None:
-        result = check_code_policies(code)
-        if result is True:
+        r = check_code_policies(code)
+        if r is True:
             # Run code in Docker and capture output and files, using cache
             result = cached_run_python_in_docker(code, ignore_cache=ignore_cache)
+        else:
+            assert isinstance(r, DockerRunResult)
+            result = r
 
         assert isinstance(result, DockerRunResult)
         print(f"*Output:*\n```\n{result.stdout}\n```")
@@ -270,7 +279,7 @@ def run_model(
     else:
         print("No code found to run.")
 
-    return usage_info, run_result
+    return usage_info, run_result, result, code
 
 
 @app.command()
@@ -343,7 +352,18 @@ def ask(
             row = run_model(
                 prompt, model_info, question_hash, ignore_cache=ignore_cache
             )
-            run_info.append(row)
+            run_info.append(row[0:2])
+
+            # If things worked, then we don't need to go again!
+            if row[1]:
+                break
+
+            # Build up prompt info for next time.
+            if row[2] is None or row[3] is None:
+                break
+            code = row[3]
+            errors = "\n".join([row[2].stdout, row[2].stderr])
+
         total_usage = sum_usage_infos([u for u, _ in run_info])
         attempt_results = [r for _, r in run_info]
         table_rows.append([total_usage, attempt_results])
