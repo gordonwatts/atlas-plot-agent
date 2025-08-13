@@ -254,7 +254,7 @@ def run_model(
         print(f"*Error:*\n```\n{result.stderr}\n```")
 
         # Did we run without an error?
-        run_result = "Traceback" not in result.stderr
+        run_result = result.exit_code == 0
 
         # Save PNG files locally, prefixed with model name
         question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
