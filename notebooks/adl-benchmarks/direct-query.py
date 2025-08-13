@@ -14,12 +14,12 @@ from diskcache import Cache
 from dotenv import dotenv_values, find_dotenv
 from pydantic import BaseModel
 
-from atlas_plot_agent.usage_info import get_usage_info, UsageInfo
 from atlas_plot_agent.run_in_docker import (
     DockerRunResult,
-    run_python_in_docker,
     check_code_policies,
+    run_python_in_docker,
 )
+from atlas_plot_agent.usage_info import UsageInfo, get_usage_info
 
 if hasattr(sys.stdin, "reconfigure"):
     sys.stdin.reconfigure(encoding="utf-8")  # type: ignore
