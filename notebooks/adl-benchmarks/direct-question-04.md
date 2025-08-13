@@ -76,6 +76,26 @@ plt.tight_layout()
 plt.savefig("etmiss.png")
 plt.close()
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/app/script.py:59: SyntaxWarning: invalid escape sequence '\g'
+  ax.set_title("ETmiss in events with $\geq$2 jets ($p_T>40$ GeV)")
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+![6a6e57e2_gpt-4.1_etmiss.png](6a6e57e2_gpt-4.1_etmiss.png)
 
 
 ## Model: gpt-5
@@ -169,6 +189,24 @@ plt.tight_layout()
 plt.savefig("etmiss_2jets40_mc23_JZ2.png", dpi=150)
 plt.close(fig)
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+![6a6e57e2_gpt-5_etmiss_2jets40_mc23_JZ2.png](6a6e57e2_gpt-5_etmiss_2jets40_mc23_JZ2.png)
 
 
 ## Model: gpt-5-mini
@@ -260,6 +298,49 @@ plt.tight_layout()
 plt.savefig(outname, dpi=150)
 print(f"Saved MET histogram to {outname}")
 ```
+### Running
+
+*Output:*
+```
+
+Number of events returned by ServiceX (NFiles=1 test): 26417
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 59, in <module>
+    met_vals = ak.flatten(met_awk)       # remains an Awkward Array
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_dispatch.py", line 41, in dispatch
+    with OperationErrorContext(name, args, kwargs):
+         ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_errors.py", line 80, in __exit__
+    raise self.decorate_exception(exception_type, exception_value)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_dispatch.py", line 67, in dispatch
+    next(gen_or_result)
+    ~~~~^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_flatten.py", line 178, in flatten
+    return _impl(array, axis, highlevel, behavior, attrs)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_flatten.py", line 255, in _impl
+    out = ak._do.flatten(layout, axis)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_do.py", line 194, in flatten
+    offsets, flattened = layout._offsets_and_flattened(axis, 1)
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/contents/numpyarray.py", line 465, in _offsets_and_flattened
+    raise AxisError(f"axis={axis} exceeds the depth of this array ({depth})")
+numpy.exceptions.AxisError: axis=1 exceeds the depth of this array (1)
+
+This error occurred while calling
+
+    ak.flatten(
+        <Array [19, 4.7, 17.5, ..., 28.6, 34, 61.4] type='26417 * float64'>
+    )
+
+```
 
 
 ## Model: gpt-5-nano
@@ -337,6 +418,24 @@ plt.tight_layout()
 # Save to PNG
 plt.savefig("etmiss_two_jets_gt40GeV.png")
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+![6a6e57e2_gpt-5-nano_etmiss_two_jets_gt40GeV.png](6a6e57e2_gpt-5-nano_etmiss_two_jets_gt40GeV.png)
 
 
 ## Model: gpt-4o
@@ -398,6 +497,55 @@ plt.ylabel('Events')
 plt.legend()
 plt.savefig("etmiss_histogram.png")
 plt.show()
+```
+### Running
+
+*Output:*
+```
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 24, in <module>
+    deliver(
+    ~~~~~~~^
+        ServiceXSpec(
+        ^^^^^^^^^^^^^
+    ...<8 lines>...
+        )
+        ^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/make_it_sync/func_wrapper.py", line 63, in wrapped_call
+    return _sync_version_of_function(fn, *args, **kwargs)
+  File "/work/.venv/lib/python3.13/site-packages/make_it_sync/func_wrapper.py", line 14, in _sync_version_of_function
+    return loop.run_until_complete(r)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/usr/local/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 279, in deliver_async
+    datasets = await _build_datasets(
+               ^^^^^^^^^^^^^^^^^^^^^^
+        config, config_path, servicex_name, fail_if_incomplete
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 186, in _build_datasets
+    query = sx.generic_query(
+        dataset_identifier=sample.dataset_identifier,
+    ...<5 lines>...
+        fail_if_incomplete=fail_if_incomplete,
+    )
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 447, in generic_query
+    raise ValueError("query argument must be string or QueryStringGenerator")
+ValueError: query argument must be string or QueryStringGenerator
+
 ```
 
 
@@ -477,6 +625,24 @@ ax.set_ylabel("Events / bin")
 ax.legend()
 fig.savefig("etmiss.png")
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+![6a6e57e2_o4-mini_etmiss.png](6a6e57e2_o4-mini_etmiss.png)
 
 
 ## Model: openai/gpt-oss-120b
@@ -594,6 +760,23 @@ plt.tight_layout()
 plt.savefig("met_histogram.png")
 print("Saved MET histogram to 'met_histogram.png'")
 ```
+### Running
+
+*Output:*
+```
+
+Saved MET histogram to 'met_histogram.png'
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+
+```
+![6a6e57e2_openai_gpt-oss-120b_met_histogram.png](6a6e57e2_openai_gpt-oss-120b_met_histogram.png)
 
 
 ## Model: openai/gpt-oss-20b
@@ -705,6 +888,22 @@ plt.close(fig)
 - The histogram is written to `met_hist.png` in ATLAS style.  
 
 -------------------------------------------------------------
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+
+```
+![6a6e57e2_openai_gpt-oss-20b_met_hist.png](6a6e57e2_openai_gpt-oss-20b_met_hist.png)
 
 
 ## Model: Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8
@@ -789,6 +988,24 @@ plt.close()
 print(f"Processed {len(met_values)} events with at least 2 jets (pT > 40 GeV)")
 print("Plot saved as etmiss_plot.png")
 ```
+### Running
+
+*Output:*
+```
+
+Processed 26417 events with at least 2 jets (pT > 40 GeV)
+Plot saved as etmiss_plot.png
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+
+```
+![6a6e57e2_Qwen_Qwen3-Coder-480B-A35B-Instruct-FP8_etmiss_plot.png](6a6e57e2_Qwen_Qwen3-Coder-480B-A35B-Instruct-FP8_etmiss_plot.png)
 
 
 ## Model: arcee-ai/coder-large
@@ -862,16 +1079,33 @@ plt.savefig("etmiss_histogram.png")
 plt.show()
 ```
 >>end-reply<
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+
+```
+![6a6e57e2_arcee-ai_coder-large_etmiss_histogram.png](6a6e57e2_arcee-ai_coder-large_etmiss_histogram.png)
 ## Summary
-| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |
-|-------|----------|--------------|------------------|--------------|--------------------|
-| gpt-4.1 | 8.14 | 11653 | 705 | 12358 | 0.0289 |
-| gpt-5 | 62.46 | 11652 | 2958 | 14610 | 0.0441 |
-| gpt-5-mini | 24.77 | 11652 | 2562 | 14214 | 0.0080 |
-| gpt-5-nano | 17.54 | 11652 | 4782 | 16434 | 0.0025 |
-| gpt-4o | 8.76 | 11653 | 580 | 12233 | 0.0349 |
-| o4-mini | 12.62 | 11652 | 1397 | 13049 | 0.0190 |
-| openai/gpt-oss-120b | 19.61 | 11717 | 1483 | 13200 | 0.0026 |
-| openai/gpt-oss-20b | 7.52 | 11717 | 1329 | 13046 | 0.0009 |
-| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 11.86 | 11918 | 816 | 12734 | 0.0255 |
-| arcee-ai/coder-large | 8.52 | 11939 | 619 | 12558 | 0.0065 |
+
+| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) | Python Run 1 |
+|-------|----------|--------------|------------------|--------------|--------------------|--------------|
+| gpt-4.1 | 8.14 | 11653 | 705 | 12358 | 0.0289 | Success |
+| gpt-5 | 62.46 | 11652 | 2958 | 14610 | 0.0441 | Success |
+| gpt-5-mini | 24.77 | 11652 | 2562 | 14214 | 0.0080 | Fail |
+| gpt-5-nano | 17.54 | 11652 | 4782 | 16434 | 0.0025 | Success |
+| gpt-4o | 8.76 | 11653 | 580 | 12233 | 0.0349 | Fail |
+| o4-mini | 12.62 | 11652 | 1397 | 13049 | 0.0190 | Success |
+| openai/gpt-oss-120b | 19.61 | 11717 | 1483 | 13200 | 0.0026 | Success |
+| openai/gpt-oss-20b | 7.52 | 11717 | 1329 | 13046 | 0.0009 | Success |
+| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 11.86 | 11918 | 816 | 12734 | 0.0255 | Success |
+| arcee-ai/coder-large | 8.52 | 11939 | 619 | 12558 | 0.0065 | Success |

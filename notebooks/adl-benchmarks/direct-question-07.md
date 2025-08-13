@@ -171,6 +171,52 @@ plt.tight_layout()
 plt.savefig("jetsum_scalar_pt.png")
 plt.close()
 ```
+### Running
+
+*Output:*
+```
+jetsum: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+         Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 62, in <module>
+    data = to_awk(
+        deliver(
+    ...<8 lines>...
+        )
+    )
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: Nested data structures (2D arrays, etc.) in TTree's are not yet supported. Numbers or arrays of numbers only for now.)
+
+
+```
 
 
 ## Model: gpt-5
@@ -310,6 +356,25 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+### Running
+
+*Output:*
+```
+
+Wrote sumpt_jets_noLeptonDR04.png
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+![28024624_gpt-5_sumpt_jets_noLeptonDR04.png](28024624_gpt-5_sumpt_jets_noLeptonDR04.png)
 
 
 ## Model: gpt-5-mini
@@ -526,6 +591,49 @@ outname = "ht_jets_not_near_leptons.png"
 plt.savefig(outname, dpi=150)
 print(f"Saved histogram to {outname}")
 ```
+### Running
+
+*Output:*
+```
+Submitting ServiceX job (NFiles=1 for a quick test). This may take a short while...
+sample1: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+          Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 123, in <module>
+    awk_data = to_awk(delivered)
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: Nested data structures (2D arrays, etc.) in TTree's are not yet supported. Numbers or arrays of numbers only for now.)
+
+
+```
 
 
 ## Model: gpt-5-nano
@@ -696,6 +804,16 @@ Notes and caveats:
 - The final plot is saved as per_event_scalar_sum_jets_not_near_leptons.png.
 
 If you’d like me to tailor the code further (e.g., choose a different histogram range, add axis labels, or write multiple plots for sanity checks), I can adjust accordingly.
+### Running
+
+*Output:*
+```
+
+```
+*Error:*
+```
+Policy violation: NFiles=1 not found
+```
 
 
 ## Model: gpt-4o
@@ -794,6 +912,53 @@ plt.grid(True)
 # Save the plot
 plt.savefig("jet_scalar_sum_pt.png")
 plt.show()
+```
+### Running
+
+*Output:*
+```
+jet_lepton_fetch: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+                   Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Method Concat not found on object typing.Iterable[func_adl.type_based_replacement.dict_dataclass]
+Traceback (most recent call last):
+  File "/app/script.py", line 44, in <module>
+    data = to_awk(
+        deliver(
+    ...<10 lines>...
+        )
+    )
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: Do not know how to call 'Concat' on 'cpp_sequence')
+
+
 ```
 
 
@@ -904,6 +1069,94 @@ ax.legend()
 ax.set_ylabel("Entries")
 ax.set_xlabel("Scalar sum of surviving jets $p_T$ [GeV]")
 plt.savefig("sum_pt.png")
+```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 72, in <module>
+    dR = good_jets.deltaR(good_leps)
+  File "/work/.venv/lib/python3.13/site-packages/vector/_methods.py", line 3631, in deltaR
+    return deltaR.dispatch(self, other)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/vector/_compute/spatial/deltaR.py", line 348, in dispatch
+    handler._wrap_dispatched_function(function)(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        _lib_of(v1, v2),
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        *v2.longitudinal.elements,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ),
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/vector/backends/awkward.py", line 1093, in __call__
+    return ak.transform(transformer, *awkward_arrays)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_dispatch.py", line 41, in dispatch
+    with OperationErrorContext(name, args, kwargs):
+         ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_errors.py", line 80, in __exit__
+    raise self.decorate_exception(exception_type, exception_value)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_dispatch.py", line 67, in dispatch
+    next(gen_or_result)
+    ~~~~^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_transform.py", line 469, in transform
+    return _impl(
+        transformation,
+    ...<14 lines>...
+        attrs,
+    )
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_transform.py", line 632, in _impl
+    out = apply_broadcasting_step(
+        backend,
+    ...<5 lines>...
+        options,
+    )
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_broadcasting.py", line 1197, in apply_step
+    return continuation()
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_broadcasting.py", line 1166, in continuation
+    return broadcast_any_list()
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_broadcasting.py", line 670, in broadcast_any_list
+    outcontent = apply_step(
+        backend,
+    ...<5 lines>...
+        options,
+    )
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_broadcasting.py", line 1197, in apply_step
+    return continuation()
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_broadcasting.py", line 1166, in continuation
+    return broadcast_any_list()
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_broadcasting.py", line 721, in broadcast_any_list
+    next_content = broadcast_to_offsets_avoiding_carry(x, offsets)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_broadcasting.py", line 386, in broadcast_to_offsets_avoiding_carry
+    return list_content._broadcast_tooffsets64(offsets).content
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/contents/listoffsetarray.py", line 429, in _broadcast_tooffsets64
+    raise ValueError("cannot broadcast nested list")
+ValueError: cannot broadcast nested list
+
+This error occurred while calling
+
+    ak.transform(
+        function-instance
+        <Array [[179, 130, ..., 71.8, 43.6], ...] type='60000 * var * float64'>
+        <Array [[1.31, 0.532, ..., 0.877], ...] type='60000 * var * float64'>
+        <Array [[0.433, 0.204, ..., 1.18], ...] type='60000 * var * float64'>
+        <Array [[93.7, 24.7], [], [], ..., [], []] type='60000 * var * float64'>
+        <Array [[1.34, 1.35], [], [], ..., [], []] type='60000 * var * float64'>
+        <Array [[0.439, 0.45], [], [], ..., [], []] type='60000 * var * flo...'>
+    )
+
 ```
 
 
@@ -1056,6 +1309,16 @@ plt.close()
 
 print("Finished! Plot saved as 'jet_ht.png'.")
 ```
+### Running
+
+*Output:*
+```
+
+```
+*Error:*
+```
+Policy violation: NFiles=1 not found
+```
 
 
 ## Model: openai/gpt-oss-20b
@@ -1093,6 +1356,9 @@ vector.register_awkward()
 
 # --------------------------------------------------------------
 # 3
+### Running
+
+No code found to run.
 
 
 ## Model: Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8
@@ -1224,6 +1490,51 @@ ax.set_title("Scalar sum of jet pT (jets with pT > 30 GeV, isolated from leptons
 plt.savefig("scalar_sum_pt.png")
 plt.close()
 ```
+### Running
+
+*Output:*
+```
+[08/12/25 20:36:08] ERROR    Transform "jet_lepton_analysis"   query_core.py:236
+                             completed with failures: 1/1                       
+                             files failed.Will not cache.                       
+                    ERROR    A list of failed files is at this query_core.py:237
+                             link                                               
+                    ERROR    Transform Request id:             query_core.py:238
+                             4169f420-62af-4e3a-b9a0-b2cc7f921                  
+                             de4                                                
+                    ERROR    More information of               query_core.py:248
+                             'jet_lepton_analysis' HERE                         
+jet_lepton_analysis: Transform                                         0/1 --:--
+                      Download                                         0/1 --:--
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Exception in callback Query.submit_and_download.<locals>.transform_complete() at /work/.venv/lib/python3.13/site-packages/servicex/query_core.py:195
+handle: <Handle Query.submit_and_download.<locals>.transform_complete() at /work/.venv/lib/python3.13/site-packages/servicex/query_core.py:195>
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.13/asyncio/events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 253, in transform_complete
+    raise ServiceXException(errorstr)
+servicex.query_core.ServiceXException: Transform "jet_lepton_analysis" completed with failures: 1/1 files failed.Will not cache.
+Traceback (most recent call last):
+  File "/app/script.py", line 43, in <module>
+    result_dict = to_awk(
+        deliver(
+    ...<10 lines>...
+        )
+    )
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 57, in to_awk
+    raise ValueError(f"ServiceX result path list for {sample} cannot be empty.")
+ValueError: ServiceX result path list for jet_lepton_analysis cannot be empty.
+
+```
 
 
 ## Model: arcee-ai/coder-large
@@ -1353,16 +1664,63 @@ plt.ylabel("Events")
 plt.savefig("scalar_sum_pt.png")
 ```
 >>end-reply<
+### Running
+
+*Output:*
+```
+jet_lepton_fetch: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+                   Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 42, in <module>
+    data = to_awk(
+        deliver(
+    ...<10 lines>...
+        )
+    )
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: Nested data structures (2D arrays, etc.) in TTree's are not yet supported. Numbers or arrays of numbers only for now.)
+
+
+```
 ## Summary
-| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |
-|-------|----------|--------------|------------------|--------------|--------------------|
-| gpt-4.1 | 17.17 | 11670 | 1589 | 13259 | 0.0361 |
-| gpt-5 | 91.66 | 11669 | 4929 | 16598 | 0.0639 |
-| gpt-5-mini | 43.83 | 11669 | 5208 | 16877 | 0.0133 |
-| gpt-5-nano | 65.36 | 11669 | 16627 | 28296 | 0.0072 |
-| gpt-4o | 11.30 | 11670 | 836 | 12506 | 0.0375 |
-| o4-mini | 31.99 | 11669 | 3964 | 15633 | 0.0303 |
-| openai/gpt-oss-120b | 50.26 | 11734 | 3398 | 15132 | 0.0038 |
-| openai/gpt-oss-20b | 11.32 | 11734 | 2048 | 13782 | 0.0010 |
-| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 21.70 | 11931 | 1522 | 13453 | 0.0269 |
-| arcee-ai/coder-large | 13.49 | 11952 | 1057 | 13009 | 0.0068 |
+
+| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) | Python Run 1 |
+|-------|----------|--------------|------------------|--------------|--------------------|--------------|
+| gpt-4.1 | 17.17 | 11670 | 1589 | 13259 | 0.0361 | Fail |
+| gpt-5 | 91.66 | 11669 | 4929 | 16598 | 0.0639 | Success |
+| gpt-5-mini | 43.83 | 11669 | 5208 | 16877 | 0.0133 | Fail |
+| gpt-5-nano | 65.36 | 11669 | 16627 | 28296 | 0.0072 | Fail |
+| gpt-4o | 11.30 | 11670 | 836 | 12506 | 0.0375 | Fail |
+| o4-mini | 31.99 | 11669 | 3964 | 15633 | 0.0303 | Fail |
+| openai/gpt-oss-120b | 50.26 | 11734 | 3398 | 15132 | 0.0038 | Fail |
+| openai/gpt-oss-20b | 11.32 | 11734 | 2048 | 13782 | 0.0010 | Fail |
+| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 21.70 | 11931 | 1522 | 13453 | 0.0269 | Fail |
+| arcee-ai/coder-large | 13.49 | 11952 | 1057 | 13009 | 0.0068 | Fail |

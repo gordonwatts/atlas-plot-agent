@@ -228,6 +228,54 @@ plt.tight_layout()
 plt.savefig("transverse_mass.png")
 plt.close(fig)
 ```
+### Running
+
+*Output:*
+```
+lepton_met: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+             Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Unknown type for name ak
+Unknown type for name ak
+Unknown type for name ak
+Unknown type for name ak
+Unknown type for name ak
+Unknown type for name ak
+Traceback (most recent call last):
+  File "/app/script.py", line 58, in <module>
+    result = to_awk(deliver(ServiceXSpec(Sample=[Sample(Name="lepton_met", Dataset=dataset.Rucio(ds_name), NFiles=1, Query=query)])))
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: Internal Error: attempted to get C++ representation for AST node "ak", but failed.)
+
+
+```
 
 
 ## Model: gpt-5
@@ -394,6 +442,93 @@ def main():
 
 if __name__ == "__main__":
     main()
+```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 154, in <module>
+    main()
+    ~~~~^^
+  File "/app/script.py", line 72, in main
+    ele_vec = ak.with_field(ele_vec, ak.full_like(data.ele_charge, "e"), where="flavor")
+                                     ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_dispatch.py", line 41, in dispatch
+    with OperationErrorContext(name, args, kwargs):
+         ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_errors.py", line 80, in __exit__
+    raise self.decorate_exception(exception_type, exception_value)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_dispatch.py", line 67, in dispatch
+    next(gen_or_result)
+    ~~~~^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_full_like.py", line 94, in full_like
+    return _impl(
+        array, fill_value, highlevel, behavior, dtype, including_unknown, attrs
+    )
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_full_like.py", line 225, in _impl
+    out = ak._do.recursively_apply(
+        layout, action, numpy_to_regular=not is_array_like(fill_value)
+    )
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_do.py", line 37, in recursively_apply
+    return layout._recursively_apply(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        action,
+        ^^^^^^^
+    ...<11 lines>...
+        },
+        ^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/contents/listoffsetarray.py", line 2255, in _recursively_apply
+    return continuation()
+  File "/work/.venv/lib/python3.13/site-packages/awkward/contents/listoffsetarray.py", line 2221, in continuation
+    content._recursively_apply(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        action,
+        ^^^^^^^
+    ...<3 lines>...
+        options,
+        ^^^^^^^^
+    ),
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/contents/numpyarray.py", line 1296, in _recursively_apply
+    result = action(
+        self,
+    ...<5 lines>...
+        options=options,
+    )
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_full_like.py", line 149, in action
+    nplike.full_like(original, fill_value, dtype=dtype),
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_nplikes/array_module.py", line 183, in full_like
+    return self._module.full_like(
+           ~~~~~~~~~~~~~~~~~~~~~~^
+        x, self._module.array(fill_value), dtype=dtype
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/numpy/_core/numeric.py", line 476, in full_like
+    multiarray.copyto(res, fill_value, casting='unsafe')
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: np.str_('e')
+
+This error occurred while calling
+
+    ak.full_like(
+        <Array [[], [1, -1], ..., [...], [1, 1]] type='3276 * var * float64'>
+        'e'
+    )
+
 ```
 
 
@@ -621,6 +756,26 @@ plt.grid(alpha=0.3)
 plt.tight_layout()
 plt.savefig("mt_hist.png", dpi=200)
 print(f"Saved histogram to mt_hist.png  (N selected events = {len(mT_numpy)})")
+```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 127, in <module>
+    delta = ak.abs(pair_mass - 91.2)
+            ^^^^^^
+AttributeError: module 'awkward' has no attribute 'abs'
+
 ```
 
 
@@ -868,6 +1023,101 @@ else:
     print("Lepton collections could not be extracted from ServiceX results. "
           "Please inspect data['leptons_fetch'] and adapt field accessors to your dataset.")
 ```
+### Running
+
+*Output:*
+```
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Unknown type for name hasattr
+Unknown type for name getattr
+Method eventNumber not found on object <class 'func_adl_servicex_xaodr25.event_collection.Event'>
+Traceback (most recent call last):
+  File "/app/script.py", line 25, in <module>
+    .Select(lambda e: {
+     ~~~~~~^^^^^^^^^^^^
+        # Electrons per event
+        ^^^^^^^^^^^^^^^^^^^^^
+    ...<18 lines>...
+        }),
+        ^^^
+    })
+    ^^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/object_stream.py", line 153, in Select
+    n_stream, n_ast, rtn_type = remap_from_lambda(
+                                ~~~~~~~~~~~~~~~~~^
+        self, _local_simplification(parse_as_ast(f, "Select")), known_types
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 976, in remap_from_lambda
+    stream, new_body, return_type = remap_by_types(
+                                    ~~~~~~~~~~~~~~^
+        o_stream, {var_name: orig_type} | known_types, l_func.body
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 957, in remap_by_types
+    r_a = tt.visit(a)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 917, in visit_Dict
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 498, in generic_visit
+    value = self.visit(value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 794, in visit_Call
+    t_node = self.process_method_call(t_node, found_type)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 675, in process_method_call
+    r_result = self.type_follow_in_callbacks(m_name, base_obj, default_args_node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 571, in type_follow_in_callbacks
+    rtn_value = self.process_method_call_on_stream_obj(
+        _g_collection_classes[get_origin(call_site_info.obj_type)],  # type: ignore
+    ...<2 lines>...
+        get_args(call_site_info.obj_type)[0],
+    )
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 533, in process_method_call_on_stream_obj
+    r = call_method(call_node.args[0], known_types=self._found_types)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/object_stream.py", line 156, in Select
+    check_ast(n_ast)
+    ~~~~~~~~~^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/util_ast.py", line 796, in check_ast
+    checker.visit(a)
+    ~~~~~~~~~~~~~^^^
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/usr/local/lib/python3.13/ast.py", line 432, in generic_visit
+    self.visit(value)
+    ~~~~~~~~~~^^^^^^^
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/usr/local/lib/python3.13/ast.py", line 430, in generic_visit
+    self.visit(item)
+    ~~~~~~~~~~^^^^^^
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/usr/local/lib/python3.13/ast.py", line 432, in generic_visit
+    self.visit(value)
+    ~~~~~~~~~~^^^^^^^
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/usr/local/lib/python3.13/ast.py", line 430, in generic_visit
+    self.visit(item)
+    ~~~~~~~~~~^^^^^^
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/util_ast.py", line 791, in visit_Constant
+    raise ValueError(f"Invalid constant type: {type(node.value)} for {ast.dump(node)}")
+ValueError: Invalid constant type: <class 'NoneType'> for Constant(value=None)
+
+```
 
 
 ## Model: gpt-4o
@@ -993,6 +1243,26 @@ plt.ylabel("Entries")
 plt.title("Transverse Mass distribution")
 plt.savefig("transverse_mass_plot.png")
 plt.show()
+```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 76, in <module>
+    (ak.abs(pairs.lep1.eta - pairs.lep2.eta) < 0.02)]
+     ^^^^^^
+AttributeError: module 'awkward' has no attribute 'abs'
+
 ```
 
 
@@ -1141,6 +1411,26 @@ ax = h.plot(histtype="step", color="blue", label="m_{T}(ℓ, MET)")
 ax.legend()
 ax.set_title("m_{T} of highest-p_{T} lepton not in Z-candidate")
 plt.savefig("mt.png")
+```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 86, in <module>
+    best_pair = ak.min_by(all_pairs, deltaZ, axis=1)
+                ^^^^^^^^^
+AttributeError: module 'awkward' has no attribute 'min_by'
+
 ```
 
 
@@ -1346,11 +1636,34 @@ plt.close(fig)
 
 print("Plot saved as mt_hist.png")
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 74, in <module>
+    ele_flav = ak.full_like(data.ele_pt, "e", dtype=ak.types.string)
+                                                    ^^^^^^^^^^^^^^^
+AttributeError: module 'awkward.types' has no attribute 'string'
+
+```
 
 
 ## Model: openai/gpt-oss-20b
 
 No response content returned.
+### Running
+
+No code found to run.
 
 
 ## Model: Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8
@@ -1557,6 +1870,9 @@ if len(sfos_pairs) > 0:
     # This requires grouping by event, which is complex
     
     # Let's take a
+### Running
+
+No code found to run.
 
 
 ## Model: arcee-ai/coder-large
@@ -1689,16 +2005,63 @@ plt.ylabel("Events")
 plt.savefig("transverse_mass.png")
 ```
 >>end-reply<
+### Running
+
+*Output:*
+```
+lepton_fetch: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+               Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 45, in <module>
+    lepton_data = to_awk(
+        deliver(
+    ...<10 lines>...
+        )
+    )
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: Nested data structures (2D arrays, etc.) in TTree's are not yet supported. Numbers or arrays of numbers only for now.)
+
+
+```
 ## Summary
-| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |
-|-------|----------|--------------|------------------|--------------|--------------------|
-| gpt-4.1 | 52.06 | 11684 | 2520 | 14204 | 0.0435 |
-| gpt-5 | 127.69 | 11683 | 7012 | 18695 | 0.0847 |
-| gpt-5-mini | 66.89 | 11683 | 7413 | 19096 | 0.0177 |
-| gpt-5-nano | 66.01 | 11683 | 18679 | 30362 | 0.0081 |
-| gpt-4o | 24.60 | 11684 | 1202 | 12886 | 0.0412 |
-| o4-mini | 40.83 | 11683 | 5001 | 16684 | 0.0349 |
-| openai/gpt-oss-120b | 57.28 | 11748 | 3699 | 15447 | 0.0040 |
-| openai/gpt-oss-20b | 11.04 | 11748 | 2048 | 13796 | 0.0010 |
-| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 29.31 | 11945 | 2048 | 13993 | 0.0280 |
-| arcee-ai/coder-large | 19.41 | 11966 | 1602 | 13568 | 0.0073 |
+
+| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) | Python Run 1 |
+|-------|----------|--------------|------------------|--------------|--------------------|--------------|
+| gpt-4.1 | 52.06 | 11684 | 2520 | 14204 | 0.0435 | Fail |
+| gpt-5 | 127.69 | 11683 | 7012 | 18695 | 0.0847 | Fail |
+| gpt-5-mini | 66.89 | 11683 | 7413 | 19096 | 0.0177 | Fail |
+| gpt-5-nano | 66.01 | 11683 | 18679 | 30362 | 0.0081 | Fail |
+| gpt-4o | 24.60 | 11684 | 1202 | 12886 | 0.0412 | Fail |
+| o4-mini | 40.83 | 11683 | 5001 | 16684 | 0.0349 | Fail |
+| openai/gpt-oss-120b | 57.28 | 11748 | 3699 | 15447 | 0.0040 | Fail |
+| openai/gpt-oss-20b | 11.04 | 11748 | 2048 | 13796 | 0.0010 | Fail |
+| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 29.31 | 11945 | 2048 | 13993 | 0.0280 | Fail |
+| arcee-ai/coder-large | 19.41 | 11966 | 1602 | 13568 | 0.0073 | Fail |

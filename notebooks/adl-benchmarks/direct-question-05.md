@@ -117,6 +117,49 @@ plt.tight_layout()
 plt.savefig("etmiss_zmm_oppositecharge_pair.png")
 print("Saved plot to etmiss_zmm_oppositecharge_pair.png")
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 95, in <module>
+    hist_etmiss.fill(etmiss=ak.flatten(etmiss_selected))
+                            ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_dispatch.py", line 41, in dispatch
+    with OperationErrorContext(name, args, kwargs):
+         ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_errors.py", line 80, in __exit__
+    raise self.decorate_exception(exception_type, exception_value)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_dispatch.py", line 67, in dispatch
+    next(gen_or_result)
+    ~~~~^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_flatten.py", line 178, in flatten
+    return _impl(array, axis, highlevel, behavior, attrs)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_flatten.py", line 255, in _impl
+    out = ak._do.flatten(layout, axis)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_do.py", line 194, in flatten
+    offsets, flattened = layout._offsets_and_flattened(axis, 1)
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/contents/numpyarray.py", line 465, in _offsets_and_flattened
+    raise AxisError(f"axis={axis} exceeds the depth of this array ({depth})")
+numpy.exceptions.AxisError: axis=1 exceeds the depth of this array (1)
+
+This error occurred while calling
+
+    ak.flatten(
+        <Array [9.15, 2.78, 27.4, ..., 17.2, 37.7, 9.5] type='54687 * float64'>
+    )
+
+```
 
 
 ## Model: gpt-5
@@ -243,6 +286,24 @@ plt.close(fig)
 print(f"Selected events: {len(met_selected)}")
 print("Saved plot to met_os_dimuon.png")
 ```
+### Running
+
+*Output:*
+```
+
+Selected events: 52930
+Saved plot to met_os_dimuon.png
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+
+```
+![d4828429_gpt-5_met_os_dimuon.png](d4828429_gpt-5_met_os_dimuon.png)
 
 
 ## Model: gpt-5-mini
@@ -358,6 +419,50 @@ ax.legend()
 plt.tight_layout()
 fig.savefig("met_zmm.png", dpi=150)
 print("Saved histogram to met_zmm.png")
+```
+### Running
+
+*Output:*
+```
+[08/12/25 20:24:56] ERROR    Transform "zmm_fetch" completed   query_core.py:236
+                             with failures: 1/1 files                           
+                             failed.Will not cache.                             
+                    ERROR    A list of failed files is at this query_core.py:237
+                             link                                               
+                    ERROR    Transform Request id:             query_core.py:238
+                             ae405eb5-bc30-4556-8b7c-86e85681c                  
+                             bb3                                                
+                    ERROR    More information of 'zmm_fetch'   query_core.py:248
+                             HERE                                               
+zmm_fetch: Transform                                          0/1 --:--
+            Download                                          0/1 --:--
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Method px not found on object <class 'func_adl_servicex_xaodr25.xAOD.muon_v1.Muon_v1'>
+Method py not found on object <class 'func_adl_servicex_xaodr25.xAOD.muon_v1.Muon_v1'>
+Method pz not found on object <class 'func_adl_servicex_xaodr25.xAOD.muon_v1.Muon_v1'>
+Exception in callback Query.submit_and_download.<locals>.transform_complete() at /work/.venv/lib/python3.13/site-packages/servicex/query_core.py:195
+handle: <Handle Query.submit_and_download.<locals>.transform_complete() at /work/.venv/lib/python3.13/site-packages/servicex/query_core.py:195>
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.13/asyncio/events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 253, in transform_complete
+    raise ServiceXException(errorstr)
+servicex.query_core.ServiceXException: Transform "zmm_fetch" completed with failures: 1/1 files failed.Will not cache.
+Traceback (most recent call last):
+  File "/app/script.py", line 54, in <module>
+    out = to_awk(deliver(sx_spec))
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 57, in to_awk
+    raise ValueError(f"ServiceX result path list for {sample} cannot be empty.")
+ValueError: ServiceX result path list for zmm_fetch cannot be empty.
+
 ```
 
 
@@ -521,6 +626,27 @@ plt.tight_layout()
 plt.savefig("etmiss_pass_muon_pair_60_120GeV.png")
 plt.close()
 ```
+### Running
+
+*Output:*
+```
+zmumu_met_fetch: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+                  Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 101, in <module>
+    muons_per_event = events.muons  # per-event list of muon dicts
+                      ^^^^^^^^^^^^
+AttributeError: 'GuardList' object has no attribute 'muons'
+
+```
 
 
 ## Model: gpt-4o
@@ -608,6 +734,52 @@ hist_etmiss.plot(histtype='step')
 plt.xlabel(r"$E_T^{miss}$ [GeV]")
 plt.title("ETmiss of Events with Opposite-Charge Muon Pair (60 < M < 120 GeV)")
 plt.savefig("etmiss_histogram.png")
+```
+### Running
+
+*Output:*
+```
+muon_etmiss: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+              Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 27, in <module>
+    result = to_awk(
+        deliver(
+    ...<11 lines>...
+        )
+    )
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: Do not know how to loop over a <class 'func_adl_xAOD.common.cpp_representation.cpp_collection'>)
+
+
 ```
 
 
@@ -709,6 +881,52 @@ h_met.plot(ax=ax, histtype="step", linewidth=1.5, label="60<m_{μμ}<120 GeV")
 ax.set_title("Missing $E_T$ for Opposite-Charge μμ Pairs")
 ax.legend()
 fig.savefig("etmiss.png")
+```
+### Running
+
+*Output:*
+```
+[08/12/25 20:25:47] ERROR    Transform "muon_met_fetch"        query_core.py:236
+                             completed with failures: 1/1                       
+                             files failed.Will not cache.                       
+                    ERROR    A list of failed files is at this query_core.py:237
+                             link                                               
+                    ERROR    Transform Request id:             query_core.py:238
+                             d86e8bc7-865f-4c0d-a6cb-c678bdba4                  
+                             74a                                                
+                    ERROR    More information of               query_core.py:248
+                             'muon_met_fetch' HERE                              
+muon_met_fetch: Transform                                          0/1 --:--
+                 Download                                          0/1 --:--
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Method px not found on object <class 'func_adl_servicex_xaodr25.xAOD.muon_v1.Muon_v1'>
+Method py not found on object <class 'func_adl_servicex_xaodr25.xAOD.muon_v1.Muon_v1'>
+Method pz not found on object <class 'func_adl_servicex_xaodr25.xAOD.muon_v1.Muon_v1'>
+Method E not found on object <class 'func_adl_servicex_xaodr25.xAOD.muon_v1.Muon_v1'>
+Exception in callback Query.submit_and_download.<locals>.transform_complete() at /work/.venv/lib/python3.13/site-packages/servicex/query_core.py:195
+handle: <Handle Query.submit_and_download.<locals>.transform_complete() at /work/.venv/lib/python3.13/site-packages/servicex/query_core.py:195>
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.13/asyncio/events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 253, in transform_complete
+    raise ServiceXException(errorstr)
+servicex.query_core.ServiceXException: Transform "muon_met_fetch" completed with failures: 1/1 files failed.Will not cache.
+Traceback (most recent call last):
+  File "/app/script.py", line 50, in <module>
+    awk_data = to_awk(results)["muon_met_fetch"]
+               ~~~~~~^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 57, in to_awk
+    raise ValueError(f"ServiceX result path list for {sample} cannot be empty.")
+ValueError: ServiceX result path list for muon_met_fetch cannot be empty.
+
 ```
 
 
@@ -850,6 +1068,23 @@ plt.close()
 
 print("Histogram saved to 'met_distribution.png'")
 ```
+### Running
+
+*Output:*
+```
+
+Histogram saved to 'met_distribution.png'
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+
+```
+![d4828429_openai_gpt-oss-120b_met_distribution.png](d4828429_openai_gpt-oss-120b_met_distribution.png)
 
 
 ## Model: openai/gpt-oss-20b
@@ -869,6 +1104,9 @@ import vector
 import matplotlib.pyplot as plt
 import mplhep as hep
 from hist import Hist
+### Running
+
+No code found to run.
 
 
 ## Model: Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8
@@ -991,6 +1229,71 @@ plt.savefig("met_distribution_zmumu.png")
 print(f"Saved MET distribution plot to met_distribution_zmumu.png")
 print(f"Number of events passing selection: {len(selected_met)}")
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 75, in <module>
+    opposite_charge = (charge1 * charge2) < 0
+                       ~~~~~~~~^~~~~~~~~
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_operators.py", line 54, in func
+    return ufunc(self, other)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/highlevel.py", line 1625, in __array_ufunc__
+    with ak._errors.OperationErrorContext(name, inputs, kwargs):
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_errors.py", line 80, in __exit__
+    raise self.decorate_exception(exception_type, exception_value)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/highlevel.py", line 1626, in __array_ufunc__
+    return ak._connect.numpy.array_ufunc(ufunc, method, inputs, kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_connect/numpy.py", line 469, in array_ufunc
+    out = ak._broadcasting.broadcast_and_apply(
+        inputs,
+    ...<4 lines>...
+        function_name=ufunc.__name__,
+    )
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_broadcasting.py", line 1219, in broadcast_and_apply
+    out = apply_step(
+        backend,
+    ...<13 lines>...
+        },
+    )
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_broadcasting.py", line 1197, in apply_step
+    return continuation()
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_broadcasting.py", line 1166, in continuation
+    return broadcast_any_list()
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_broadcasting.py", line 670, in broadcast_any_list
+    outcontent = apply_step(
+        backend,
+    ...<5 lines>...
+        options,
+    )
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_broadcasting.py", line 1197, in apply_step
+    return continuation()
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_broadcasting.py", line 1170, in continuation
+    return broadcast_any_record()
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_broadcasting.py", line 502, in broadcast_any_record
+    raise ValueError(f"cannot broadcast records{in_function(options)}")
+ValueError: cannot broadcast records in multiply
+
+This error occurred while calling
+
+    numpy.multiply.__call__(
+        <Array [(1, -1)] type='1 * (float64, float64)'>
+        <Array [(-1, 1)] type='1 * (float64, float64)'>
+    )
+
+```
 
 
 ## Model: arcee-ai/coder-large
@@ -1095,16 +1398,65 @@ plt.title("ETmiss for Opposite-Charge Muon Pairs with 60 < m($\mu\mu$) < 120 GeV
 plt.savefig("etmiss_histogram.png")
 ```
 >>end-reply<
+### Running
+
+*Output:*
+```
+muon_met_fetch: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+                 Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/app/script.py:89: SyntaxWarning: invalid escape sequence '\m'
+  plt.title("ETmiss for Opposite-Charge Muon Pairs with 60 < m($\mu\mu$) < 120 GeV")
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 33, in <module>
+    muon_met_data = to_awk(
+        deliver(
+    ...<10 lines>...
+        )
+    )
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: Nested data structures (2D arrays, etc.) in TTree's are not yet supported. Numbers or arrays of numbers only for now.)
+
+
+```
 ## Summary
-| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |
-|-------|----------|--------------|------------------|--------------|--------------------|
-| gpt-4.1 | 13.95 | 11666 | 1198 | 12864 | 0.0329 |
-| gpt-5 | 84.75 | 11665 | 4667 | 16332 | 0.0613 |
-| gpt-5-mini | 34.18 | 11665 | 3883 | 15548 | 0.0107 |
-| gpt-5-nano | 53.31 | 11665 | 14360 | 26025 | 0.0063 |
-| gpt-4o | 19.30 | 11666 | 871 | 12537 | 0.0379 |
-| o4-mini | 22.34 | 11665 | 2840 | 14505 | 0.0253 |
-| openai/gpt-oss-120b | 27.93 | 11730 | 2342 | 14072 | 0.0032 |
-| openai/gpt-oss-20b | 10.51 | 11730 | 2048 | 13778 | 0.0010 |
-| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 21.03 | 11932 | 1154 | 13086 | 0.0262 |
-| arcee-ai/coder-large | 11.37 | 11953 | 935 | 12888 | 0.0067 |
+
+| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) | Python Run 1 |
+|-------|----------|--------------|------------------|--------------|--------------------|--------------|
+| gpt-4.1 | 13.95 | 11666 | 1198 | 12864 | 0.0329 | Fail |
+| gpt-5 | 84.75 | 11665 | 4667 | 16332 | 0.0613 | Success |
+| gpt-5-mini | 34.18 | 11665 | 3883 | 15548 | 0.0107 | Fail |
+| gpt-5-nano | 53.31 | 11665 | 14360 | 26025 | 0.0063 | Fail |
+| gpt-4o | 19.30 | 11666 | 871 | 12537 | 0.0379 | Fail |
+| o4-mini | 22.34 | 11665 | 2840 | 14505 | 0.0253 | Fail |
+| openai/gpt-oss-120b | 27.93 | 11730 | 2342 | 14072 | 0.0032 | Success |
+| openai/gpt-oss-20b | 10.51 | 11730 | 2048 | 13778 | 0.0010 | Fail |
+| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 21.03 | 11932 | 1154 | 13086 | 0.0262 | Fail |
+| arcee-ai/coder-large | 11.37 | 11953 | 935 | 12888 | 0.0067 | Fail |
