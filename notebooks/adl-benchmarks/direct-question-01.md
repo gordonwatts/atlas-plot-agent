@@ -72,6 +72,64 @@ plt.tight_layout()
 plt.savefig("etmiss.png")
 plt.close()
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 40, in <module>
+    etmiss = etmiss[etmiss != None]
+                    ^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_operators.py", line 54, in func
+    return ufunc(self, other)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/highlevel.py", line 1625, in __array_ufunc__
+    with ak._errors.OperationErrorContext(name, inputs, kwargs):
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_errors.py", line 80, in __exit__
+    raise self.decorate_exception(exception_type, exception_value)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/highlevel.py", line 1626, in __array_ufunc__
+    return ak._connect.numpy.array_ufunc(ufunc, method, inputs, kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_connect/numpy.py", line 367, in array_ufunc
+    depth_context, lateral_context = NamedAxesWithDims.prepare_contexts(inputs)
+                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_namedaxis.py", line 689, in prepare_contexts
+    layout = ctx.unwrap(array, **_unwrap_kwargs)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_layout.py", line 161, in unwrap
+    return to_layout_impl(
+        obj,
+    ...<6 lines>...
+        regulararray=regulararray,
+    )
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_to_layout.py", line 272, in _impl
+    return _handle_as_none(
+        obj,
+        ak.operations.from_iter([obj], highlevel=False),
+        none_policy=none_policy,
+    )
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_to_layout.py", line 129, in _handle_as_none
+    raise TypeError(
+        "Encountered a None value, but None conversion/promotion is disabled"
+    )
+TypeError: Encountered a None value, but None conversion/promotion is disabled
+
+This error occurred while calling
+
+    numpy.not_equal.__call__(
+        <Array [19, 4.7, 17.5, ..., 28.6, 34, 61.4] type='30000 * float64'>
+        None
+    )
+
+```
 
 
 ## Model: gpt-5
@@ -158,6 +216,16 @@ def main():
 
 if __name__ == "__main__":
     main()
+```
+### Running
+
+*Output:*
+```
+
+```
+*Error:*
+```
+Policy violation: NFiles=1 not found
 ```
 
 
@@ -256,6 +324,62 @@ outname = "met_hist.png"
 plt.savefig(outname, dpi=150)
 print(f"Saved MET histogram to {outname}")
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 50, in <module>
+    n_events = int(ak.num(met_awk)) if ak.num(met_awk).shape == () else int(ak.sum(ak.num(met_awk)))  # defensive
+                                       ~~~~~~^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_dispatch.py", line 41, in dispatch
+    with OperationErrorContext(name, args, kwargs):
+         ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_errors.py", line 80, in __exit__
+    raise self.decorate_exception(exception_type, exception_value)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_dispatch.py", line 67, in dispatch
+    next(gen_or_result)
+    ~~~~^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_num.py", line 96, in num
+    return _impl(array, axis, highlevel, behavior, attrs)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_num.py", line 135, in _impl
+    out = ak._do.recursively_apply(layout, action, numpy_to_regular=True)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_do.py", line 37, in recursively_apply
+    return layout._recursively_apply(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        action,
+        ^^^^^^^
+    ...<11 lines>...
+        },
+        ^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/contents/numpyarray.py", line 1296, in _recursively_apply
+    result = action(
+        self,
+    ...<5 lines>...
+        options=options,
+    )
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_num.py", line 133, in action
+    raise AxisError(f"axis={axis} exceeds the depth of this array ({depth})")
+numpy.exceptions.AxisError: axis=1 exceeds the depth of this array (1)
+
+This error occurred while calling
+
+    ak.num(
+        <Array [19, 4.7, 17.5, ..., 28.6, 34, 61.4] type='30000 * float64'>
+    )
+
+```
 
 
 ## Model: gpt-5-nano
@@ -327,6 +451,24 @@ plt.tight_layout()
 plt.savefig("met_hist.png")
 plt.close()
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+![2fc7e91d_gpt-5-nano_met_hist.png](2fc7e91d_gpt-5-nano_met_hist.png)
 
 
 ## Model: gpt-4o
@@ -395,6 +537,24 @@ plt.legend()
 plt.savefig("etmiss_distribution.png")
 plt.show()
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+![2fc7e91d_gpt-4o_etmiss_distribution.png](2fc7e91d_gpt-4o_etmiss_distribution.png)
 
 
 ## Model: o4-mini
@@ -461,6 +621,24 @@ ax.legend(["ETmiss"])
 fig.tight_layout()
 fig.savefig("met.png")
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+![2fc7e91d_o4-mini_met.png](2fc7e91d_o4-mini_met.png)
 
 
 ## Model: openai/gpt-oss-120b
@@ -554,6 +732,35 @@ plt.tight_layout()
 plt.savefig("etmiss_hist.png")
 plt.close()
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 72, in <module>
+    h_met.plot(ax=ax, histtype="stepfilled", linewidth=1.2, edgecolor="black", label="MET")
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/hist/basehist.py", line 517, in plot
+    return self.plot1d(*args, overlay=overlay, **kwargs)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/hist/basehist.py", line 538, in plot1d
+    return plot.histplot(self, ax=ax, **_proc_kw_for_lw(kwargs))
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/mplhep/plot.py", line 180, in histplot
+    assert histtype in _allowed_histtype, _err_message
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Select 'histtype' from: ['fill', 'step', 'errorbar', 'band', 'bar', 'barstep'], got 'stepfilled'
+
+```
 
 
 ## Model: openai/gpt-oss-20b
@@ -629,6 +836,24 @@ plt.tight_layout()
 plt.savefig("met_histogram.png")
 plt.close()
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+![2fc7e91d_openai_gpt-oss-20b_met_histogram.png](2fc7e91d_openai_gpt-oss-20b_met_histogram.png)
 
 
 ## Model: Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8
@@ -699,6 +924,22 @@ ax.set_title("Missing Transverse Energy Distribution")
 plt.savefig("met_distribution.png")
 plt.close()
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+
+```
+![2fc7e91d_Qwen_Qwen3-Coder-480B-A35B-Instruct-FP8_met_distribution.png](2fc7e91d_Qwen_Qwen3-Coder-480B-A35B-Instruct-FP8_met_distribution.png)
 
 
 ## Model: arcee-ai/coder-large
@@ -770,16 +1011,33 @@ plt.title("ETmiss Distribution")
 plt.savefig("etmiss_distribution.png")
 ```
 >>end-reply<
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+
+```
+![2fc7e91d_arcee-ai_coder-large_etmiss_distribution.png](2fc7e91d_arcee-ai_coder-large_etmiss_distribution.png)
 ## Summary
-| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |
-|-------|----------|--------------|------------------|--------------|--------------------|
-| gpt-4.1 | 7.85 | 11640 | 672 | 12312 | 0.0287 |
-| gpt-5 | 54.40 | 11639 | 2641 | 14280 | 0.0410 |
-| gpt-5-mini | 26.15 | 11639 | 2843 | 14482 | 0.0086 |
-| gpt-5-nano | 14.52 | 11639 | 3619 | 15258 | 0.0020 |
-| gpt-4o | 7.01 | 11640 | 568 | 12208 | 0.0348 |
-| o4-mini | 12.23 | 11639 | 1343 | 12982 | 0.0187 |
-| openai/gpt-oss-120b | 16.98 | 11704 | 1076 | 12780 | 0.0024 |
-| openai/gpt-oss-20b | 6.34 | 11704 | 1209 | 12913 | 0.0008 |
-| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 11.20 | 11904 | 641 | 12545 | 0.0251 |
-| arcee-ai/coder-large | 7.45 | 11925 | 559 | 12484 | 0.0064 |
+
+| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) | Python Run 1 |
+|-------|----------|--------------|------------------|--------------|--------------------|--------------|
+| gpt-4.1 | 7.85 | 11640 | 672 | 12312 | 0.0287 | Fail |
+| gpt-5 | 54.40 | 11639 | 2641 | 14280 | 0.0410 | Fail |
+| gpt-5-mini | 26.15 | 11639 | 2843 | 14482 | 0.0086 | Fail |
+| gpt-5-nano | 14.52 | 11639 | 3619 | 15258 | 0.0020 | Success |
+| gpt-4o | 7.01 | 11640 | 568 | 12208 | 0.0348 | Success |
+| o4-mini | 12.23 | 11639 | 1343 | 12982 | 0.0187 | Success |
+| openai/gpt-oss-120b | 16.98 | 11704 | 1076 | 12780 | 0.0024 | Fail |
+| openai/gpt-oss-20b | 6.34 | 11704 | 1209 | 12913 | 0.0008 | Success |
+| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 11.20 | 11904 | 641 | 12545 | 0.0251 | Success |
+| arcee-ai/coder-large | 7.45 | 11925 | 559 | 12484 | 0.0064 | Success |

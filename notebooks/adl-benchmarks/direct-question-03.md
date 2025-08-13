@@ -64,6 +64,26 @@ plt.title("Jet $p_T$ Distribution ($|\eta|<1$)")
 plt.savefig("jet_pt_eta_lt1.png")
 plt.close()
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/app/script.py:46: SyntaxWarning: invalid escape sequence '\e'
+  hist_bins.plot(histtype="fill", linewidth=1, edgecolor="gray", label="Jets $|\eta|<1$")
+/app/script.py:50: SyntaxWarning: invalid escape sequence '\e'
+  plt.title("Jet $p_T$ Distribution ($|\eta|<1$)")
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+
+```
+![d07d348d_gpt-4.1_jet_pt_eta_lt1.png](d07d348d_gpt-4.1_jet_pt_eta_lt1.png)
 
 
 ## Model: gpt-5
@@ -134,6 +154,29 @@ ax.legend()
 plt.tight_layout()
 plt.savefig("jet_pt_eta_lt1.png", dpi=150)
 plt.close(fig)
+```
+### Running
+
+*Output:*
+```
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 16, in <module>
+    .Where(lambda j: (j.eta() > -1.0) & (j.eta() < 1.0))
+     ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/object_stream.py", line 188, in Where
+    raise ValueError(
+    ...<2 lines>...
+    )
+ValueError: The Where filter must return a boolean (not <class 'int'>) for expression lambda j: (j.eta() > -1.0) & (j.eta() < 1.0)
+
 ```
 
 
@@ -229,6 +272,29 @@ outname = "jet_pt_eta_lt1.png"
 plt.savefig(outname, dpi=150)
 print(f"Saved histogram to {outname}")
 ```
+### Running
+
+*Output:*
+```
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 20, in <module>
+    .Where(lambda j: (j.eta() < 1.0) & (j.eta() > -1.0))
+     ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/object_stream.py", line 188, in Where
+    raise ValueError(
+    ...<2 lines>...
+    )
+ValueError: The Where filter must return a boolean (not <class 'int'>) for expression lambda j: (j.eta() < 1.0) & (j.eta() > -1.0)
+
+```
 
 
 ## Model: gpt-5-nano
@@ -303,6 +369,24 @@ plt.tight_layout()
 plt.savefig("jets_pt_eta_lt1.png")
 plt.close(fig)
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+![d07d348d_gpt-5-nano_jets_pt_eta_lt1.png](d07d348d_gpt-5-nano_jets_pt_eta_lt1.png)
 
 
 ## Model: gpt-4o
@@ -375,6 +459,51 @@ plt.title("Jet $p_T$ Distribution with $|\eta| < 1$")
 plt.savefig("jet_pt_distribution.png")
 plt.show()
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/app/script.py:59: SyntaxWarning: invalid escape sequence '\e'
+  plt.title("Jet $p_T$ Distribution with $|\eta| < 1$")
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 52, in <module>
+    h.fill(jet_pt=ak.flatten(jet_pts))
+                  ~~~~~~~~~~^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_dispatch.py", line 41, in dispatch
+    with OperationErrorContext(name, args, kwargs):
+         ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_errors.py", line 80, in __exit__
+    raise self.decorate_exception(exception_type, exception_value)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_dispatch.py", line 67, in dispatch
+    next(gen_or_result)
+    ~~~~^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_flatten.py", line 178, in flatten
+    return _impl(array, axis, highlevel, behavior, attrs)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_flatten.py", line 255, in _impl
+    out = ak._do.flatten(layout, axis)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_do.py", line 194, in flatten
+    offsets, flattened = layout._offsets_and_flattened(axis, 1)
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/contents/numpyarray.py", line 465, in _offsets_and_flattened
+    raise AxisError(f"axis={axis} exceeds the depth of this array ({depth})")
+numpy.exceptions.AxisError: axis=1 exceeds the depth of this array (1)
+
+This error occurred while calling
+
+    ak.flatten(
+        <Array [50.5, 15.7, 141, ..., 15.6, 14.3, 10.6] type='63539 * float64'>
+    )
+
+```
 
 
 ## Model: o4-mini
@@ -445,6 +574,16 @@ ax.legend()
 ax.set_xlabel("Jet $p_{T}$ [GeV]")
 ax.set_ylabel("Entries")
 fig.savefig("jet_pt_hist.png")
+```
+### Running
+
+*Output:*
+```
+
+```
+*Error:*
+```
+Policy violation: NFiles=1 not found
 ```
 
 
@@ -540,6 +679,35 @@ plt.tight_layout()
 plt.savefig("jet_pt_eta_lt1.png")
 plt.close(fig)
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 72, in <module>
+    h_pt.plot(ax=ax, histtype="stepfilled", linewidth=1.5, edgecolor="black", label=r"Jets $|\eta|<1$")
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/hist/basehist.py", line 517, in plot
+    return self.plot1d(*args, overlay=overlay, **kwargs)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/hist/basehist.py", line 538, in plot1d
+    return plot.histplot(self, ax=ax, **_proc_kw_for_lw(kwargs))
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/mplhep/plot.py", line 180, in histplot
+    assert histtype in _allowed_histtype, _err_message
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Select 'histtype' from: ['fill', 'step', 'errorbar', 'band', 'bar', 'barstep'], got 'stepfilled'
+
+```
 
 
 ## Model: openai/gpt-oss-20b
@@ -620,6 +788,16 @@ ax.legend()
 plt.tight_layout()
 plt.savefig("jet_pt_histogram.png")
 ```
+### Running
+
+*Output:*
+```
+
+```
+*Error:*
+```
+Policy violation: NFiles=1 not found
+```
 
 
 ## Model: Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8
@@ -689,6 +867,49 @@ h.plot(ax=ax, histtype="fill", linewidth=1, edgecolor="gray")
 ax.set_xlabel("Jet pT [GeV]")
 ax.set_ylabel("Events")
 plt.savefig("jet_pt_eta_cut.png")
+```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 51, in <module>
+    h.fill(jet_pt=ak.flatten(jet_pts))
+                  ~~~~~~~~~~^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_dispatch.py", line 41, in dispatch
+    with OperationErrorContext(name, args, kwargs):
+         ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_errors.py", line 80, in __exit__
+    raise self.decorate_exception(exception_type, exception_value)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_dispatch.py", line 67, in dispatch
+    next(gen_or_result)
+    ~~~~^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_flatten.py", line 178, in flatten
+    return _impl(array, axis, highlevel, behavior, attrs)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_flatten.py", line 255, in _impl
+    out = ak._do.flatten(layout, axis)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_do.py", line 194, in flatten
+    offsets, flattened = layout._offsets_and_flattened(axis, 1)
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/contents/numpyarray.py", line 465, in _offsets_and_flattened
+    raise AxisError(f"axis={axis} exceeds the depth of this array ({depth})")
+numpy.exceptions.AxisError: axis=1 exceeds the depth of this array (1)
+
+This error occurred while calling
+
+    ak.flatten(
+        <Array [50.5, 15.7, 141, ..., 15.6, 14.3, 10.6] type='63539 * float64'>
+    )
+
 ```
 
 
@@ -762,16 +983,35 @@ plt.savefig("jet_pt_distribution.png")
 plt.show()
 ```
 >>end-reply<
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/app/script.py:52: SyntaxWarning: invalid escape sequence '\e'
+  h.plot(histtype="fill", linewidth=1, edgecolor="gray", label="Jet $p_T$ with $|\eta| < 1$")
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+
+```
+![d07d348d_arcee-ai_coder-large_jet_pt_distribution.png](d07d348d_arcee-ai_coder-large_jet_pt_distribution.png)
 ## Summary
-| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |
-|-------|----------|--------------|------------------|--------------|--------------------|
-| gpt-4.1 | 6.47 | 11646 | 612 | 12258 | 0.0282 |
-| gpt-5 | 51.13 | 11645 | 2166 | 13811 | 0.0362 |
-| gpt-5-mini | 29.42 | 11645 | 2763 | 14408 | 0.0084 |
-| gpt-5-nano | 15.44 | 11645 | 3706 | 15351 | 0.0021 |
-| gpt-4o | 8.09 | 11646 | 584 | 12230 | 0.0350 |
-| o4-mini | 12.37 | 11645 | 1414 | 13059 | 0.0190 |
-| openai/gpt-oss-120b | 19.31 | 11710 | 1334 | 13044 | 0.0026 |
-| openai/gpt-oss-20b | 8.31 | 11710 | 1584 | 13294 | 0.0009 |
-| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 9.77 | 11910 | 575 | 12485 | 0.0250 |
-| arcee-ai/coder-large | 8.64 | 11931 | 641 | 12572 | 0.0065 |
+
+| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) | Python Run 1 |
+|-------|----------|--------------|------------------|--------------|--------------------|--------------|
+| gpt-4.1 | 6.47 | 11646 | 612 | 12258 | 0.0282 | Success |
+| gpt-5 | 51.13 | 11645 | 2166 | 13811 | 0.0362 | Fail |
+| gpt-5-mini | 29.42 | 11645 | 2763 | 14408 | 0.0084 | Fail |
+| gpt-5-nano | 15.44 | 11645 | 3706 | 15351 | 0.0021 | Success |
+| gpt-4o | 8.09 | 11646 | 584 | 12230 | 0.0350 | Fail |
+| o4-mini | 12.37 | 11645 | 1414 | 13059 | 0.0190 | Fail |
+| openai/gpt-oss-120b | 19.31 | 11710 | 1334 | 13044 | 0.0026 | Fail |
+| openai/gpt-oss-20b | 8.31 | 11710 | 1584 | 13294 | 0.0009 | Fail |
+| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 9.77 | 11910 | 575 | 12485 | 0.0250 | Fail |
+| arcee-ai/coder-large | 8.64 | 11931 | 641 | 12572 | 0.0065 | Success |

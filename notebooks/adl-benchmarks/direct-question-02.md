@@ -4,12 +4,10 @@
 
 ## Model: gpt-4.1
 
-- I used ServiceX and func_adl to fetch all jet $p_T$ values from the specified ATLAS PHYSLITE Rucio dataset.
-- The code uses only one file for demonstration/testing speed. Remove or increase `NFiles` for larger statistics.
-- I converted the raw jet $p_T$ units from MeV to GeV as recommended.
-- The Awkward Array is used to handle and process the jet $p_T$ data.
-- I filled a 1D histogram (using hist) with these $p_T$ values, using reasonable binning for jets.
-- The plot is made and saved to a PNG file named `jet_pt.png`.
+- Used ServiceX with FuncADL to query the specified rucio dataset for all jet $p_T$ (in GeV).
+- Used awkward array to store the results, already flat (since we are using SelectMany).
+- Created and filled a histogram of jet $p_T$ with the Hist library.
+- Made the plot using matplotlib and mplhep's ATLAS style, then saved it as a PNG file (`jet_pt.png`).
 
 ```python
 from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
@@ -22,58 +20,72 @@ from hist import Hist
 import matplotlib.pyplot as plt
 import mplhep as hep
 
-# Use ATLAS plot style
 plt.style.use(hep.style.ATLAS)
 
-# Dataset name as requested
-ds_name = (
-    "mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv."
-    "DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697"
-)
-
-# Construct the query for all jet pt (in GeV)
+# Step 1: Query jets' pT (in GeV)
 base_query = FuncADLQueryPHYSLITE()
-jet_pts_query = (
-    base_query
+jet_pts_query = (base_query
     .SelectMany(lambda evt: evt.Jets())
     .Select(lambda jet: {
-        "jet_pt": jet.pt() / 1000.0,  # MeV to GeV
+        "jet_pt": jet.pt() / 1000.0,  # convert MeV to GeV
     })
 )
 
-# Fetch data (one file for speed/test)
-all_jet_pts = to_awk(
+# Step 2: Fetch data from rucio dataset
+ds_name = (
+    "mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697"
+)
+fetched = to_awk(
     deliver(
         ServiceXSpec(
             Sample=[
                 Sample(
                     Name="jet_pt_fetch",
                     Dataset=dataset.Rucio(ds_name),
-                    NFiles=1,
+                    NFiles=1,  # Just 1 file for demonstration; increase for full stats
                     Query=jet_pts_query,
                 )
             ]
         ),
     )
 )
+jet_pt = fetched["jet_pt_fetch"].jet_pt
 
-# Get jet pt as awkward array
-jet_pt = all_jet_pts["jet_pt_fetch"].jet_pt
+# Step 3: Make histogram with Hist
+hist_pt = (
+    Hist.new.Reg(60, 0, 300, name="pt", label="Jet $p_T$ [GeV]")
+        .Int64()
+)
+hist_pt.fill(pt=ak.to_numpy(jet_pt))
 
-# Plotting: Make a histogram. Binning from 0 to 500 GeV (50 bins)
-h = Hist.new.Reg(50, 0, 500, name="pt", label=r"Jet $p_T$ [GeV]").Int64()
-h.fill(pt=ak.to_numpy(jet_pt))
-
-# Draw the plot
-fig, ax = plt.subplots()
-h.plot(ax=ax, histtype="step", label="all jets")
-ax.set_xlabel(r"Jet $p_T$ [GeV]")
-ax.set_ylabel("Jets")
-ax.set_title("Jet $p_T$ Spectrum")
-ax.legend()
+# Step 4: Plot and save
+hist_pt.plot(histtype="step", linewidth=2, label="Jets")
+plt.xlabel("Jet $p_T$ [GeV]")
+plt.ylabel("Jets / bin")
+plt.legend()
+plt.title("Jet $p_T$ distribution")
+plt.tight_layout()
 plt.savefig("jet_pt.png")
-plt.close(fig)
+plt.close()
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+![f22729f4_gpt-4.1_jet_pt.png](f22729f4_gpt-4.1_jet_pt.png)
 
 
 ## Model: gpt-5
@@ -162,6 +174,25 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+### Running
+
+*Output:*
+```
+
+Saved plot to jet_pt.png
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+![f22729f4_gpt-5_jet_pt.png](f22729f4_gpt-5_jet_pt.png)
 
 
 ## Model: gpt-5-mini
@@ -258,6 +289,28 @@ plt.tight_layout()
 plt.savefig(outname, dpi=150)
 print(f"Saved jet pT plot to: {outname}")
 ```
+### Running
+
+*Output:*
+```
+Submitting request to ServiceX (NFiles=1 for a quick test)...
+
+ServiceX delivery complete.
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 53, in <module>
+    n_jets = int(ak.num(jet_pts)) if ak.ndim(jet_pts) == 0 else int(len(jet_pts))
+                                     ^^^^^^^
+AttributeError: module 'awkward' has no attribute 'ndim'
+
+```
 
 
 ## Model: gpt-5-nano
@@ -330,6 +383,26 @@ plt.tight_layout()
 plt.savefig("jet_pt_hist.png")
 plt.close()
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 47, in <module>
+    hist_jet_pt.fill(pt_GeV=pt_values)
+    ^^^^^^^^^^^^^^^^
+AttributeError: 'ConstructProxy' object has no attribute 'fill'
+
+```
 
 
 ## Model: gpt-4o
@@ -396,6 +469,22 @@ plt.xlabel("Jet $p_T$ [GeV]")
 plt.title("Jet $p_T$ Distribution")
 plt.savefig("jet_pt_distribution.png")
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+
+```
+![f22729f4_gpt-4o_jet_pt_distribution.png](f22729f4_gpt-4o_jet_pt_distribution.png)
 
 
 ## Model: o4-mini
@@ -461,6 +550,24 @@ ax.legend()
 plt.savefig("jet_pt.png")
 plt.close(fig)
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+![f22729f4_o4-mini_jet_pt.png](f22729f4_o4-mini_jet_pt.png)
 
 
 ## Model: openai/gpt-oss-120b
@@ -561,6 +668,49 @@ plt.close(fig)
 
 print("Jet pT histogram saved as 'jet_pt.png'")
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 66, in <module>
+    h_jet_pt.fill(pt=ak.flatten(jet_pts))
+                     ~~~~~~~~~~^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_dispatch.py", line 41, in dispatch
+    with OperationErrorContext(name, args, kwargs):
+         ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_errors.py", line 80, in __exit__
+    raise self.decorate_exception(exception_type, exception_value)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_dispatch.py", line 67, in dispatch
+    next(gen_or_result)
+    ~~~~^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_flatten.py", line 178, in flatten
+    return _impl(array, axis, highlevel, behavior, attrs)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/operations/ak_flatten.py", line 255, in _impl
+    out = ak._do.flatten(layout, axis)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_do.py", line 194, in flatten
+    offsets, flattened = layout._offsets_and_flattened(axis, 1)
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/contents/numpyarray.py", line 465, in _offsets_and_flattened
+    raise AxisError(f"axis={axis} exceeds the depth of this array ({depth})")
+numpy.exceptions.AxisError: axis=1 exceeds the depth of this array (1)
+
+This error occurred while calling
+
+    ak.flatten(
+        <Array [70.6, 50.5, 39, ..., 4, 3.98, 0.712] type='262183 * float64'>
+    )
+
+```
 
 
 ## Model: openai/gpt-oss-20b
@@ -659,6 +809,16 @@ print(f"Jet pT histogram written to {output_file}")
 - If you wish to add weights, you can extend the query to return a “weight” field and use `0.5`‑bin `Fill` in Hist.  
 
 Happy jet‑hunting!
+### Running
+
+*Output:*
+```
+
+```
+*Error:*
+```
+Policy violation: NFiles=1 not found
+```
 
 
 ## Model: Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8
@@ -731,6 +891,22 @@ plt.yscale('log')  # Use logarithmic scale for better visualization
 plt.savefig("jet_pt_distribution.png")
 plt.close()
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+
+```
+![f22729f4_Qwen_Qwen3-Coder-480B-A35B-Instruct-FP8_jet_pt_distribution.png](f22729f4_Qwen_Qwen3-Coder-480B-A35B-Instruct-FP8_jet_pt_distribution.png)
 
 
 ## Model: arcee-ai/coder-large
@@ -801,16 +977,33 @@ plt.title("Jet $p_T$ Distribution")
 plt.savefig("jet_pt_distribution.png")
 ```
 >>end-reply<
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+
+```
+![f22729f4_arcee-ai_coder-large_jet_pt_distribution.png](f22729f4_arcee-ai_coder-large_jet_pt_distribution.png)
 ## Summary
-| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |
-|-------|----------|--------------|------------------|--------------|--------------------|
-| gpt-4.1 | 7.20 | 11640 | 632 | 12272 | 0.0283 |
-| gpt-5 | 73.66 | 11639 | 2263 | 13902 | 0.0372 |
-| gpt-5-mini | 26.13 | 11639 | 2552 | 14191 | 0.0080 |
-| gpt-5-nano | 19.23 | 11639 | 3285 | 14924 | 0.0019 |
-| gpt-4o | 10.58 | 11640 | 518 | 12158 | 0.0343 |
-| o4-mini | 13.83 | 11639 | 1704 | 13343 | 0.0203 |
-| openai/gpt-oss-120b | 17.51 | 11704 | 1065 | 12769 | 0.0024 |
-| openai/gpt-oss-20b | 8.36 | 11704 | 1152 | 12856 | 0.0008 |
-| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 11.88 | 11904 | 647 | 12551 | 0.0251 |
-| arcee-ai/coder-large | 8.68 | 11925 | 621 | 12546 | 0.0065 |
+
+| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) | Python Run 1 |
+|-------|----------|--------------|------------------|--------------|--------------------|--------------|
+| gpt-4.1 | 9.96 | 11640 | 569 | 12209 | 0.0278 | Success |
+| gpt-5 | 73.66 | 11639 | 2263 | 13902 | 0.0372 | Success |
+| gpt-5-mini | 26.13 | 11639 | 2552 | 14191 | 0.0080 | Fail |
+| gpt-5-nano | 19.23 | 11639 | 3285 | 14924 | 0.0019 | Fail |
+| gpt-4o | 10.58 | 11640 | 518 | 12158 | 0.0343 | Success |
+| o4-mini | 13.83 | 11639 | 1704 | 13343 | 0.0203 | Success |
+| openai/gpt-oss-120b | 17.51 | 11704 | 1065 | 12769 | 0.0024 | Fail |
+| openai/gpt-oss-20b | 8.36 | 11704 | 1152 | 12856 | 0.0008 | Fail |
+| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 11.88 | 11904 | 647 | 12551 | 0.0251 | Success |
+| arcee-ai/coder-large | 8.68 | 11925 | 621 | 12546 | 0.0065 | Success |

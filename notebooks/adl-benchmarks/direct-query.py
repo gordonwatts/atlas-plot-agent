@@ -1,8 +1,9 @@
 import functools
+import hashlib
 import logging
 import os
 import sys
-from typing import Optional
+from typing import List, Optional, Tuple
 from urllib.parse import urlparse
 
 import fsspec
@@ -187,7 +188,9 @@ app = typer.Typer(
 )
 
 
-def run_model(question: str, prompt: str, model_info, ignore_cache=False) -> UsageInfo:
+def run_model(
+    question: str, prompt: str, model_info, ignore_cache=False
+) -> Tuple[UsageInfo, List[bool]]:
     """
     Run the model, print heading and result, and return info for the table.
     """
@@ -239,8 +242,8 @@ def run_model(question: str, prompt: str, model_info, ignore_cache=False) -> Usa
     # Run the code.
     print("### Running\n")
     code = extract_code_from_response(response)
+    run_result = False
     if code is not None:
-        # Check policy
         result = check_code_policies(code)
         if result is True:
             # Run code in Docker and capture output and files, using cache
@@ -250,9 +253,15 @@ def run_model(question: str, prompt: str, model_info, ignore_cache=False) -> Usa
         print(f"*Output:*\n```\n{result.stdout}\n```")
         print(f"*Error:*\n```\n{result.stderr}\n```")
 
+        # Did we run without an error?
+        run_result = result.exit_code == 0
+
         # Save PNG files locally, prefixed with model name
+        question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
         for f_name, data in result.png_files:
-            local_name = f"{model_info.model_name}_{f_name}"
+            # Sanitize model_name for filesystem
+            safe_model_name = model_info.model_name.replace("/", "_")
+            local_name = f"{question_hash}_{safe_model_name}_{f_name}"
             with open(local_name, "wb") as dst:
                 dst.write(data)
             print(f"![{local_name}]({local_name})")  # Markdown image include
@@ -260,7 +269,7 @@ def run_model(question: str, prompt: str, model_info, ignore_cache=False) -> Usa
     else:
         print("No code found to run.")
 
-    return usage_info
+    return usage_info, [run_result]
 
 
 @app.command()
@@ -314,27 +323,47 @@ def ask(
         table_rows.append(row)
 
     # Print markdown table
-    print("## Summary")
-    print(
-        "| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | "
-        "Estimated Cost ($) |"
+    print("## Summary\n")
+    # Determine max number of python run attempts
+    max_attempts = max(len(row[1]) for row in table_rows) if table_rows else 0
+    # Build header
+    base_header = (
+        "| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens "
+        "| Estimated Cost ($) |"
     )
+    attempt_headers = "".join([f" Python Run {i+1} |" for i in range(max_attempts)])
+    print(base_header + attempt_headers)
     print(
-        "|-------|----------|--------------|------------------|--------------|"
-        "--------------------|"
+        "|-------|----------|--------------|------------------|--------------"
+        "|--------------------|"
+        + "".join(["--------------|" for _ in range(max_attempts)])
     )
     for row in table_rows:
-        model = row.model
-        elapsed = f"{row.elapsed:.2f}"
-        prompt_tokens = row.prompt_tokens if row.prompt_tokens is not None else "-"
-        completion_tokens = (
-            row.completion_tokens if row.completion_tokens is not None else "-"
+        usage_info, run_results = row
+        model = usage_info.model
+        elapsed = f"{usage_info.elapsed:.2f}"
+        prompt_tokens = (
+            usage_info.prompt_tokens if usage_info.prompt_tokens is not None else "-"
         )
-        total_tokens = row.total_tokens if row.total_tokens is not None else "-"
-        cost = f"{row.cost:.4f}" if row.cost is not None else "-"
+        completion_tokens = (
+            usage_info.completion_tokens
+            if usage_info.completion_tokens is not None
+            else "-"
+        )
+        total_tokens = (
+            usage_info.total_tokens if usage_info.total_tokens is not None else "-"
+        )
+        cost = f"{usage_info.cost:.4f}" if usage_info.cost is not None else "-"
+        # Format python run results
+        run_cells = []
+        for i in range(max_attempts):
+            if i < len(run_results):
+                run_cells.append(" Success |" if run_results[i] else " Fail |")
+            else:
+                run_cells.append(" N/A |")
         print(
-            f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens}"
-            f" | {cost} |"
+            f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens} "
+            f"| {cost} |" + "".join(run_cells)
         )
 
 

@@ -267,6 +267,26 @@ plt.title("Maximum b-tag discriminant in selected trijet")
 plt.savefig("trijet_max_btag.png")
 plt.close()
 ```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 162, in <module>
+    trijet_idx = ak.combinations(ak.arange(ak.max(jet_counts)), 3, axis=0)  # indices for max #jets
+                                 ^^^^^^^^^
+AttributeError: module 'awkward' has no attribute 'arange'
+
+```
 
 
 ## Model: gpt-5
@@ -507,6 +527,61 @@ plt.savefig("trijet_max_btag_weight.png", dpi=150)
 plt.close()
 
 print("Wrote: trijet_pt.png and trijet_max_btag_weight.png")
+```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 187, in <module>
+    tri_btag_stack = np.stack([trijets.j1.btagW, trijets.j2.btagW, trijets.j3.btagW], axis=-1)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/highlevel.py", line 1642, in __array_function__
+    return ak._connect.numpy.array_function(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        func, types, args, kwargs, behavior=self._behavior, attrs=self._attrs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_connect/numpy.py", line 110, in array_function
+    rectilinear_args = tuple(_to_rectilinear(x, backend) for x in args)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_connect/numpy.py", line 110, in <genexpr>
+    rectilinear_args = tuple(_to_rectilinear(x, backend) for x in args)
+                             ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_connect/numpy.py", line 83, in _to_rectilinear
+    return [_to_rectilinear(x, backend) for x in arg]
+            ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_connect/numpy.py", line 79, in _to_rectilinear
+    return layout.to_backend(backend).to_backend_array(allow_missing=True)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/contents/content.py", line 1121, in to_backend_array
+    return self._to_backend_array(allow_missing, backend)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/contents/listoffsetarray.py", line 2122, in _to_backend_array
+    return self.to_RegularArray()._to_backend_array(allow_missing, backend)
+           ~~~~~~~~~~~~~~~~~~~~^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/contents/listoffsetarray.py", line 291, in to_RegularArray
+    self._backend.maybe_kernel_error(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._backend[
+        ^^^^^^^^^^^^^^
+    ...<7 lines>...
+        )
+        ^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_backends/backend.py", line 62, in maybe_kernel_error
+    raise ValueError(self.format_kernel_error(error))
+ValueError: cannot convert to RegularArray because subarray lengths are not regular (in compiled code: https://github.com/scikit-hep/awkward/blob/awkward-cpp-48/awkward-cpp/src/cpu-kernels/awkward_ListOffsetArray_toRegularArray.cpp#L22)
+
 ```
 
 
@@ -805,6 +880,62 @@ print("\nReminder: BTaggingSelectionTool was initialized with OperatingPoint = F
 print("If you want to run this over the full dataset, remove NFiles=1 in the ServiceX Sample")
 print("or increase it, but be aware that pulling more data out of ServiceX will take longer and be more expensive.")
 ```
+### Running
+
+*Output:*
+```
+Submitting query to ServiceX (NFiles=1). This will fetch events with >=3 jets (pt>25 GeV).
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 218, in <module>
+    btags_stack = np.stack([triplets.j1.btag, triplets.j2.btag, triplets.j3.btag], axis=-1)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/highlevel.py", line 1642, in __array_function__
+    return ak._connect.numpy.array_function(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        func, types, args, kwargs, behavior=self._behavior, attrs=self._attrs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_connect/numpy.py", line 110, in array_function
+    rectilinear_args = tuple(_to_rectilinear(x, backend) for x in args)
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_connect/numpy.py", line 110, in <genexpr>
+    rectilinear_args = tuple(_to_rectilinear(x, backend) for x in args)
+                             ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_connect/numpy.py", line 83, in _to_rectilinear
+    return [_to_rectilinear(x, backend) for x in arg]
+            ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_connect/numpy.py", line 79, in _to_rectilinear
+    return layout.to_backend(backend).to_backend_array(allow_missing=True)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/contents/content.py", line 1121, in to_backend_array
+    return self._to_backend_array(allow_missing, backend)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/contents/listoffsetarray.py", line 2122, in _to_backend_array
+    return self.to_RegularArray()._to_backend_array(allow_missing, backend)
+           ~~~~~~~~~~~~~~~~~~~~^^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/contents/listoffsetarray.py", line 291, in to_RegularArray
+    self._backend.maybe_kernel_error(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._backend[
+        ^^^^^^^^^^^^^^
+    ...<7 lines>...
+        )
+        ^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/awkward/_backends/backend.py", line 62, in maybe_kernel_error
+    raise ValueError(self.format_kernel_error(error))
+ValueError: cannot convert to RegularArray because subarray lengths are not regular (in compiled code: https://github.com/scikit-hep/awkward/blob/awkward-cpp-48/awkward-cpp/src/cpu-kernels/awkward_ListOffsetArray_toRegularArray.cpp#L22)
+
+```
 
 
 ## Model: gpt-5-nano
@@ -1060,6 +1191,94 @@ plt.tight_layout()
 plt.savefig("trijet_btag.png")
 plt.close()
 ```
+### Running
+
+*Output:*
+```
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Unknown type for name tag_weight
+Unknown type for name tag_weight
+Traceback (most recent call last):
+  File "/app/script.py", line 82, in <module>
+    .Select(lambda jets: jets.Select(lambda j: {
+     ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        "pt": j.pt() / 1000.0,        # GeV
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        "btag": (tag_weight(j) if tag_weight is not None else 0.0),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    }))
+    ^^^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/object_stream.py", line 153, in Select
+    n_stream, n_ast, rtn_type = remap_from_lambda(
+                                ~~~~~~~~~~~~~~~~~^
+        self, _local_simplification(parse_as_ast(f, "Select")), known_types
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 976, in remap_from_lambda
+    stream, new_body, return_type = remap_by_types(
+                                    ~~~~~~~~~~~~~~^
+        o_stream, {var_name: orig_type} | known_types, l_func.body
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 957, in remap_by_types
+    r_a = tt.visit(a)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 794, in visit_Call
+    t_node = self.process_method_call(t_node, found_type)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 675, in process_method_call
+    r_result = self.type_follow_in_callbacks(m_name, base_obj, default_args_node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 571, in type_follow_in_callbacks
+    rtn_value = self.process_method_call_on_stream_obj(
+        _g_collection_classes[get_origin(call_site_info.obj_type)],  # type: ignore
+    ...<2 lines>...
+        get_args(call_site_info.obj_type)[0],
+    )
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 533, in process_method_call_on_stream_obj
+    r = call_method(call_node.args[0], known_types=self._found_types)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/object_stream.py", line 156, in Select
+    check_ast(n_ast)
+    ~~~~~~~~~^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/util_ast.py", line 796, in check_ast
+    checker.visit(a)
+    ~~~~~~~~~~~~~^^^
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/usr/local/lib/python3.13/ast.py", line 432, in generic_visit
+    self.visit(value)
+    ~~~~~~~~~~^^^^^^^
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/usr/local/lib/python3.13/ast.py", line 430, in generic_visit
+    self.visit(item)
+    ~~~~~~~~~~^^^^^^
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/usr/local/lib/python3.13/ast.py", line 432, in generic_visit
+    self.visit(value)
+    ~~~~~~~~~~^^^^^^^
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/usr/local/lib/python3.13/ast.py", line 430, in generic_visit
+    self.visit(item)
+    ~~~~~~~~~~^^^^^^
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/util_ast.py", line 791, in visit_Constant
+    raise ValueError(f"Invalid constant type: {type(node.value)} for {ast.dump(node)}")
+ValueError: Invalid constant type: <class 'NoneType'> for Constant(value=None)
+
+```
 
 
 ## Model: gpt-4o
@@ -1206,6 +1425,25 @@ ax_btag.set_title("Max B-Tagging Discriminant Distribution")
 ax_btag.set_xlabel("B-Tagging Discriminant")
 ax_btag.set_ylabel("Events")
 plt.savefig("max_btag_histogram.png")
+
+```
+### Running
+
+*Output:*
+```
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 18, in <module>
+    query_base, tag_tool_info = make_a_tool(
+                                ^^^^^^^^^^^
+NameError: name 'make_a_tool' is not defined
 
 ```
 
@@ -1410,6 +1648,21 @@ h_bd.plot(histtype="step", color="C1")
 plt.xlabel("Max b-tag discriminant")
 plt.ylabel("Entries")
 plt.savefig("trijet_bdisc.png")
+```
+### Running
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+
 ```
 
 
@@ -1639,11 +1892,17 @@ best_max_btag = ak.flatten(best_max_btag)
 # --------------------------------------------------------------
 h = (
     hist.Hist.new.Reg(80, 0, 500, name="pt", label=r"Trijet $p
+### Running
+
+No code found to run.
 
 
 ## Model: openai/gpt-oss-20b
 
 No response content returned.
+### Running
+
+No code found to run.
 
 
 ## Model: Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8
@@ -1867,6 +2126,52 @@ plt.ylabel("Events")
 plt.title("Max b-tag in selected trijet")
 plt.savefig("trijet_max_btag.png")
 ```
+### Running
+
+*Output:*
+```
+trijet_data: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+              Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 121, in <module>
+    result = to_awk(
+        deliver(
+    ...<10 lines>...
+        )
+    )
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: Nested data structures (2D arrays, etc.) in TTree's are not yet supported. Numbers or arrays of numbers only for now.)
+
+
+```
 
 
 ## Model: arcee-ai/coder-large
@@ -2019,16 +2324,36 @@ plt.savefig("max_btag_discriminant.png")
 plt.close(fig)
 ```
 >>end-reply<
+### Running
+
+*Output:*
+```
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 17, in <module>
+    query_base, tag_tool_info = make_a_tool(
+                                ^^^^^^^^^^^
+NameError: name 'make_a_tool' is not defined
+
+```
 ## Summary
-| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) |
-|-------|----------|--------------|------------------|--------------|--------------------|
-| gpt-4.1 | 26.88 | 11677 | 2528 | 14205 | 0.0436 |
-| gpt-5 | 136.87 | 11676 | 6131 | 17807 | 0.0759 |
-| gpt-5-mini | 55.28 | 11676 | 6199 | 17875 | 0.0153 |
-| gpt-5-nano | 68.13 | 11676 | 19404 | 31080 | 0.0083 |
-| gpt-4o | 26.62 | 11677 | 1315 | 12992 | 0.0423 |
-| o4-mini | 40.67 | 11676 | 5480 | 17156 | 0.0370 |
-| openai/gpt-oss-120b | 55.34 | 11741 | 4096 | 15837 | 0.0042 |
-| openai/gpt-oss-20b | 10.65 | 11741 | 2048 | 13789 | 0.0010 |
-| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 36.77 | 11938 | 1839 | 13777 | 0.0276 |
-| arcee-ai/coder-large | 17.57 | 11959 | 1456 | 13415 | 0.0071 |
+
+| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) | Python Run 1 |
+|-------|----------|--------------|------------------|--------------|--------------------|--------------|
+| gpt-4.1 | 26.88 | 11677 | 2528 | 14205 | 0.0436 | Fail |
+| gpt-5 | 136.87 | 11676 | 6131 | 17807 | 0.0759 | Fail |
+| gpt-5-mini | 55.28 | 11676 | 6199 | 17875 | 0.0153 | Fail |
+| gpt-5-nano | 68.13 | 11676 | 19404 | 31080 | 0.0083 | Fail |
+| gpt-4o | 26.62 | 11677 | 1315 | 12992 | 0.0423 | Fail |
+| o4-mini | 40.67 | 11676 | 5480 | 17156 | 0.0370 | Fail |
+| openai/gpt-oss-120b | 55.34 | 11741 | 4096 | 15837 | 0.0042 | Fail |
+| openai/gpt-oss-20b | 10.65 | 11741 | 2048 | 13789 | 0.0010 | Fail |
+| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 36.77 | 11938 | 1839 | 13777 | 0.0276 | Fail |
+| arcee-ai/coder-large | 17.57 | 11959 | 1456 | 13415 | 0.0071 | Fail |

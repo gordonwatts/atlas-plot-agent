@@ -38,6 +38,7 @@ class DockerRunResult:
     stderr: str
     elapsed: float
     png_files: List[Tuple[str, bytes]]
+    exit_code: int
 
 
 def run_python_in_docker(python_code: str) -> DockerRunResult:
@@ -85,6 +86,7 @@ def run_python_in_docker(python_code: str) -> DockerRunResult:
 
     stdout, stderr = proc.communicate()
     elapsed = time.time() - start
+    exit_code = proc.returncode
 
     # Find PNG files in temp_dir and load them into memory
     png_files = []
@@ -96,7 +98,11 @@ def run_python_in_docker(python_code: str) -> DockerRunResult:
     # shutil.rmtree(temp_dir)
 
     return DockerRunResult(
-        stdout=stdout, stderr=stderr, elapsed=elapsed, png_files=png_files
+        stdout=stdout,
+        stderr=stderr,
+        elapsed=elapsed,
+        png_files=png_files,
+        exit_code=exit_code,
     )
 
 
@@ -145,6 +151,7 @@ def check_code_policies(python_code: str) -> bool | DockerRunResult:
             stderr="Policy violation: NFiles=1 not found",
             elapsed=0,
             png_files=[],
+            exit_code=1,
         )
 
     return True
