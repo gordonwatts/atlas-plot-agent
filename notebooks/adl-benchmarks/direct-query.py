@@ -3,7 +3,7 @@ import hashlib
 import logging
 import os
 import sys
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import fsspec
@@ -57,7 +57,7 @@ class ModelInfo(BaseModel):
     endpoint: Optional[str] = None  # e.g., OpenAI API endpoint or local server URL
 
 
-def load_models(models_path: str = "models.yaml") -> dict:
+def load_models(models_path: str = "models.yaml") -> Dict[str, ModelInfo]:
     """
     Load models and their costs from a YAML file, returning a dict of model_name to ModelInfo.
     """
@@ -190,7 +190,7 @@ app = typer.Typer(
 
 
 def run_model(
-    question: str, prompt: str, model_info, ignore_cache=False, n_iter: int = 1
+    prompt: str, model_info, png_prefix: str, ignore_cache=False, n_iter: int = 1
 ) -> Tuple[UsageInfo, List[bool]]:
     """
     Run the model, print heading and result, and return info for the table.
@@ -259,11 +259,10 @@ def run_model(
         run_result = result.exit_code == 0
 
         # Save PNG files locally, prefixed with model name
-        question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
         for f_name, data in result.png_files:
             # Sanitize model_name for filesystem
             safe_model_name = model_info.model_name.replace("/", "_")
-            local_name = f"{question_hash}_{safe_model_name}_{f_name}"
+            local_name = f"{png_prefix}_{safe_model_name}_{f_name}"
             with open(local_name, "wb") as dst:
                 dst.write(data)
             print(f"![{local_name}]({local_name})")  # Markdown image include
@@ -328,10 +327,11 @@ def ask(
 
     print(f"# {question}\n")
     table_rows = []
+    question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
     for model_name in valid_model_names:
         model_info = all_models[model_name]
         row = run_model(
-            question, prompt, model_info, ignore_cache=ignore_cache, n_iter=n_iter
+            prompt, model_info, question_hash, ignore_cache=ignore_cache, n_iter=n_iter
         )
         table_rows.append(row)
 
