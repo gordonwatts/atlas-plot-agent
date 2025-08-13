@@ -8,7 +8,6 @@ from urllib.parse import urlparse
 
 import fsspec
 import openai
-from streamlit.runtime.caching.cache_errors import R
 import typer
 import yaml
 from diskcache import Cache
@@ -343,7 +342,7 @@ def ask(
             prompt = base_prompt.format(
                 question=question,
                 hints="\n".join(hint_contents),
-                errors=errors,
+                error=errors,
                 old_code=code,
             )
             logging.info(f"Built prompt for iteration {iter}: {prompt}")

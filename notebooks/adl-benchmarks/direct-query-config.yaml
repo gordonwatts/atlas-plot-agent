@@ -38,15 +38,21 @@ modify_prompt: |
   - Only use Awkward array for data manipulation from ServiceX.
   - Write the histogram/plots to `png` files.
   - Do not create a pull request in any repo.
+
   ** Hints **
   {hints}
+
   ** Previous Code **
+  ```python
   {old_code}
+  ```
+
   ** Error Message **
+  Ignore errors that are warnings or connected with ioctl.
   {error}
 
   ** Final Instructions **
-  Please reply in the following format:
+  Reply in the following format:
   >>start-reply<<
   <markdown bulleted list explaining the error and your fix>
 
