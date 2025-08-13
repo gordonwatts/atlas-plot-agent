@@ -74,6 +74,7 @@ class DirectQueryConfig(BaseModel):
 
     hint_files: list[str]
     prompt: str
+    modify_prompt: str
     model_name: str = "gpt-4-1106-preview"
 
 

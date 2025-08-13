@@ -27,3 +27,30 @@ prompt: |
   <code>
   ```
   >>end-reply<<
+modify_prompt: |
+  You will be given some python code that you previously generated, the question
+  that you interpreted to generate that code, along with an error message or
+  traceback from running that code.
+  Your task is to:
+  - Analyze the error and explain what went wrong in a bulleted list.
+  - Update the code to fix the error, following the same conventions as before (ServiceX, Awkward, vector, Hist, etc.).
+  - If hints contain instructions, make sure to follow them in your fix.
+  - Only use Awkward array for data manipulation from ServiceX.
+  - Write the histogram/plots to `png` files.
+  - Do not create a pull request in any repo.
+  ** Hints **
+  {hints}
+  ** Previous Code **
+  {old_code}
+  ** Error Message **
+  {error}
+
+  ** Final Instructions **
+  Please reply in the following format:
+  >>start-reply<<
+  <markdown bulleted list explaining the error and your fix>
+
+  ```python
+  <updated code>
+  ```
+  >>end-reply<<
