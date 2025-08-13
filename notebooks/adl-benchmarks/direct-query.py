@@ -3,7 +3,7 @@ import hashlib
 import logging
 import os
 import sys
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 from urllib.parse import urlparse
 
 import fsspec
@@ -190,11 +190,11 @@ app = typer.Typer(
 
 
 def run_model(
-    prompt: str, model_info, png_prefix: str, ignore_cache=False, n_iter: int = 1
-) -> Tuple[UsageInfo, List[bool]]:
+    prompt: str, model_info, png_prefix: str, ignore_cache=False
+) -> Tuple[UsageInfo, bool]:
     """
     Run the model, print heading and result, and return info for the table.
-    Runs the code n_iter times and returns a list of run results.
+    Runs the code once and returns the result.
     """
     # Set API key based on endpoint hostname, using <node-name>_API_KEY
     endpoint_host = None
@@ -270,7 +270,7 @@ def run_model(
     else:
         print("No code found to run.")
 
-    return usage_info, [run_result]
+    return usage_info, run_result
 
 
 @app.command()
@@ -330,21 +330,19 @@ def ask(
     question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
     for model_name in valid_model_names:
         model_info = all_models[model_name]
-        row = run_model(
-            prompt, model_info, question_hash, ignore_cache=ignore_cache, n_iter=n_iter
-        )
+        row = run_model(prompt, model_info, question_hash, ignore_cache=ignore_cache)
         table_rows.append(row)
 
     # Print markdown table
     print("## Summary\n")
     # Determine max number of python run attempts
-    max_attempts = max(len(row[1]) for row in table_rows) if table_rows else 0
+    max_attempts = 1 if table_rows else 0
     # Build header
     base_header = (
         "| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens "
         "| Estimated Cost ($) |"
     )
-    attempt_headers = "".join([f" Python Run {i+1} |" for i in range(max_attempts)])
+    attempt_headers = " Python Run |" if max_attempts else ""
     print(base_header + attempt_headers)
     print(
         "|-------|----------|--------------|------------------|--------------"
@@ -352,7 +350,7 @@ def ask(
         + "".join(["--------------|" for _ in range(max_attempts)])
     )
     for row in table_rows:
-        usage_info, run_results = row
+        usage_info, run_result = row
         model = usage_info.model
         elapsed = f"{usage_info.elapsed:.2f}"
         prompt_tokens = (
@@ -367,16 +365,10 @@ def ask(
             usage_info.total_tokens if usage_info.total_tokens is not None else "-"
         )
         cost = f"{usage_info.cost:.4f}" if usage_info.cost is not None else "-"
-        # Format python run results
-        run_cells = []
-        for i in range(max_attempts):
-            if i < len(run_results):
-                run_cells.append(" Success |" if run_results[i] else " Fail |")
-            else:
-                run_cells.append(" N/A |")
+        run_cell = " Success |" if run_result else " Fail |"
         print(
             f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens} "
-            f"| {cost} |" + "".join(run_cells)
+            f"| {cost} |" + run_cell
         )
 
 
