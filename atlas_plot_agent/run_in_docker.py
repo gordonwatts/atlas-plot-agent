@@ -4,9 +4,61 @@ import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Tuple
-
+from typing import List, Tuple, Any
 import yaml
+from abc import ABC, abstractmethod
+
+
+class Policy(ABC):
+    """
+    Abstract base class for code policies.
+    """
+
+    @abstractmethod
+    def check(self, python_code: str) -> str | None:
+        """
+        Returns a string describing the violation, or None if no violation.
+        """
+        pass
+
+
+class NFilesPolicy(Policy):
+    """
+    Policy that checks for 'NFiles=1' outside of comments and strings.
+    """
+
+    def check(self, python_code: str) -> str | None:
+        import re
+
+        code_lines = []
+        for line in python_code.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("#") or not stripped:
+                continue
+            # Remove trailing inline comments
+            if "#" in line:
+                line = line.split("#", 1)[0]
+            code_lines.append(line)
+        code_no_comments = "\n".join(code_lines)
+
+        def remove_strings(s):
+            s = re.sub(r"'''[\s\S]*?'''", "", s)
+            s = re.sub(r'"""[\s\S]*?"""', "", s)
+            s = re.sub(r"'(?:\\.|[^'])*'", "", s)
+            s = re.sub(r'"(?:\\.|[^"])*"', "", s)
+            return s
+
+        code_no_comments_no_strings = remove_strings(code_no_comments)
+        if "NFiles=1" not in code_no_comments_no_strings:
+            return (
+                "NFiles=1 not found in source code - it must be present in the ServiceX "
+                "`Sample` definition to assure a quick test run."
+            )
+        return None
+
+
+# Global list of policies
+POLICIES: list[Any] = [NFilesPolicy()]
 
 
 def copy_servicex_yaml_if_exists(target_dir: str):
@@ -75,6 +127,7 @@ def run_python_in_docker(python_code: str) -> DockerRunResult:
         "-c",
         f"python {container_dir}/script.py",
     ]
+
     start = time.time()
     proc = subprocess.Popen(
         command,
@@ -107,51 +160,23 @@ def run_python_in_docker(python_code: str) -> DockerRunResult:
 
 
 def check_code_policies(python_code: str) -> bool | DockerRunResult:
-    """Check to make sure the code follows all of our policies
-
-    * Uses `NFiles=1`
-
-    Args:
-        python_code (str): The code to be checked
-
-    Returns:
-        bool | DockerRunResult: True if the code follows all policies, otherwise a DockerRunResult
-                                with details.
     """
-    # Remove all comments: both full-line and trailing inline comments
-    import re
-
-    code_lines = []
-    for line in python_code.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("#") or not stripped:
-            continue
-        # Remove trailing inline comments
-        if "#" in line:
-            line = line.split("#", 1)[0]
-        code_lines.append(line)
-    code_no_comments = "\n".join(code_lines)
-
-    # Remove string literals (single, double, triple quotes)
-    def remove_strings(s):
-        # Remove triple-quoted strings
-        s = re.sub(r"'''[\s\S]*?'''", "", s)
-        s = re.sub(r'"""[\s\S]*?"""', "", s)
-        # Remove single-quoted and double-quoted strings
-        s = re.sub(r"'(?:\\.|[^'])*'", "", s)
-        s = re.sub(r'"(?:\\.|[^"])*"', "", s)
-        return s
-
-    code_no_comments_no_strings = remove_strings(code_no_comments)
-
-    # Make sure the string "NFiles=1" appears in the code (not in comments or strings)
-    if "NFiles=1" not in code_no_comments_no_strings:
+    Check all policies in the global POLICIES list.
+    Returns True if all pass, otherwise returns a DockerRunResult
+    with a markdown list of violations.
+    """
+    violations = []
+    for policy in POLICIES:
+        violation = policy.check(python_code)
+        if violation:
+            violations.append(violation)
+    if violations:
+        markdown = "\n".join([f"- {v}" for v in violations])
         return DockerRunResult(
             stdout="",
-            stderr="Policy violation: NFiles=1 not found",
+            stderr=f"Policy violations found:\n{markdown}",
             elapsed=0,
             png_files=[],
             exit_code=1,
         )
-
     return True
