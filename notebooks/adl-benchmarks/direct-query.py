@@ -175,7 +175,7 @@ def extract_code_from_response(response) -> Optional[str]:
     # Find all Python code blocks
     code_blocks = re.findall(r"```python(.*?)```", message, re.DOTALL | re.IGNORECASE)
     if code_blocks:
-        return code_blocks[0].strip()
+        return code_blocks[-1].strip()
     # Fallback: any code block
     code_blocks = re.findall(r"```(.*?)```", message, re.DOTALL)
     if code_blocks:
