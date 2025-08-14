@@ -402,7 +402,11 @@ def ask(
         "| Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens "
         "| Estimated Cost ($) |"
     )
-    attempt_headers = "".join([" Python Run |"] * max_attempts) if max_attempts else ""
+    attempt_headers = (
+        "".join([f" Python Run {i+1} |" for i in range(max_attempts)])
+        if max_attempts
+        else ""
+    )
     print(base_header + attempt_headers)
     print(
         "|-------|----------|--------------|------------------|--------------"
