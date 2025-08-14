@@ -2,11 +2,12 @@ import os
 import subprocess
 import tempfile
 import time
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Tuple, Any
+from typing import Any, List, Tuple
+
 import yaml
-from abc import ABC, abstractmethod
 
 
 class Policy(ABC):
@@ -20,6 +21,41 @@ class Policy(ABC):
         Returns a string describing the violation, or None if no violation.
         """
         pass
+
+
+class PltSavefigPolicy(Policy):
+    """
+    Policy that checks for a plt.savefig call in the source code.
+    """
+
+    def check(self, python_code: str) -> str | None:
+        import re
+
+        # Remove comments and strings
+        code_lines = []
+        for line in python_code.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("#") or not stripped:
+                continue
+            if "#" in line:
+                line = line.split("#", 1)[0]
+            code_lines.append(line)
+        code_no_comments = "\n".join(code_lines)
+
+        def remove_strings(s):
+            s = re.sub(r"'''[\s\S]*?'''", "", s)
+            s = re.sub(r'"""[\s\S]*?"""', "", s)
+            s = re.sub(r"'(?:\\.|[^'])*'", "", s)
+            s = re.sub(r'"(?:\\.|[^"])*"', "", s)
+            return s
+
+        code_no_comments_no_strings = remove_strings(code_no_comments)
+        if "plt.savefig" not in code_no_comments_no_strings:
+            return (
+                "plt.savefig not found in source code - "
+                "save your plot to a file using plt.savefig()."
+            )
+        return None
 
 
 class NFilesPolicy(Policy):
@@ -58,7 +94,7 @@ class NFilesPolicy(Policy):
 
 
 # Global list of policies
-POLICIES: list[Any] = [NFilesPolicy()]
+POLICIES: list[Any] = [NFilesPolicy(), PltSavefigPolicy()]
 
 
 def copy_servicex_yaml_if_exists(target_dir: str):

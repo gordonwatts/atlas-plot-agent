@@ -1,9 +1,36 @@
-import yaml
 import os
-from atlas_plot_agent.run_in_docker import copy_servicex_yaml_if_exists
-from atlas_plot_agent.run_in_docker import run_python_in_docker, DockerRunResult
 
-from atlas_plot_agent.run_in_docker import check_code_policies
+import yaml
+
+from atlas_plot_agent.run_in_docker import (
+    DockerRunResult,
+    check_code_policies,
+    copy_servicex_yaml_if_exists,
+    run_python_in_docker,
+)
+
+
+def test_check_code_policies_plt_savefig_present():
+    code = """
+import matplotlib.pyplot as plt
+plt.plot([1,2,3],[4,5,6])
+NFiles=1
+plt.savefig('output.png')
+"""
+    result = check_code_policies(code)
+    assert result is True
+
+
+def test_check_code_policies_plt_savefig_missing():
+
+    code = """
+import matplotlib.pyplot as plt
+plt.plot([1,2,3],[4,5,6])
+# plt.savefig('output.png')
+"""
+    result = check_code_policies(code)
+    assert isinstance(result, DockerRunResult)
+    assert "plt.savefig not found" in result.stderr
 
 
 def test_copy_servicex_yaml_adds_cache_path(tmp_path, monkeypatch):
@@ -135,6 +162,7 @@ os.remove('/cache/testfile.txt')
 def test_check_code_policies_pass():
     code = """
 NFiles=1
+plt.savefig('output.png')
 print('ok')
 """
     result = check_code_policies(code)
