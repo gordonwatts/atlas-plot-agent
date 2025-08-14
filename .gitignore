@@ -115,8 +115,10 @@ venv.bak/
 secrets.yaml
 
 # Some temp files
-plot.png
+/*.png
 notebooks/*.png
+/direct-*.md
+/output.md
 
 # Data files
 DAOD_PHYS*
