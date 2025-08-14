@@ -254,7 +254,27 @@ def run_model(
         r = check_code_policies(code)
         if r is True:
             # Run code in Docker and capture output and files, using cache
-            result = cached_run_python_in_docker(code, ignore_cache=ignore_cache)
+            # If we get timeouts, keep trying...
+            # TODO: We should be using a retry library, not this!
+            max_retries = 3
+            attempt = 0
+            result = None
+            while attempt < max_retries:
+                # For first attempt, use original ignore_cache; for retries,
+                # force ignore_cache=True
+                use_ignore_cache = ignore_cache if attempt == 0 else True
+                result = cached_run_python_in_docker(
+                    code, ignore_cache=use_ignore_cache
+                )
+                # If no ConnectTimeout, break
+                has_timeout = "httpcore.ConnectTimeout" in str(result.stderr)
+                if not has_timeout:
+                    break
+                attempt += 1
+                logging.warning(
+                    "Retrying cached_run_python_in_docker due to httpcore.ConnectTimeout "
+                    f"(attempt {attempt+1}/{max_retries})"
+                )
         else:
             assert isinstance(r, DockerRunResult)
             result = r
