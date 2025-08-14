@@ -232,7 +232,6 @@ def run_model(
         message = response.choices[0].message.content
 
     print("\n")
-    print(f"## Model: {model_info.model_name}\n")
     if message:
         cleaned_message = (
             message.replace(">>start-reply<<", "").replace(">>end-reply<<", "").strip()
@@ -246,7 +245,7 @@ def run_model(
     usage_info = get_usage_info(response, model_info, elapsed)
 
     # Run the code.
-    print("### Running\n")
+    print("#### Code Execution\n")
     code = extract_code_from_response(response)
     run_result = False
     result: Optional[DockerRunResult] = None
@@ -287,6 +286,8 @@ def run_model(
         run_result = result.exit_code == 0
 
         # Save PNG files locally, prefixed with model name
+        if run_result:
+            print("</details>\n")
         for f_name, data in result.png_files:
             # Sanitize model_name for filesystem
             safe_model_name = model_info.model_name.replace("/", "_")
@@ -355,8 +356,12 @@ def ask(
     code = None
     errors = None
     for model_name in valid_model_names:
+        print(f"## Model {all_models[model_name].model_name}")
         run_info = []
         for iter in range(n_iter):
+            print(
+                f"<details><summary>Run {iter+1} Details</summary>\n\n### Run {iter+1}"
+            )
             # Build the prompt
             base_prompt = config.prompt if iter == 0 else config.modify_prompt
             prompt = base_prompt.format(
@@ -376,6 +381,7 @@ def ask(
             # If things worked, then we don't need to go again!
             if row[1]:
                 break
+            print("</details>")
 
             # Build up prompt info for next time.
             if row[2] is None or row[3] is None:
@@ -388,7 +394,7 @@ def ask(
         table_rows.append([total_usage, attempt_results])
 
     # Print markdown table
-    print("## Summary\n")
+    print("\n## Summary\n")
     # Determine max number of python run attempts
     max_attempts = max(len(attempts) for _, attempts in table_rows) if table_rows else 0
     # Build header
