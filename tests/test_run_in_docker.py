@@ -117,8 +117,8 @@ plt.savefig('output.png')
 """
     result = run_python_in_docker(code)
     assert isinstance(result, DockerRunResult)
-    pngs = [f for f, data in result.png_files if f == "output.png"]
-    assert len(pngs) == 1
+    png = [f for f, data in result.png_files if f == "output.png"]
+    assert len(png) == 1
     # Check that the file bytes start with PNG header
     png_bytes = [data for fname, data in result.png_files if fname == "output.png"][0]
     assert png_bytes[:8] == b"\x89PNG\r\n\x1a\n"

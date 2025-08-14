@@ -29,27 +29,7 @@ class PltSavefigPolicy(Policy):
     """
 
     def check(self, python_code: str) -> str | None:
-        import re
-
-        # Remove comments and strings
-        code_lines = []
-        for line in python_code.splitlines():
-            stripped = line.strip()
-            if stripped.startswith("#") or not stripped:
-                continue
-            if "#" in line:
-                line = line.split("#", 1)[0]
-            code_lines.append(line)
-        code_no_comments = "\n".join(code_lines)
-
-        def remove_strings(s):
-            s = re.sub(r"'''[\s\S]*?'''", "", s)
-            s = re.sub(r'"""[\s\S]*?"""', "", s)
-            s = re.sub(r"'(?:\\.|[^'])*'", "", s)
-            s = re.sub(r'"(?:\\.|[^"])*"', "", s)
-            return s
-
-        code_no_comments_no_strings = remove_strings(code_no_comments)
+        code_no_comments_no_strings = remove_comments_and_strings(python_code)
         if "plt.savefig" not in code_no_comments_no_strings:
             return (
                 "plt.savefig not found in source code - "
@@ -64,27 +44,7 @@ class NFilesPolicy(Policy):
     """
 
     def check(self, python_code: str) -> str | None:
-        import re
-
-        code_lines = []
-        for line in python_code.splitlines():
-            stripped = line.strip()
-            if stripped.startswith("#") or not stripped:
-                continue
-            # Remove trailing inline comments
-            if "#" in line:
-                line = line.split("#", 1)[0]
-            code_lines.append(line)
-        code_no_comments = "\n".join(code_lines)
-
-        def remove_strings(s):
-            s = re.sub(r"'''[\s\S]*?'''", "", s)
-            s = re.sub(r'"""[\s\S]*?"""', "", s)
-            s = re.sub(r"'(?:\\.|[^'])*'", "", s)
-            s = re.sub(r'"(?:\\.|[^"])*"', "", s)
-            return s
-
-        code_no_comments_no_strings = remove_strings(code_no_comments)
+        code_no_comments_no_strings = remove_comments_and_strings(python_code)
         if "NFiles=1" not in code_no_comments_no_strings:
             return (
                 "NFiles=1 not found in source code - it must be present in the ServiceX "
@@ -193,6 +153,41 @@ def run_python_in_docker(python_code: str) -> DockerRunResult:
         png_files=png_files,
         exit_code=exit_code,
     )
+
+
+def remove_comments_and_strings(python_code: str) -> str:
+    """
+    Utility function to remove comments and strings from Python code.
+
+    Args:
+        python_code: The Python source code as a string
+
+    Returns:
+        The code with comments and strings removed
+    """
+    import re
+
+    # Remove comments and empty lines
+    code_lines = []
+    for line in python_code.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#") or not stripped:
+            continue
+        # Remove trailing inline comments
+        if "#" in line:
+            line = line.split("#", 1)[0]
+        code_lines.append(line)
+    code_no_comments = "\n".join(code_lines)
+
+    # Remove strings
+    def remove_strings(s):
+        s = re.sub(r"'''[\s\S]*?'''", "", s)
+        s = re.sub(r'"""[\s\S]*?"""', "", s)
+        s = re.sub(r"'(?:\\.|[^'])*'", "", s)
+        s = re.sub(r'"(?:\\.|[^"])*"', "", s)
+        return s
+
+    return remove_strings(code_no_comments)
 
 
 def check_code_policies(python_code: str) -> bool | DockerRunResult:
