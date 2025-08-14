@@ -236,6 +236,11 @@ def run_model(
         cleaned_message = (
             message.replace(">>start-reply<<", "").replace(">>end-reply<<", "").strip()
         )
+        # Ensure closing triple backtick if opening exists but not closed
+        if "```" in cleaned_message:
+            backtick_count = cleaned_message.count("```")
+            if backtick_count % 2 != 0:
+                cleaned_message = cleaned_message + "\n```"
         sys.stdout.flush()
         sys.stdout.buffer.write((cleaned_message + "\n").encode("utf-8"))
         sys.stdout.flush()
@@ -356,7 +361,7 @@ def ask(
     code = None
     errors = None
     for model_name in valid_model_names:
-        print(f"## Model {all_models[model_name].model_name}")
+        print(f"\n## Model {all_models[model_name].model_name}")
         run_info = []
         for iter in range(n_iter):
             print(
