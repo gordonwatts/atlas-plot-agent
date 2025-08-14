@@ -166,6 +166,8 @@ def extract_code_from_response(response) -> Optional[str]:
     if not response or not hasattr(response, "choices") or not response.choices:
         return None
     message = response.choices[0].message.content if response.choices[0].message else ""
+    message = ensure_closing_triple_backtick(message)
+
     if not message:
         return None
     import re
@@ -230,17 +232,14 @@ def run_model(
     message = None
     if response and response.choices and response.choices[0].message:
         message = response.choices[0].message.content
+        # Ensure closing triple backtick if opening exists but not closed
+        message = ensure_closing_triple_backtick(message)
 
     print("\n")
     if message:
         cleaned_message = (
             message.replace(">>start-reply<<", "").replace(">>end-reply<<", "").strip()
         )
-        # Ensure closing triple backtick if opening exists but not closed
-        if "```" in cleaned_message:
-            backtick_count = cleaned_message.count("```")
-            if backtick_count % 2 != 0:
-                cleaned_message = cleaned_message + "\n```"
         sys.stdout.flush()
         sys.stdout.buffer.write((cleaned_message + "\n").encode("utf-8"))
         sys.stdout.flush()
@@ -439,6 +438,18 @@ def ask(
             f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens} "
             f"| {cost} |" + run_cell
         )
+
+
+def ensure_closing_triple_backtick(message: str) -> str:
+    """
+    Ensure that if a message contains an opening triple backtick, it also has a closing one.
+    If the number of triple backticks is odd, append a closing triple backtick.
+    """
+    if "```" in message:
+        backtick_count = message.count("```")
+        if backtick_count % 2 != 0:
+            message = message + "\n```"
+    return message
 
 
 if __name__ == "__main__":
