@@ -393,10 +393,10 @@ def ask(
     max_attempts = max(len(attempts) for _, attempts in table_rows) if table_rows else 0
     # Build header
     base_header = (
-        "| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens "
+        "| Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens "
         "| Estimated Cost ($) |"
     )
-    attempt_headers = " Python Run |" if max_attempts else ""
+    attempt_headers = "".join([" Python Run |"] * max_attempts) if max_attempts else ""
     print(base_header + attempt_headers)
     print(
         "|-------|----------|--------------|------------------|--------------"
@@ -418,7 +418,7 @@ def ask(
         total_tokens = (
             usage_info.total_tokens if usage_info.total_tokens is not None else "-"
         )
-        cost = f"{usage_info.cost:.4f}" if usage_info.cost is not None else "-"
+        cost = f"${usage_info.cost:.3f}" if usage_info.cost is not None else "-"
         run_cell = "".join(" Success |" if r else " Fail |" for r in run_result)
         print(
             f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens} "
