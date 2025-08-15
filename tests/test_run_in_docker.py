@@ -205,3 +205,23 @@ print('no NFiles=1 in code')
     result = check_code_policies(code)
     assert isinstance(result, DockerRunResult)
     assert "Policy violation" in result.stderr
+
+
+def test_check_code_policies_odd_savefig():
+    code = """
+    h.plot(ax=ax, histtype="fill", linewidth=1.0, edgecolor="black", color="#1f77b4", alpha=0.7)
+    ax.legend()
+    ax.set_xlabel("mT(l, MET) [GeV]")
+    ax.set_ylabel("Events")
+    ax.set_title("Transverse mass of highest-pT lepton outside Z-candidate and MET")
+    fig.tight_layout()
+
+    # Explicitly save the plot to a PNG file (both fig.savefig and plt.savefig to satisfy
+    # static checks)
+    fig.savefig("mt_lep_met.png", dpi=150)
+    plt.savefig("mt_lep_met.png", dpi=150)
+    plt.close(fig)
+"""
+    result = check_code_policies(code)
+    assert isinstance(result, DockerRunResult)
+    assert "savefig" not in result.stderr

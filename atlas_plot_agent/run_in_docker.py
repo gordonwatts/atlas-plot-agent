@@ -167,19 +167,7 @@ def remove_comments_and_strings(python_code: str) -> str:
     """
     import re
 
-    # Remove comments and empty lines
-    code_lines = []
-    for line in python_code.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("#") or not stripped:
-            continue
-        # Remove trailing inline comments
-        if "#" in line:
-            line = line.split("#", 1)[0]
-        code_lines.append(line)
-    code_no_comments = "\n".join(code_lines)
-
-    # Remove strings
+    # First, remove strings to avoid confusion with # characters inside strings
     def remove_strings(s):
         s = re.sub(r"'''[\s\S]*?'''", "", s)
         s = re.sub(r'"""[\s\S]*?"""', "", s)
@@ -187,7 +175,20 @@ def remove_comments_and_strings(python_code: str) -> str:
         s = re.sub(r'"(?:\\.|[^"])*"', "", s)
         return s
 
-    return remove_strings(code_no_comments)
+    code_no_strings = remove_strings(python_code)
+
+    # Now remove comments and empty lines
+    code_lines = []
+    for line in code_no_strings.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#") or not stripped:
+            continue
+        # Remove trailing inline comments (now safe since strings are already removed)
+        if "#" in line:
+            line = line.split("#", 1)[0]
+        code_lines.append(line)
+
+    return "\n".join(code_lines)
 
 
 def check_code_policies(python_code: str) -> bool | DockerRunResult:
