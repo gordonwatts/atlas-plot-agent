@@ -35,7 +35,7 @@ def main():
 
         # Run direct-query.py with the question and --models all
         result = subprocess.run(
-            [sys.executable, str(script_path), q, "--models", "all"],
+            [sys.executable, str(script_path), q, "--models", "all", "-n", "3"],
             capture_output=True,
             text=True,
             encoding="utf-8",

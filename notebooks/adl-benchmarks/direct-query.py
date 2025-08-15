@@ -3,7 +3,7 @@ import hashlib
 import logging
 import os
 import sys
-from typing import List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 from urllib.parse import urlparse
 
 import fsspec
@@ -14,12 +14,12 @@ from diskcache import Cache
 from dotenv import dotenv_values, find_dotenv
 from pydantic import BaseModel
 
-from atlas_plot_agent.usage_info import get_usage_info, UsageInfo
 from atlas_plot_agent.run_in_docker import (
     DockerRunResult,
-    run_python_in_docker,
     check_code_policies,
+    run_python_in_docker,
 )
+from atlas_plot_agent.usage_info import UsageInfo, get_usage_info, sum_usage_infos
 
 if hasattr(sys.stdin, "reconfigure"):
     sys.stdin.reconfigure(encoding="utf-8")  # type: ignore
@@ -57,7 +57,7 @@ class ModelInfo(BaseModel):
     endpoint: Optional[str] = None  # e.g., OpenAI API endpoint or local server URL
 
 
-def load_models(models_path: str = "models.yaml") -> dict:
+def load_models(models_path: str = "models.yaml") -> Dict[str, ModelInfo]:
     """
     Load models and their costs from a YAML file, returning a dict of model_name to ModelInfo.
     """
@@ -74,6 +74,7 @@ class DirectQueryConfig(BaseModel):
 
     hint_files: list[str]
     prompt: str
+    modify_prompt: str
     model_name: str = "gpt-4-1106-preview"
 
 
@@ -165,6 +166,8 @@ def extract_code_from_response(response) -> Optional[str]:
     if not response or not hasattr(response, "choices") or not response.choices:
         return None
     message = response.choices[0].message.content if response.choices[0].message else ""
+    message = ensure_closing_triple_backtick(message)
+
     if not message:
         return None
     import re
@@ -172,7 +175,7 @@ def extract_code_from_response(response) -> Optional[str]:
     # Find all Python code blocks
     code_blocks = re.findall(r"```python(.*?)```", message, re.DOTALL | re.IGNORECASE)
     if code_blocks:
-        return code_blocks[0].strip()
+        return code_blocks[-1].strip()
     # Fallback: any code block
     code_blocks = re.findall(r"```(.*?)```", message, re.DOTALL)
     if code_blocks:
@@ -189,10 +192,15 @@ app = typer.Typer(
 
 
 def run_model(
-    question: str, prompt: str, model_info, ignore_cache=False
-) -> Tuple[UsageInfo, List[bool]]:
+    prompt: str, model_info, png_prefix: str, ignore_cache=False
+) -> Tuple[UsageInfo, bool, Optional[DockerRunResult], Optional[str]]:
     """
     Run the model, print heading and result, and return info for the table.
+    Runs the code once and returns:
+        - UsageInfo for the run
+        - True/False if the run succeeded
+        - DockerRunResult
+        - The code
     """
     # Set API key based on endpoint hostname, using <node-name>_API_KEY
     endpoint_host = None
@@ -213,20 +221,21 @@ def run_model(
             del os.environ["OPENAI_API_KEY"]
 
     # Do the query
-    result = get_openai_response(
+    llm_result = get_openai_response(
         prompt,
         model_info.model_name,
         model_info.endpoint,
         ignore_cache=ignore_cache,  # type: ignore
     )
-    response = result["response"]
-    elapsed = result["elapsed"]
+    response = llm_result["response"]
+    elapsed = llm_result["elapsed"]
     message = None
     if response and response.choices and response.choices[0].message:
         message = response.choices[0].message.content
+        # Ensure closing triple backtick if opening exists but not closed
+        message = ensure_closing_triple_backtick(message)
 
     print("\n")
-    print(f"## Model: {model_info.model_name}\n")
     if message:
         cleaned_message = (
             message.replace(">>start-reply<<", "").replace(">>end-reply<<", "").strip()
@@ -240,14 +249,38 @@ def run_model(
     usage_info = get_usage_info(response, model_info, elapsed)
 
     # Run the code.
-    print("### Running\n")
+    print("#### Code Execution\n")
     code = extract_code_from_response(response)
     run_result = False
+    result: Optional[DockerRunResult] = None
     if code is not None:
-        result = check_code_policies(code)
-        if result is True:
+        r = check_code_policies(code)
+        if r is True:
             # Run code in Docker and capture output and files, using cache
-            result = cached_run_python_in_docker(code, ignore_cache=ignore_cache)
+            # If we get timeouts, keep trying...
+            # TODO: We should be using a retry library, not this!
+            max_retries = 3
+            attempt = 0
+            result = None
+            while attempt < max_retries:
+                # For first attempt, use original ignore_cache; for retries,
+                # force ignore_cache=True
+                use_ignore_cache = ignore_cache if attempt == 0 else True
+                result = cached_run_python_in_docker(
+                    code, ignore_cache=use_ignore_cache
+                )
+                # If no ConnectTimeout, break
+                has_timeout = "httpcore.ConnectTimeout" in str(result.stderr)
+                if not has_timeout:
+                    break
+                attempt += 1
+                logging.warning(
+                    "Retrying cached_run_python_in_docker due to httpcore.ConnectTimeout "
+                    f"(attempt {attempt+1}/{max_retries})"
+                )
+        else:
+            assert isinstance(r, DockerRunResult)
+            result = r
 
         assert isinstance(result, DockerRunResult)
         print(f"*Output:*\n```\n{result.stdout}\n```")
@@ -257,11 +290,12 @@ def run_model(
         run_result = result.exit_code == 0
 
         # Save PNG files locally, prefixed with model name
-        question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
+        if run_result:
+            print("</details>\n")
         for f_name, data in result.png_files:
             # Sanitize model_name for filesystem
             safe_model_name = model_info.model_name.replace("/", "_")
-            local_name = f"{question_hash}_{safe_model_name}_{f_name}"
+            local_name = f"{png_prefix}_{safe_model_name}_{f_name}"
             with open(local_name, "wb") as dst:
                 dst.write(data)
             print(f"![{local_name}]({local_name})")  # Markdown image include
@@ -269,7 +303,7 @@ def run_model(
     else:
         print("No code found to run.")
 
-    return usage_info, [run_result]
+    return usage_info, run_result, result, code
 
 
 @app.command()
@@ -282,6 +316,9 @@ def ask(
     ),
     ignore_cache: bool = typer.Option(
         False, "--ignore-cache", help="Ignore disk cache for model queries."
+    ),
+    n_iter: int = typer.Option(
+        1, "--n-iter", "-n", min=1, help="Number of iterations to run (must be >= 1)."
     ),
 ):
     """
@@ -311,27 +348,69 @@ def ask(
         )
         return
 
-    # Build the prompt
-    prompt = config.prompt.format(question=question, hints="\n".join(hint_contents))
-    logging.info(f"Built prompt: {prompt}")
+    if n_iter < 1:
+        logging.error(
+            f"Error: command line option `n_iter` must be >= 1 (got {n_iter})"
+        )
+        return
 
     print(f"# {question}\n")
     table_rows = []
+    question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
+    code = None
+    errors = None
     for model_name in valid_model_names:
-        model_info = all_models[model_name]
-        row = run_model(question, prompt, model_info, ignore_cache=ignore_cache)
-        table_rows.append(row)
+        print(f"\n## Model {all_models[model_name].model_name}")
+        run_info = []
+        for iter in range(n_iter):
+            print(
+                f"<details><summary>Run {iter+1} Details</summary>\n\n### Run {iter+1}"
+            )
+            # Build the prompt
+            base_prompt = config.prompt if iter == 0 else config.modify_prompt
+            prompt = base_prompt.format(
+                question=question,
+                hints="\n".join(hint_contents),
+                error=errors,
+                old_code=code,
+            )
+            logging.info(f"Built prompt for iteration {iter}: {prompt}")
+
+            model_info = all_models[model_name]
+            row = run_model(
+                prompt, model_info, question_hash, ignore_cache=ignore_cache
+            )
+            run_info.append(row[0:2])
+
+            # If things worked, then we don't need to go again!
+            if row[1]:
+                break
+            print("</details>")
+
+            # Build up prompt info for next time.
+            if row[2] is None or row[3] is None:
+                break
+            code = row[3]
+            errors = "\n".join([row[2].stdout, row[2].stderr])
+
+        total_usage = sum_usage_infos([u for u, _ in run_info])
+        attempt_results = [r for _, r in run_info]
+        table_rows.append([total_usage, attempt_results])
 
     # Print markdown table
-    print("## Summary\n")
+    print("\n## Summary\n")
     # Determine max number of python run attempts
-    max_attempts = max(len(row[1]) for row in table_rows) if table_rows else 0
+    max_attempts = max(len(attempts) for _, attempts in table_rows) if table_rows else 0
     # Build header
     base_header = (
-        "| Model | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens "
+        "| Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens "
         "| Estimated Cost ($) |"
     )
-    attempt_headers = "".join([f" Python Run {i+1} |" for i in range(max_attempts)])
+    attempt_headers = (
+        "".join([f" Python Run {i+1} |" for i in range(max_attempts)])
+        if max_attempts
+        else ""
+    )
     print(base_header + attempt_headers)
     print(
         "|-------|----------|--------------|------------------|--------------"
@@ -339,7 +418,7 @@ def ask(
         + "".join(["--------------|" for _ in range(max_attempts)])
     )
     for row in table_rows:
-        usage_info, run_results = row
+        usage_info, run_result = row
         model = usage_info.model
         elapsed = f"{usage_info.elapsed:.2f}"
         prompt_tokens = (
@@ -353,18 +432,24 @@ def ask(
         total_tokens = (
             usage_info.total_tokens if usage_info.total_tokens is not None else "-"
         )
-        cost = f"{usage_info.cost:.4f}" if usage_info.cost is not None else "-"
-        # Format python run results
-        run_cells = []
-        for i in range(max_attempts):
-            if i < len(run_results):
-                run_cells.append(" Success |" if run_results[i] else " Fail |")
-            else:
-                run_cells.append(" N/A |")
+        cost = f"${usage_info.cost:.3f}" if usage_info.cost is not None else "-"
+        run_cell = "".join(" Success |" if r else " Fail |" for r in run_result)
         print(
             f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens} "
-            f"| {cost} |" + "".join(run_cells)
+            f"| {cost} |" + run_cell
         )
+
+
+def ensure_closing_triple_backtick(message: str) -> str:
+    """
+    Ensure that if a message contains an opening triple backtick, it also has a closing one.
+    If the number of triple backticks is odd, append a closing triple backtick.
+    """
+    if "```" in message:
+        backtick_count = message.count("```")
+        if backtick_count % 2 != 0:
+            message = message + "\n```"
+    return message
 
 
 if __name__ == "__main__":
