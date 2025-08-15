@@ -1,6 +1,6 @@
 import os
-
 import yaml
+import pytest
 
 from atlas_plot_agent.run_in_docker import (
     DockerRunResult,
@@ -212,6 +212,15 @@ print('no NFiles')
     result = check_code_policies(code)
     assert isinstance(result, DockerRunResult)
     assert "Policy violation" in result.stderr
+
+
+def test_policy_nfiles_spaces():
+    code = """
+NFiles = 1 in comment
+"""
+    result = check_code_policies(code)
+    assert isinstance(result, DockerRunResult)
+    assert "NFiles" not in result.stderr
 
 
 def test_check_code_policies_comment_trailing():
@@ -502,3 +511,19 @@ plt.close()
 """
     new_code = remove_comments_and_strings(code)
     assert "NFiles=1" in new_code
+
+
+test_cases = [
+    "NFiles=1",  # no spaces (original)
+    "NFiles = 1",  # spaces around equals
+    "NFiles= 1",  # space after equals
+    "NFiles =1",  # space before equals
+    "NFiles  =  1",  # multiple spaces
+]
+
+
+@pytest.mark.parametrize("test_code", test_cases)
+def test_spacing_in_nfiles(test_code):
+    full_code = f'{test_code}\nplt.savefig("test.png")'
+    result = check_code_policies(full_code)
+    assert result is True

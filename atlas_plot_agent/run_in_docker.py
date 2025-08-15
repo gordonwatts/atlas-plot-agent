@@ -47,8 +47,11 @@ class NFilesPolicy(Policy):
     """
 
     def check(self, python_code: str) -> str | None:
+        import re
+
         code_no_comments_no_strings = remove_comments_and_strings(python_code)
-        if "NFiles=1" not in code_no_comments_no_strings:
+        # Match NFiles followed by optional spaces, =, optional spaces, and 1
+        if not re.search(r"NFiles\s*=\s*1", code_no_comments_no_strings):
             return (
                 "NFiles=1 not found in source code - it must be present in the ServiceX "
                 "`Sample` definition to assure a quick test run."
