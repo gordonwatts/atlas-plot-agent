@@ -7,6 +7,7 @@ from atlas_plot_agent.run_in_docker import (
     check_code_policies,
     copy_servicex_yaml_if_exists,
     run_python_in_docker,
+    remove_comments_and_strings,
 )
 
 
@@ -250,3 +251,254 @@ def test_check_code_policies_odd_savefig():
     result = check_code_policies(code)
     assert isinstance(result, DockerRunResult)
     assert "savefig" not in result.stderr
+
+
+def test_strip_code_single_quote():
+    code = """
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+
+import awkward as ak
+import numpy as np
+import vector
+import matplotlib.pyplot as plt
+import mplhep as hep
+from hist import Hist
+
+# Register vector behaviors for Awkward
+vector.register_awkward()
+
+# Prepare ServiceX query: for each event, get all jets' pt/eta/phi/m and the b-tagging discriminant
+base_query = FuncADLQueryPHYSLITE()
+
+# Copy in xAOD Tool code for b-tagging discriminant retrieval
+from dataclasses import dataclass
+from typing import Callable, Iterable, List, Optional, Tuple, TypeVar
+from func_adl import ObjectStream
+from func_adl import func_adl_callable
+import ast
+
+T = TypeVar("T")
+
+@dataclass
+class ToolInfo:
+    name: str
+
+def make_a_tool(
+    query: ObjectStream[T],
+    tool_name: str,
+    tool_type: str,
+    include_files: Optional[List[str]],
+    init_lines: List[str] = [],
+) -> Tuple[ObjectStream[T], ToolInfo]:
+    query_base = query.MetaData(
+        {
+            "metadata_type": "inject_code",
+            "name": tool_name,
+            "header_includes": include_files,
+            "private_members": [f"{tool_type} *{tool_name};"],
+            "instance_initialization": [
+                f'{tool_name}(new {tool_type} ("{tool_name}"))'
+            ],
+            "initialize_lines": [l.format(tool_name=tool_name) for l in init_lines],
+            "link_libraries": ["xAODBTaggingEfficiencyLib"],
+        }
+    )
+    return query_base, ToolInfo(name=tool_name)
+
+def make_tool_accessor(
+    t_info: ToolInfo,
+    function_name: str,
+    source_code: List[str],
+    arguments: Iterable[Tuple[str, type]],
+    return_type_cpp: str,
+    return_type_python: str
+):
+    def tool_callback(
+        s: ObjectStream[T], a: ast.Call
+    ) -> Tuple[ObjectStream[T], ast.Call]:
+        new_s = s.MetaData(
+            {
+                "metadata_type": "add_cpp_function",
+                "name": function_name,
+                "code": [
+                    "double result;",
+                    *[l.format(tool_name=t_info.name) for l in source_code],
+                ],
+                "result": "result",
+                "include_files": [],
+                "arguments": [a[0] for a in arguments],
+                "return_type": return_type_cpp,
+            }
+        )
+        return new_s, a
+
+    def tool_call(**arg_dict):
+        ...
+    tool_call.__name__ = function_name
+    tool_call.__annotations__['return'] = eval(return_type_python)
+    return func_adl_callable(tool_callback)(tool_call)
+
+from func_adl_servicex_xaodr25.xAOD.jet_v1 import Jet_v1
+
+# Define the btagging tool for discriminant (weight), using FTAG recommended 'FixedCutBEff_77' WP
+query_btag, tag_tool_info = make_a_tool(
+    base_query,
+    "btag_discriminator",
+    "BTaggingSelectionTool",
+    include_files=["xAODBTaggingEfficiency/BTaggingSelectionTool.h"],
+    init_lines=[
+        'ANA_CHECK(asg::setProperty({tool_name}, "OperatingPoint", "FixedCutBEff_77"));',
+        "ANA_CHECK({tool_name}->initialize());",
+    ],
+)
+
+tag_weight = make_tool_accessor(
+    tag_tool_info,
+    function_name="tag_weight",
+    source_code=["ANA_CHECK({tool_name}->getTaggerWeight(*jet, result, false));"],
+    arguments=[("jet", Jet_v1)],
+    return_type_cpp="double",
+    return_type_python="float",
+)
+
+# Query: per event, for all jets get [pt, eta, phi, m, b-tag weight]
+jets_query = (
+    query_btag
+    .Select(lambda e: e.Jets())
+    .Select(lambda jets: {
+        "pt": jets.Select(lambda j: j.pt()/1000.0),        # GeV
+        "eta": jets.Select(lambda j: j.eta()),
+        "phi": jets.Select(lambda j: j.phi()),
+        "mass": jets.Select(lambda j: j.m()/1000.0),       # GeV
+        "btag": jets.Select(lambda j: tag_weight(j)),      # Discriminant
+    })
+)
+
+# Dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.601237.PhPy8EG_A14_ttbar_hdamp258p75_allhad."
+"deriv.DAOD_PHYSLITE.e8514_s4369_r16083_p6697")
+
+# Fetch only 1 file at first for demonstration/testing to comply with policy
+all_jets = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="trijet_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,  # Policy: always use NFiles=1 for test/example
+                    Query=jets_query,
+                )
+            ]
+        )
+    )
+)
+
+a = all_jets["trijet_fetch"]
+jet_pt = a["pt"]
+jet_eta = a["eta"]
+jet_phi = a["phi"]
+jet_mass = a["mass"]
+jet_btag = a["btag"]
+
+# Filter for events with at least 3 jets
+jet_counts = ak.num(jet_pt, axis=1)
+mask_3j = jet_counts >= 3
+
+pt_3j   = jet_pt[mask_3j]
+eta_3j  = jet_eta[mask_3j]
+phi_3j  = jet_phi[mask_3j]
+mass_3j = jet_mass[mask_3j]
+btag_3j = jet_btag[mask_3j]
+
+# For each event: make all trijet (3-jet) unique combinations
+from itertools import combinations
+
+# Use ak.combinations, axis=1 to get all trijet indices per event
+n_events = len(pt_3j)
+trijet_combos = ak.combinations(pt_3j, 3, fields=["j1", "j2", "j3"], axis=1)
+# Each of "j1", "j2", "j3" are 1st, 2nd, 3rd jet in each trijet
+
+# Compose the trijet four-vectors (sum three jets for each trijet)
+# Get the 3-jet vector components per trijet per event
+vec_j1 = ak.zip({
+    "pt": trijet_combos.j1,
+    "eta": trijet_combos.j1,
+    "phi": trijet_combos.j1,
+    "mass": trijet_combos.j1
+}, with_name="Momentum4D")
+vec_j2 = ak.zip({
+    "pt": trijet_combos.j2,
+    "eta": trijet_combos.j2,
+    "phi": trijet_combos.j2,
+    "mass": trijet_combos.j2
+}, with_name="Momentum4D")
+vec_j3 = ak.zip({
+    "pt": trijet_combos.j3,
+    "eta": trijet_combos.j3,
+    "phi": trijet_combos.j3,
+    "mass": trijet_combos.j3
+}, with_name="Momentum4D")
+
+trijet_vector = vec_j1 + vec_j2 + vec_j3
+# trijet_vector has structure [events][trijets] as Momentum4D
+
+# Invariant mass and pT of each trijet
+trijet_mass = trijet_vector.mass
+trijet_pt = trijet_vector.pt
+
+# For b-tag: similarly, for each event, for each trijet, get the btag values of 3 jets
+def trijet_btag_combos(btag_array):
+    return ak.combinations(btag_array, 3, fields=["j1", "j2", "j3"], axis=1)
+
+btag_trijet = trijet_btag_combos(btag_3j)
+# Per trijet: max of 3 btag values
+trijet_btag_max = ak.max(
+    ak.stack([btag_trijet.j1, btag_trijet.j2, btag_trijet.j3], axis=-1),
+    axis=-1
+)
+
+# For each event, select the trijet whose mass is closest to 172.5 GeV
+TARGET_MASS = 172.5
+
+# For each event, calculate abs(mass - 172.5) for each trijet, take argmin to pick "best" trijet
+mass_diff = abs(trijet_mass - TARGET_MASS)
+best_trijet_idx = ak.argmin(mass_diff, axis=1, keepdims=True)
+
+# Now, select the trijet pt and trijet-btag-max for each event's "best" trijet
+best_trijet_pt = ak.flatten(trijet_pt[best_trijet_idx])
+best_trijet_btag = ak.flatten(trijet_btag_max[best_trijet_idx])
+
+# Now plot these
+plt.style.use(hep.style.ATLAS)
+
+# Plot trijet pT
+hist_pt = (
+    Hist.new.Reg(50, 0, 600, name="pt", label="Trijet $p_T$ [GeV]")
+    .Double()
+)
+hist_pt.fill(pt=best_trijet_pt)
+hist_pt.plot(histtype="step", color="blue", linewidth=1.5)
+plt.xlabel("Trijet $p_T$ [GeV]")
+plt.ylabel("Events")
+plt.title("Trijet $p_T$ (mass closest to 172.5 GeV)")
+plt.savefig("trijet_pt.png")
+plt.close()
+
+# Plot trijet max b-tag weight
+hist_btag = (
+    Hist.new.Reg(50, -10, 15, name="btag", label="Max b-tag discriminant")
+    .Double()
+)
+hist_btag.fill(btag=best_trijet_btag)
+hist_btag.plot(histtype="step", color="red", linewidth=1.5)
+plt.xlabel("Max b-tag discriminant (in selected trijet)")
+plt.ylabel("Events")
+plt.title("Maximum b-tag discriminant in selected trijet")
+plt.savefig("trijet_max_btag.png")
+plt.close()
+"""
+    new_code = remove_comments_and_strings(code)
+    assert "NFiles=1" in new_code
