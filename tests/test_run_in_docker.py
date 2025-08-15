@@ -21,6 +21,31 @@ plt.savefig('output.png')
     assert result is True
 
 
+def test_check_code_policies_fig_savefig_present():
+    code = """
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+ax.plot([1,2,3],[4,5,6])
+NFiles=1
+fig.savefig('output.png')
+"""
+    result = check_code_policies(code)
+    assert result is True
+
+
+def test_check_code_policies_both_savefig_present():
+    code = """
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+ax.plot([1,2,3],[4,5,6])
+NFiles=1
+fig.savefig('output.png')
+plt.savefig('output2.png')
+"""
+    result = check_code_policies(code)
+    assert result is True
+
+
 def test_check_code_policies_plt_savefig_missing():
 
     code = """
@@ -30,7 +55,7 @@ plt.plot([1,2,3],[4,5,6])
 """
     result = check_code_policies(code)
     assert isinstance(result, DockerRunResult)
-    assert "plt.savefig not found" in result.stderr
+    assert "No savefig call found" in result.stderr
 
 
 def test_copy_servicex_yaml_adds_cache_path(tmp_path, monkeypatch):

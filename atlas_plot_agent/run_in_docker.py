@@ -30,10 +30,13 @@ class PltSavefigPolicy(Policy):
 
     def check(self, python_code: str) -> str | None:
         code_no_comments_no_strings = remove_comments_and_strings(python_code)
-        if "plt.savefig" not in code_no_comments_no_strings:
+        if (
+            "plt.savefig" not in code_no_comments_no_strings
+            and "fig.savefig" not in code_no_comments_no_strings
+        ):
             return (
-                "plt.savefig not found in source code - "
-                "save your plot to a file using plt.savefig()."
+                "No savefig call found in source code - "
+                "save your plot to a file using plt.savefig() or fig.savefig()."
             )
         return None
 
