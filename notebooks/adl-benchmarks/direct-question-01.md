@@ -1857,6 +1857,432 @@ bash: no job control in this shell
 
 ![2fc7e91d_arcee-ai_coder-large_etmiss_distribution.png](2fc7e91d_arcee-ai_coder-large_etmiss_distribution.png)
 
+## Model anthropic/claude-sonnet-4
+<details><summary>Run 1 Details</summary>
+
+### Run 1
+
+
+I'll help you plot the ETmiss (missing transverse energy) from the specified ATLAS dataset. Here's what I'm doing:
+
+• Using ServiceX to fetch ETmiss data from the PHYSLITE dataset
+• Extracting the missing ET value and converting from MeV to GeV
+• Creating a histogram with appropriate binning for ETmiss
+• Plotting the distribution with ATLAS styling and saving to PNG
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import numpy as np
+from hist import Hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Set up the query to get ETmiss
+base_query = FuncADLQueryPHYSLITE()
+
+# Query: get ETmiss for all events
+# ETmiss is stored as a collection, so we need to get the first (and only) element
+etmiss_query = (base_query
+    .Select(lambda evt: evt.MissingET().First())
+    .Select(lambda met: {
+        "etmiss": met.met() / 1000.0,  # Convert from MeV to GeV
+    })
+)
+
+# Define the dataset
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697"
+
+# Fetch the data
+etmiss_data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="etmiss_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,  # Start with 1 file for testing
+                    Query=etmiss_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Extract the ETmiss values
+etmiss_values = etmiss_data["etmiss_fetch"].etmiss
+
+# Create histogram
+h = (
+    Hist.new.Reg(50, 0, 200, name="etmiss", label="ETmiss [GeV]")
+    .Int64()
+)
+
+# Fill histogram
+h.fill(etmiss=etmiss_values)
+
+# Set up ATLAS style plotting
+plt.style.use(hep.style.ATLAS)
+fig, ax = plt.subplots(figsize=(8, 6))
+
+# Plot the histogram
+h.plot(histtype="step", linewidth=2, color="blue", ax=ax)
+
+# Add labels and title
+ax.set_xlabel("ETmiss [GeV]")
+ax.set_ylabel("Events")
+ax.set_title("Missing Transverse Energy Distribution")
+
+# Add ATLAS label
+hep.atlas.label("Simulation Internal", ax=ax)
+
+# Add grid for better readability
+ax.grid(True, alpha=0.3)
+
+# Save the plot
+plt.tight_layout()
+plt.savefig("etmiss_distribution.png", dpi=300, bbox_inches='tight')
+plt.show()
+
+print(f"Plotted ETmiss distribution from {len(etmiss_values)} events")
+print(f"ETmiss range: {np.min(etmiss_values):.2f} - {np.max(etmiss_values):.2f} GeV")
+print(f"Mean ETmiss: {np.mean(etmiss_values):.2f} GeV")
+```
+#### Code Execution
+
+*Output:*
+```
+etmiss_fetch: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 00:23
+               Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 00:28
+Plotted ETmiss distribution from 30000 events
+ETmiss range: 0.04 - 166.85 GeV
+Mean ETmiss: 16.56 GeV
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+</details>
+
+![2fc7e91d_anthropic_claude-sonnet-4_etmiss_distribution.png](2fc7e91d_anthropic_claude-sonnet-4_etmiss_distribution.png)
+
+## Model google/gemini-2.5-flash
+<details><summary>Run 1 Details</summary>
+
+### Run 1
+
+
+* Fetched the Missing Transverse Energy (MET) from the specified PHYSLITE dataset using ServiceX.
+* Plotted the MET distribution as a 1D histogram using `Hist` and `mplhep`.
+* Saved the histogram as a PNG image.
+
+```python
+import awkward as ak
+import vector
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+
+# Register the Vector behaviors for Awkward Array
+vector.register_awkward()
+
+# Set the matplotlib style for HEP plots
+plt.style.use(hep.style.ATLAS)
+
+# The base query should run against PHYSLITE.
+base_query = FuncADLQueryPHYSLITE()
+
+# Query: get the MissingET from each event
+# MissingET is stored as a sequence, so we take the first element and then access its met() method
+met_query = (base_query
+    .Select(lambda evt: evt.MissingET().First())
+    .Select(lambda met: {
+        "met": met.met() / 1000.0, # Convert MeV to GeV
+    })
+)
+
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697")
+
+print(f"Fetching MET from dataset: {ds_name}")
+
+# Do the fetch with NFiles=1 for testing. Remove NFiles for full dataset.
+all_met_data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="et_miss_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1, # Reduced to 1 file for quicker execution and testing
+                    Query=met_query,
+                )
+            ]
+        ),
+    )
+).et_miss_fetch
+
+# Extract the MET values
+et_miss_values = all_met_data.met
+
+# Create a 1D histogram for MET
+h_met = (
+    hist.Hist.new.Reg(50, 0, 500, name="MET", label="Missing Transverse Energy [GeV]")
+    .Double() # Use double precision for counts
+)
+
+# Fill the histogram with the fetched MET values
+h_met.fill(MET=et_miss_values)
+
+# Plot the histogram
+fig, ax = plt.subplots(figsize=(8, 6))
+hep.histplot(h_met, ax=ax, label="ET_Miss")
+ax.set_xlabel(h_met.axes[0].label)
+ax.set_ylabel("Events")
+ax.set_title("Missing Transverse Energy Distribution")
+ax.legend()
+plt.tight_layout()
+
+# Save the plot to a PNG file
+plt.savefig("et_miss_distribution.png")
+
+print("MET distribution plot saved to et_miss_distribution.png")
+
+```
+#### Code Execution
+
+*Output:*
+```
+Fetching MET from dataset: mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 48, in <module>
+    ).et_miss_fetch
+      ^^^^^^^^^^^^^
+AttributeError: 'dict' object has no attribute 'et_miss_fetch'
+
+```
+</details>
+<details><summary>Run 2 Details</summary>
+
+### Run 2
+
+
+* The error `AttributeError: 'dict' object has no attribute 'et_miss_fetch'` indicates that `all_met_data` is a dictionary, and you are trying to access `et_miss_fetch` as if it were an attribute.
+* The `to_awk` function returns a dictionary where keys are the `Name` given in the `Sample` object. In the previous code, the `Sample` was named `"et_miss_fetch"`, so the correct way to access the data is by indexing the dictionary using `all_met_data["et_miss_fetch"]`.
+* The fix involves changing `all_met_data.et_miss_fetch` to `all_met_data["et_miss_fetch"]` to correctly retrieve the Awkward Array from the dictionary.
+* Additionally, the `et_miss_data` variable itself needs to be `met` (as defined in the `Select` in the xAOD query).
+
+```python
+import awkward as ak
+import vector
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+
+# Register the Vector behaviors for Awkward Array
+vector.register_awkward()
+
+# Set the matplotlib style for HEP plots
+plt.style.use(hep.style.ATLAS)
+
+# The base query should run against PHYSLITE.
+base_query = FuncADLQueryPHYSLITE()
+
+# Query: get the MissingET from each event
+# MissingET is stored as a sequence, so we take the first element and then access its met() method
+met_query = (base_query
+    .Select(lambda evt: evt.MissingET().First())
+    .Select(lambda met_obj: { # Renamed parameter to avoid conflict with `met` in dict
+        "met": met_obj.met() / 1000.0, # Convert MeV to GeV
+    })
+)
+
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697")
+
+print(f"Fetching MET from dataset: {ds_name}")
+
+# Do the fetch with NFiles=1 for testing. Remove NFiles for full dataset.
+all_met_data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="et_miss_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1, # Reduced to 1 file for quicker execution and testing
+                    Query=met_query,
+                )
+            ]
+        ),
+    )
+)["et_miss_fetch"] # Correctly access the data using dictionary key
+
+# Extract the MET values
+et_miss_values = all_met_data.met
+
+# Create a 1D histogram for MET
+h_met = (
+    hist.Hist.new.Reg(50, 0, 500, name="MET", label="Missing Transverse Energy [GeV]")
+    .Double() # Use double precision for counts
+)
+
+# Fill the histogram with the fetched MET values
+h_met.fill(MET=et_miss_values)
+
+# Plot the histogram
+fig, ax = plt.subplots(figsize=(8, 6))
+hep.histplot(h_met, ax=ax, label="ET_Miss")
+ax.set_xlabel(h_met.axes[0].label)
+ax.set_ylabel("Events")
+ax.set_title("Missing Transverse Energy Distribution")
+ax.legend()
+plt.tight_layout()
+
+# Save the plot to a PNG file
+plt.savefig("et_miss_distribution.png")
+
+print("MET distribution plot saved to et_miss_distribution.png")
+```
+#### Code Execution
+
+*Output:*
+```
+Fetching MET from dataset: mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697
+et_miss_fetch: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 00:23
+                Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 00:31
+MET distribution plot saved to et_miss_distribution.png
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+</details>
+
+![2fc7e91d_google_gemini-2.5-flash_et_miss_distribution.png](2fc7e91d_google_gemini-2.5-flash_et_miss_distribution.png)
+
+## Model deepseek/deepseek-chat-v3-0324
+<details><summary>Run 1 Details</summary>
+
+### Run 1
+
+
+- Fetched the MissingET (ETmiss) data from the specified rucio dataset using ServiceX
+- Used FuncADL to extract the MET values and convert them from MeV to GeV
+- Created a histogram of the ETmiss distribution with the Hist library
+- Plotted the histogram using matplotlib with ATLAS style
+- Saved the plot as "etmiss_hist.png"
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Query to get MissingET (ETmiss) values from the dataset
+base_query = FuncADLQueryPHYSLITE()
+
+met_query = (base_query
+    .Select(lambda e: e.MissingET().First())
+    .Select(lambda m: {
+        "met": m.met() / 1000.0  # Convert to GeV
+    })
+)
+
+# Fetch the data
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697"
+met_data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="met_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=met_query,
+                )
+            ]
+        )
+    )
+)
+
+# Extract MET values
+met_values = met_data["met_fetch"].met
+
+# Create histogram
+h_met = (
+    hist.Hist.new
+    .Reg(50, 0, 500, name="ETmiss", label="Missing Transverse Energy [GeV]")
+    .Int64()
+    .fill(met_values)
+)
+
+# Plot the histogram
+plt.style.use(hep.style.ATLAS)
+h_met.plot(histtype="step", linewidth=2, color="black")
+plt.xlabel("Missing Transverse Energy [GeV]")
+plt.ylabel("Number of Events")
+plt.title("ETmiss Distribution", loc="right")
+
+plt.savefig("etmiss_hist.png", dpi=300, bbox_inches="tight")
+plt.close()
+```
+#### Code Execution
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+</details>
+
+![2fc7e91d_deepseek_deepseek-chat-v3-0324_etmiss_hist.png](2fc7e91d_deepseek_deepseek-chat-v3-0324_etmiss_hist.png)
+
 ## Summary
 
 | Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) | Python Run 1 | Python Run 2 | Python Run 3 |
@@ -1871,3 +2297,6 @@ bash: no job control in this shell
 | openai/gpt-oss-20b | 6.34 | 11704 | 1209 | 12913 | $0.001 | Success |
 | Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 11.20 | 11904 | 641 | 12545 | $0.025 | Success |
 | arcee-ai/coder-large | 7.45 | 11925 | 559 | 12484 | $0.006 | Success |
+| anthropic/claude-sonnet-4 | 23.32 | 13473 | 931 | 14404 | $0.054 | Success |
+| google/gemini-2.5-flash,google/gemini-2.5-flash | 11.02 | 26355 | 1731 | 28086 | $0.012 | Fail | Success |
+| deepseek/deepseek-chat-v3-0324 | 15.41 | 11975 | 533 | 12508 | $0.004 | Success |

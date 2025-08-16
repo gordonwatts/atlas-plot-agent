@@ -47,6 +47,14 @@ Note: The above questions are parsed by code. Keep the format the same (each que
 
 **Models**: It is hard to tell where they work and don't - there is just too much!
 
+The selection of models to run came from various sources:
+
+- Ones that I have used before
+- Ones recommended by others
+- The [openrouter](https://openrouter.ai/rankings?category=programming#categories) leader board for code.
+
+The complete list can be pulled from the [models.yaml](models.yaml) file.
+
 - GPT5
   - Sometimes creates a `def main` and calls it. Seems like it would work fine.
   - GPT5 also parses the text in such a way it convinces itself that the user wants the whole dataset. This is an interesting problem - the user probably did. However, we don't want to emit code like that when testing! So we'll have to do something about that.

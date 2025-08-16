@@ -1480,6 +1480,457 @@ bash: no job control in this shell
 
 ![6a6e57e2_arcee-ai_coder-large_etmiss_histogram.png](6a6e57e2_arcee-ai_coder-large_etmiss_histogram.png)
 
+## Model anthropic/claude-sonnet-4
+<details><summary>Run 1 Details</summary>
+
+### Run 1
+
+
+• Imported necessary libraries for ServiceX data access, awkward array manipulation, and histogram plotting
+• Created a FuncADL query to filter events with at least 2 jets having pT > 40 GeV
+• Applied the jet pT filter at the ServiceX level to reduce data transfer
+• Used event-level filtering to select only events meeting the jet count requirement
+• Extracted MissingET information for the filtered events
+• Converted MeV units to GeV for better readability
+• Created and filled a histogram of ETmiss values using the Hist library
+• Applied ATLAS plotting style and saved the result as a PNG file
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import numpy as np
+from hist import Hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Set ATLAS plotting style
+plt.style.use(hep.style.ATLAS)
+
+# Create base query for PHYSLITE
+base_query = FuncADLQueryPHYSLITE()
+
+# Query: Get ETmiss for events with at least 2 jets with pT > 40 GeV
+etmiss_query = (base_query
+    # Filter events that have at least 2 jets with pT > 40 GeV
+    .Where(lambda evt: evt.Jets()
+                          .Where(lambda jet: jet.pt() / 1000.0 > 40.0)
+                          .Count() >= 2)
+    # Get the MissingET for these events
+    .Select(lambda evt: {
+        "etmiss": evt.MissingET().First().met() / 1000.0,  # Convert MeV to GeV
+    })
+)
+
+# Define the dataset
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697"
+
+# Fetch the data
+etmiss_data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="etmiss_filtered",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=etmiss_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Extract ETmiss values
+etmiss_values = etmiss_data["etmiss_filtered"].etmiss
+
+# Create histogram
+h = (
+    Hist.new.Reg(50, 0, 200, name="etmiss", label="ETmiss [GeV]")
+    .Int64()
+)
+
+# Fill histogram
+h.fill(etmiss=etmiss_values)
+
+# Plot the histogram
+fig, ax = plt.subplots(figsize=(10, 6))
+h.plot(histtype="step", linewidth=2, color="blue", label="Events with ≥2 jets (pT > 40 GeV)")
+
+plt.xlabel("ETmiss [GeV]")
+plt.ylabel("Events")
+plt.title("Missing Transverse Energy Distribution")
+plt.legend()
+plt.grid(True, alpha=0.3)
+
+# Add ATLAS label
+hep.atlas.label("Simulation Internal", data=False, loc=0)
+
+# Save the plot
+plt.savefig("etmiss_distribution.png", dpi=300, bbox_inches="tight")
+plt.show()
+
+print(f"Total number of events with ≥2 jets (pT > 40 GeV): {len(etmiss_values)}")
+print(f"Mean ETmiss: {np.mean(etmiss_values):.2f} GeV")
+print(f"Histogram saved as 'etmiss_distribution.png'")
+```
+#### Code Execution
+
+*Output:*
+```
+etmiss_filtered: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 00:20
+                  Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 00:27
+Total number of events with ≥2 jets (pT > 40 GeV): 26417
+Mean ETmiss: 16.61 GeV
+Histogram saved as 'etmiss_distribution.png'
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+</details>
+
+![6a6e57e2_anthropic_claude-sonnet-4_etmiss_distribution.png](6a6e57e2_anthropic_claude-sonnet-4_etmiss_distribution.png)
+
+## Model google/gemini-2.5-flash
+<details><summary>Run 1 Details</summary>
+
+### Run 1
+
+
+Here's the Python code to achieve the request. I've used ServiceX to fetch the relevant data, Awkward Arrays for data manipulation, and Hist for plotting.
+
+*   **ServiceX Query:** The code first constructs a ServiceX query to filter events. It selects only events that contain at least two jets with a transverse momentum (pT) greater than 40 GeV. For these filtered events, it retrieves the Missing Transverse Energy (ETmiss).
+*   **Data Fetching:** The query is then executed against the specified Rucio dataset using the `deliver` function. For demonstration purposes, `NFiles` is set to 1. For a full analysis, you would remove this parameter to process the entire dataset.
+*   **Missing ET Handling:** Missing ET is stored as a sequence, so the `First()` method is used to extract the single ETmiss value per event.
+*   **Histogram Creation:** A `Hist` histogram is created with appropriate bins for the ETmiss (from 0 to 500 GeV).
+*   **Filling the Histogram:** The fetched ETmiss values are used to fill the histogram.
+*   **Plotting:** Finally, the histogram is plotted using `mplhep` for an ATLAS-like style, and the plot is saved to a `png` file named `etmiss_histogram.png`.
+
+```python
+import awkward as ak
+import vector
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+from typing import TypeVar, Tuple, Callable, Iterable, List, Optional
+from func_adl import ObjectStream, func_adl_callable
+import ast
+from dataclasses import dataclass
+
+# Tooling code from hints - START
+T = TypeVar("T")
+
+@dataclass
+class ToolInfo:
+    name: str
+
+def make_a_tool(
+    query: ObjectStream[T],
+    tool_name: str,
+    tool_type: str,
+    include_files: Optional[List[str]],
+    init_lines: List[str] = [],
+) -> Tuple[ObjectStream[T], ToolInfo]:
+    """
+    Injects C++ code into the query to initialize a tool of the specified type.
+
+    This function sets up the necessary C++ code to create and initialize a tool (such as
+    BTaggingSelectionTool) in the analysis workflow. The tool will be available in the C++
+    code under the variable name specified by `tool_name`, which can be referenced in
+    initialization lines and later code.
+
+    Args:
+        query: The ObjectStream to attach the tool initialization metadata to.
+        tool_name: The variable name to use for the tool instance in the C++ code.
+        tool_type: The C++ class name of the tool to instantiate.
+        include_files: List of C++ header files to include for the tool.
+        init_lines: List of C++ code lines to run for tool initialization. You can use
+            `{tool_name}` in these lines to refer to the tool variable. You should
+            include the call to `ANA_CHECK({tool_name}->initialize());`.
+
+    Returns:
+        A tuple containing:
+            - The updated ObjectStream with the tool initialization metadata.
+            - A ToolInfo object containing the tool's name. Pass this to `make_tool_accessor`
+    """
+    # Define the C++ for the tool initialization
+
+    query_base = query.MetaData(
+        {
+            "metadata_type": "inject_code",
+            "name": tool_name,
+            "header_includes": include_files,
+            "private_members": [f"{tool_type} *{tool_name};"],
+            "instance_initialization": [
+                f'{tool_name}(new {tool_type} ("{tool_name}"))'
+            ],
+            "initialize_lines": [l.format(tool_name=tool_name) for l in init_lines],
+            "link_libraries": ["xAODBTaggingEfficiencyLib"],
+        }
+    )
+
+    return query_base, ToolInfo(name=tool_name)
+
+
+def make_tool_accessor(
+    t_info: ToolInfo,
+    function_name: str,
+    source_code: List[str],
+    arguments: Iterable[Tuple[str, type]],
+    return_type_cpp: str,
+    return_type_python: str
+):
+    """
+    Creates a Python-callable accessor for a C++ tool in the func_adl query.
+
+    This function generates a Python function that, when called in a func_adl query,
+    injects C++ code to call a method or function on a C++ tool instance (such as
+    BTaggingSelectionTool). The accessor function can be used in the query to access
+    tool functionality as if it were a regular Python function.
+
+    Args:
+        t_info: ToolInfo object containing the tool's variable name.
+        function_name: Name of the accessor function (used in C++ and Python).
+        source_code: List of C++ code lines to execute for the accessor. You can use
+            `{tool_name}` in these lines to refer to the tool variable.
+        arguments: Iterable of (argument_name, type) tuples specifying the arguments
+            for the accessor function.
+        return_type_cpp: The C++ return type of the accessor function.
+        return_type_python: The Python return type annotation as a string.
+
+    Returns:
+        A Python function that can be used in a func_adl query to access the tool.
+        NOTE: YOU MUST use the same name as `function_name` to store this:
+
+            `my_name = make_tool_accessor(.., function_name="my_name", ...)`
+    """
+    # Define the callback function that `func_adl` will use to inject the calling code.
+    def tool_callback(
+        s: ObjectStream[T], a: ast.Call
+    ) -> Tuple[ObjectStream[T], ast.Call]:
+        new_s = s.MetaData(
+            {
+                "metadata_type": "add_cpp_function",
+                "name": function_name,
+                "code": [
+                    "double result;",
+                    *[l.format(tool_name=t_info.name) for l in source_code],
+                ],
+                "result": "result",
+                "include_files": [],
+                "arguments": [a[0] for a in arguments],
+                "return_type": return_type_cpp,
+            }
+        )
+        return new_s, a
+
+    # Build a function type-shed that tells `func_adl` what the function signature is.
+    # This is used to generate the correct C++ code for the function.
+    def tool_call(**arg_dict):
+        """
+        NOTE: This is a dummy function that injects C++ into the object stream to do the
+        actual work.
+        """
+        ...
+    tool_call.__name__ = function_name
+    tool_call.__annotations__['return'] = eval(return_type_python)
+
+    return func_adl_callable(tool_callback)(tool_call)
+
+# Tooling code from hints - END
+
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697")
+
+# Construct the ServiceX query
+# Filter events that have at least two jets with pT > 40 GeV
+# Then, select the Missing ET for those events
+etmiss_query = (FuncADLQueryPHYSLITE()
+    .Where(lambda e: e.Jets()
+                      .Where(lambda j: j.pt() / 1000.0 > 40.0)
+                      .Count() >= 2)
+    .Select(lambda e: {'ET_miss': e.MissingET().First().met() / 1000.0}) # Convert MeV to GeV
+)
+
+# Do the fetch
+print(f"Fetching data for dataset: {ds_name}...")
+fetched_data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="etmiss_events",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1, # For testing purposes, set to 1 file. Remove for full dataset.
+                    Query=etmiss_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Extract the ETmiss values from the fetched data
+etmiss_values = fetched_data["etmiss_events"].ET_miss
+
+# Create a histogram for ETmiss
+# Bins from 0 to 500 GeV, with 50 bins
+h_etmiss = (
+    hist.Hist.new.Reg(50, 0, 500, name="ETmiss", label="Missing Transverse Energy [GeV]")
+    .Double() # Use double precision for counts
+)
+
+# Fill the histogram
+print("Filling histogram...")
+h_etmiss.fill(ETmiss=etmiss_values)
+
+# Plot the histogram
+print("Plotting histogram...")
+plt.style.use(hep.style.ATLAS) # Use ATLAS style for plotting
+fig, ax = plt.subplots()
+
+hep.histplot(h_etmiss, ax=ax, histtype="fill", label="ETmiss with $\geq 2$ jets (pT > 40 GeV)")
+
+ax.set_xlabel("Missing Transverse Energy [GeV]")
+ax.set_ylabel("Events")
+ax.legend()
+ax.set_title("ETmiss Distribution for Events with High pT Jets")
+
+# Save the plot
+output_filename = "etmiss_histogram.png"
+plt.savefig(output_filename)
+print(f"Plot saved to {output_filename}")
+
+print("Script finished successfully.")
+```
+#### Code Execution
+
+*Output:*
+```
+Fetching data for dataset: mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697...
+etmiss_events: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 00:22
+                Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 00:26
+Filling histogram...
+Plotting histogram...
+Plot saved to etmiss_histogram.png
+Script finished successfully.
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/app/script.py:185: SyntaxWarning: invalid escape sequence '\g'
+  hep.histplot(h_etmiss, ax=ax, histtype="fill", label="ETmiss with $\geq 2$ jets (pT > 40 GeV)")
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+
+```
+</details>
+
+![6a6e57e2_google_gemini-2.5-flash_etmiss_histogram.png](6a6e57e2_google_gemini-2.5-flash_etmiss_histogram.png)
+
+## Model deepseek/deepseek-chat-v3-0324
+<details><summary>Run 1 Details</summary>
+
+### Run 1
+
+
+- Constructed a query to fetch MissingET (ETmiss) from the PHYSLITE dataset
+- Filtered events to require at least two jets with pT > 40 GeV
+- Retrieved the data using ServiceX with a sample of 1 file for testing
+- Converted the result to an awkward array
+- Created and plotted a histogram of ETmiss values
+- Saved the plot to "etmiss_histogram.png"
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import matplotlib.pyplot as plt
+import hist
+import mplhep as hep
+plt.style.use(hep.style.ATLAS)
+
+# Construct the query - get ETmiss for events with >=2 jets >40 GeV
+base_query = FuncADLQueryPHYSLITE()
+query = (base_query
+    .Where(lambda e: e.Jets()
+                      .Where(lambda j: j.pt() / 1000.0 > 40.0)
+                      .Count() >= 2)
+    .Select(lambda e: {
+        "etmiss": e.MissingET().First().met() / 1000.0  # Convert to GeV
+    })
+)
+
+# Define the dataset and fetch data
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697"
+result = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="etmiss_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=query,
+                )
+            ]
+        ),
+    )
+)
+
+# Get ETmiss values from the result
+etmiss_values = result["etmiss_fetch"].etmiss
+
+# Create and plot histogram
+h = (
+    hist.Hist.new
+    .Reg(50, 0, 300, name="ETmiss", label="Missing $E_T$ [GeV]")
+    .Int64()
+    .fill(etmiss_values)
+)
+
+fig, ax = plt.subplots()
+h.plot1d(histtype="step", linewidth=2)
+ax.set_xlabel("Missing $E_T$ [GeV]")
+ax.set_ylabel("Events")
+ax.set_title("ETmiss in events with ≥2 jets ($p_T$ > 40 GeV)")
+plt.savefig("etmiss_histogram.png")
+plt.close()
+```
+#### Code Execution
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+</details>
+
+![6a6e57e2_deepseek_deepseek-chat-v3-0324_etmiss_histogram.png](6a6e57e2_deepseek_deepseek-chat-v3-0324_etmiss_histogram.png)
+
 ## Summary
 
 | Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) | Python Run 1 | Python Run 2 | Python Run 3 |
@@ -1494,3 +1945,6 @@ bash: no job control in this shell
 | openai/gpt-oss-20b | 7.52 | 11717 | 1329 | 13046 | $0.001 | Success |
 | Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 11.86 | 11918 | 816 | 12734 | $0.025 | Success |
 | arcee-ai/coder-large | 8.52 | 11939 | 619 | 12558 | $0.006 | Success |
+| anthropic/claude-sonnet-4 | 24.78 | 13487 | 1016 | 14503 | $0.056 | Success |
+| google/gemini-2.5-flash | 11.13 | 12764 | 2331 | 15095 | $0.010 | Success |
+| deepseek/deepseek-chat-v3-0324 | 52.81 | 11987 | 590 | 12577 | $0.004 | Success |

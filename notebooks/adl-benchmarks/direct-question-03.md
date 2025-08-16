@@ -1924,6 +1924,332 @@ bash: no job control in this shell
 
 ![d07d348d_arcee-ai_coder-large_jet_pt_distribution.png](d07d348d_arcee-ai_coder-large_jet_pt_distribution.png)
 
+## Model anthropic/claude-sonnet-4
+<details><summary>Run 1 Details</summary>
+
+### Run 1
+
+
+I'll create code to fetch jet data from the specified ATLAS dataset and plot the pT distribution for jets with |η| < 1. Here's what the code does:
+
+• Uses ServiceX to fetch jet data from the PHYSLITE dataset, applying an η cut at the ServiceX level to reduce data transfer
+• Filters jets to only include those with |η| < 1.0 (central jets)
+• Converts jet pT from MeV to GeV for better readability
+• Creates a histogram with 50 bins covering the range 0-500 GeV
+• Plots the distribution using ATLAS style formatting
+• Saves the plot as a PNG file
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import numpy as np
+from hist import Hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Set ATLAS plotting style
+plt.style.use(hep.style.ATLAS)
+
+# Base query for PHYSLITE
+base_query = FuncADLQueryPHYSLITE()
+
+# Query: get jet pT and eta, filtering for central jets (|eta| < 1) at ServiceX level
+jet_query = (base_query
+    .SelectMany(lambda evt: evt.Jets())
+    .Where(lambda jet: abs(jet.eta()) < 1.0)  # Apply eta cut at ServiceX level to reduce data transfer
+    .Select(lambda jet: {
+        "jet_pt": jet.pt() / 1000.0,  # Convert from MeV to GeV
+        "jet_eta": jet.eta(),
+    })
+)
+
+# Define the dataset
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697"
+
+# Fetch the data
+print("Fetching jet data from ServiceX...")
+jet_data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="central_jets",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,  # Start with 1 file for testing
+                    Query=jet_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Extract the jet pT values
+jet_pts = jet_data["central_jets"].jet_pt
+
+print(f"Found {len(jet_pts)} jets with |η| < 1.0")
+print(f"pT range: {ak.min(jet_pts):.1f} - {ak.max(jet_pts):.1f} GeV")
+
+# Create histogram
+h = (
+    Hist.new.Reg(50, 0, 500, name="pt", label="Jet $p_T$ [GeV]")
+    .Int64()
+)
+
+# Fill histogram
+h.fill(pt=jet_pts)
+
+# Create the plot
+fig, ax = plt.subplots(figsize=(10, 8))
+
+# Plot the histogram
+h.plot(histtype="step", linewidth=2, color="blue", label=f"Jets with |η| < 1.0")
+
+# Add labels and formatting
+plt.xlabel("Jet $p_T$ [GeV]", fontsize=14)
+plt.ylabel("Number of Jets", fontsize=14)
+plt.title("Jet $p_T$ Distribution (|η| < 1.0)", fontsize=16)
+plt.yscale('log')  # Use log scale for better visibility of the distribution
+plt.grid(True, alpha=0.3)
+plt.legend(fontsize=12)
+
+# Add ATLAS label
+hep.atlas.label("Simulation Internal", loc=0)
+
+# Save the plot
+plt.tight_layout()
+plt.savefig("jet_pt_central_eta.png", dpi=300, bbox_inches='tight')
+print("Plot saved as 'jet_pt_central_eta.png'")
+
+plt.show()
+```
+#### Code Execution
+
+*Output:*
+```
+Fetching jet data from ServiceX...
+central_jets: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 00:23
+               Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 00:27
+Found 63539 jets with |η| < 1.0
+pT range: 8.3 - 425.8 GeV
+Plot saved as 'jet_pt_central_eta.png'
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+</details>
+
+![d07d348d_anthropic_claude-sonnet-4_jet_pt_central_eta.png](d07d348d_anthropic_claude-sonnet-4_jet_pt_central_eta.png)
+
+## Model google/gemini-2.5-flash
+<details><summary>Run 1 Details</summary>
+
+### Run 1
+
+
+* Fetched jet $p_T$ and $\eta$ from the specified Rucio dataset using ServiceX.
+* Filtered jets to include only those with $|\eta| < 1$.
+* Created a 1D histogram of the jet $p_T$ (in GeV).
+* Plotted the histogram using `mplhep` with ATLAS style.
+* Saved the plot to a PNG file named `jet_pt_eta_cut.png`.
+
+```python
+import awkward as ak
+import vector
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+
+
+# Register the vector behavior for Awkward Arrays
+vector.register_awkward()
+
+# The base query should run against PHYSLITE.
+base_query = FuncADLQueryPHYSLITE()
+
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697")
+
+# Query: get all jet pT and eta, apply eta cut at ServiceX level for efficiency
+jet_pt_eta_query = (base_query
+    .SelectMany(lambda evt: evt.Jets())
+    .Where(lambda jet: abs(jet.eta()) < 1.0)
+    .Select(lambda jet: {
+        "jet_pt": jet.pt() / 1000.0, # Convert MeV to GeV
+        "jet_eta": jet.eta()
+    })
+)
+
+# Do the fetch
+print(f"Fetching data from dataset: {ds_name}")
+all_jet_data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="filtered_jets",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1, # Start with 1 file for testing. Remove for full dataset.
+                    Query=jet_pt_eta_query,
+                )
+            ]
+        ),
+    )
+)
+
+print("Data fetch complete.")
+
+# Extract the jet pT values
+jet_pts = all_jet_data["filtered_jets"].jet_pt
+
+# Create a 1D histogram of jet pT
+# Assume pT range from 0 to 1000 GeV with 50 bins
+h_jet_pt = (
+    hist.Hist.new.Reg(50, 0, 1000, name="jet_pt", label="Jet $p_T$ [GeV]")
+    .Double() # Use Double storage for counts
+)
+
+# Fill the histogram
+h_jet_pt.fill(jet_pt=jet_pts)
+
+# Plot the histogram
+plt.style.use(hep.style.ATLAS)
+plt.figure(figsize=(8, 6))
+
+h_jet_pt.plot(histtype="step", label=r"Jets with $|\eta| < 1$")
+plt.title("Jet $p_T$ Distribution ($|\eta| < 1$)")
+plt.xlabel("Jet $p_T$ [GeV]")
+plt.ylabel("Number of Jets")
+plt.legend()
+plt.grid(True, linestyle='--', alpha=0.6)
+plt.savefig("jet_pt_eta_cut.png")
+print("Plot saved to jet_pt_eta_cut.png")
+```
+#### Code Execution
+
+*Output:*
+```
+Fetching data from dataset: mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697
+
+Data fetch complete.
+Plot saved to jet_pt_eta_cut.png
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/app/script.py:67: SyntaxWarning: invalid escape sequence '\e'
+  plt.title("Jet $p_T$ Distribution ($|\eta| < 1$)")
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+</details>
+
+![d07d348d_google_gemini-2.5-flash_jet_pt_eta_cut.png](d07d348d_google_gemini-2.5-flash_jet_pt_eta_cut.png)
+
+## Model deepseek/deepseek-chat-v3-0324
+<details><summary>Run 1 Details</summary>
+
+### Run 1
+
+
+- Fetched jet data from the specified PHYSLITE dataset using ServiceX
+- Applied a pseudorapidity cut (|η| < 1) at the ServiceX level to minimize data transfer
+- Plotted the transverse momentum distribution of jets that pass the η cut using Hist
+- Saved the plot as a PNG file
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Define the query with eta cut
+base_query = FuncADLQueryPHYSLITE()
+jet_query = (base_query
+    .SelectMany(lambda evt: evt.Jets())
+    .Where(lambda jet: abs(jet.eta()) < 1.0)  # Apply eta cut before fetching
+    .Select(lambda jet: {
+        "jet_pt": jet.pt() / 1000.0,  # Convert to GeV
+    })
+)
+
+# Fetch data
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697"
+jet_data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="jets_eta_cut",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=jet_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Extract jet pTs
+jet_pts = jet_data["jets_eta_cut"].jet_pt
+
+# Create and fill histogram
+h = hist.Hist.new.Reg(50, 0, 500, name="jet_pt", label="Jet pT [GeV]").Int64()
+h.fill(jet_pt=jet_pts)
+
+# Plot with ATLAS style
+plt.style.use(hep.style.ATLAS)
+h.plot(histtype="step", linewidth=2)
+plt.xlabel("Jet $p_T$ [GeV]")
+plt.ylabel("Jets / 10 GeV")
+plt.title("Jet $p_T$ distribution ($|\eta| < 1$)", pad=10)
+
+# Save plot
+plt.savefig("jet_pt_eta_cut.png")
+plt.close()
+```
+#### Code Execution
+
+*Output:*
+```
+
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/app/script.py:47: SyntaxWarning: invalid escape sequence '\e'
+  plt.title("Jet $p_T$ distribution ($|\eta| < 1$)", pad=10)
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+/work/.venv/lib/python3.13/site-packages/mplhep/utils.py:741: UserWarning: Integer weights indicate poissonian data. Will calculate Garwood interval if ``scipy`` is installed. Otherwise errors will be set to ``sqrt(w2)``.
+  self.errors()
+
+```
+</details>
+
+![d07d348d_deepseek_deepseek-chat-v3-0324_jet_pt_eta_cut.png](d07d348d_deepseek_deepseek-chat-v3-0324_jet_pt_eta_cut.png)
+
 ## Summary
 
 | Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) | Python Run 1 | Python Run 2 | Python Run 3 |
@@ -1938,3 +2264,6 @@ bash: no job control in this shell
 | openai/gpt-oss-20b,openai/gpt-oss-20b | 20.16 | 23932 | 2889 | 26821 | $0.002 | Fail | Success |
 | Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8,Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 20.94 | 24757 | 1179 | 25936 | $0.052 | Fail | Success |
 | arcee-ai/coder-large | 8.64 | 11931 | 641 | 12572 | $0.006 | Success |
+| anthropic/claude-sonnet-4 | 28.99 | 13479 | 1066 | 14545 | $0.056 | Success |
+| google/gemini-2.5-flash | 4.29 | 12757 | 868 | 13625 | $0.006 | Success |
+| deepseek/deepseek-chat-v3-0324 | 25.19 | 11977 | 556 | 12533 | $0.004 | Success |
