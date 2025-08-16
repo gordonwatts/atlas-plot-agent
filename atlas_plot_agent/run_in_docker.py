@@ -142,6 +142,9 @@ def run_python_in_docker(python_code: str) -> DockerRunResult:
     stdout, stderr = proc.communicate()
     elapsed = time.time() - start
     exit_code = proc.returncode
+    # Check for Docker connection error
+    if "docker: error during connect" in stderr:
+        raise RuntimeError(f"Docker connection error: {stderr}")
 
     # Find PNG files in temp_dir and load them into memory
     png_files = []
