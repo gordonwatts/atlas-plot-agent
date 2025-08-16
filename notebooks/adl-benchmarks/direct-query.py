@@ -408,8 +408,8 @@ def ask(
         "Completion Tokens",
         "Total Tokens",
         "Estimated Cost ($)",
-        "Result",
         "Attempts",
+        "Result",
     ]
     print(",".join(csv_header))
     for row in table_rows:
@@ -428,8 +428,8 @@ def ask(
             usage_info.total_tokens if usage_info.total_tokens is not None else "-"
         )
         cost = f"{usage_info.cost:.3f}" if usage_info.cost is not None else "-"
-        result = "Success" if any(run_result) else "Fail"
         attempts = len(run_result)
+        result = "Success" if any(run_result) else "Fail"
         csv_row = [
             str(model),
             str(elapsed),
@@ -437,8 +437,8 @@ def ask(
             str(completion_tokens),
             str(total_tokens),
             str(cost),
-            result,
             str(attempts),
+            result,
         ]
         print(",".join(csv_row))
 
@@ -446,12 +446,10 @@ def ask(
     print("\n## Summary\n")
     # Build header
     print(
-        "| Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | "
-        "Estimated Cost ($) | Result | Attempts |"
+        "| Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) | Attempts | Result |"
     )
     print(
-        "|-------|----------|--------------|------------------|--------------|"
-        "--------------------|--------|----------|"
+        "|-------|----------|--------------|------------------|--------------|--------------------|----------|--------|"
     )
     for row in table_rows:
         usage_info, run_result = row
@@ -469,10 +467,10 @@ def ask(
             usage_info.total_tokens if usage_info.total_tokens is not None else "-"
         )
         cost = f"${usage_info.cost:.3f}" if usage_info.cost is not None else "-"
-        result = "Success" if any(run_result) else "Fail"
         attempts = len(run_result)
+        result = "Success" if any(run_result) else "Fail"
         print(
-            f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens} | {cost} | {result} | {attempts} |"
+            f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens} | {cost} | {attempts} | {result} |"
         )
 
 
