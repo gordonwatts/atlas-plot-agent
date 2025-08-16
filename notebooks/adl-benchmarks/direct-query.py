@@ -401,7 +401,6 @@ def ask(
     print("\n## CSV\n")
     # CSV header
     # Determine max number of python run attempts
-    max_attempts = max(len(attempts) for _, attempts in table_rows) if table_rows else 0
     csv_header = [
         "Model(s)",
         "Time (s)",
@@ -409,7 +408,9 @@ def ask(
         "Completion Tokens",
         "Total Tokens",
         "Estimated Cost ($)",
-    ] + [f"Python Run {i+1}" for i in range(max_attempts)]
+        "Result",
+        "Attempts",
+    ]
     print(",".join(csv_header))
     for row in table_rows:
         usage_info, run_result = row
@@ -427,7 +428,8 @@ def ask(
             usage_info.total_tokens if usage_info.total_tokens is not None else "-"
         )
         cost = f"{usage_info.cost:.3f}" if usage_info.cost is not None else "-"
-        run_cells = ["Success" if r else "Fail" for r in run_result]
+        result = "Success" if any(run_result) else "Fail"
+        attempts = len(run_result)
         csv_row = [
             str(model),
             str(elapsed),
@@ -435,26 +437,21 @@ def ask(
             str(completion_tokens),
             str(total_tokens),
             str(cost),
-        ] + run_cells
+            result,
+            str(attempts),
+        ]
         print(",".join(csv_row))
 
     # Markdown summary section
     print("\n## Summary\n")
     # Build header
-    base_header = (
-        "| Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens "
-        "| Estimated Cost ($) |"
-    )
-    attempt_headers = (
-        "".join([f" Python Run {i+1} |" for i in range(max_attempts)])
-        if max_attempts
-        else ""
-    )
-    print(base_header + attempt_headers)
     print(
-        "|-------|----------|--------------|------------------|--------------"
-        "|--------------------|"
-        + "".join(["--------------|" for _ in range(max_attempts)])
+        "| Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | "
+        "Estimated Cost ($) | Result | Attempts |"
+    )
+    print(
+        "|-------|----------|--------------|------------------|--------------|"
+        "--------------------|--------|----------|"
     )
     for row in table_rows:
         usage_info, run_result = row
@@ -472,10 +469,10 @@ def ask(
             usage_info.total_tokens if usage_info.total_tokens is not None else "-"
         )
         cost = f"${usage_info.cost:.3f}" if usage_info.cost is not None else "-"
-        run_cell = "".join(" Success |" if r else " Fail |" for r in run_result)
+        result = "Success" if any(run_result) else "Fail"
+        attempts = len(run_result)
         print(
-            f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens} "
-            f"| {cost} |" + run_cell
+            f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens} | {cost} | {result} | {attempts} |"
         )
 
 
