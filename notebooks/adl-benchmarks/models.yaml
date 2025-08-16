@@ -48,6 +48,16 @@ models:
     input_cost_per_million: 3.00
     output_cost_per_million: 15.00
     endpoint: https://openrouter.ai/api/v1
+  gemini-2.5-flash:
+    model_name: google/gemini-2.5-flash
+    input_cost_per_million: 0.30
+    output_cost_per_million: 2.50
+    endpoint: https://openrouter.ai/api/v1
+  deepseek-chat-v3-0324:
+    model_name: deepseek/deepseek-chat-v3-0324
+    input_cost_per_million: 0.28
+    output_cost_per_million: 0.88
+    endpoint: https://openrouter.ai/api/v1
 
   # Not supported in the API that I'm using here (chat completions).
   # codex-mini-latest:
