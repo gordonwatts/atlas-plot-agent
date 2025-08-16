@@ -43,6 +43,12 @@ models:
     input_cost_per_million: 0.50
     output_cost_per_million: 0.80
     endpoint: https://api.together.xyz/v1
+  claude-sonnet-4:
+    model_name: anthropic/claude-sonnet-4
+    input_cost_per_million: 3.00
+    output_cost_per_million: 15.00
+    endpoint: https://openrouter.ai/api/v1
+
   # Not supported in the API that I'm using here (chat completions).
   # codex-mini-latest:
   #   model_name: codex-mini-latest
