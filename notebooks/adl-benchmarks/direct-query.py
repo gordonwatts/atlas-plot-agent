@@ -446,10 +446,12 @@ def ask(
     print("\n## Summary\n")
     # Build header
     print(
-        "| Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) | Attempts | Result |"
+        "| Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | "
+        "Estimated Cost ($) | Attempts | Result |"
     )
     print(
-        "|-------|----------|--------------|------------------|--------------|--------------------|----------|--------|"
+        "|-------|----------|--------------|------------------|--------------|"
+        "--------------------|----------|--------|"
     )
     for row in table_rows:
         usage_info, run_result = row
@@ -470,7 +472,8 @@ def ask(
         attempts = len(run_result)
         result = "Success" if any(run_result) else "Fail"
         print(
-            f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens} | {cost} | {attempts} | {result} |"
+            f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | "
+            f"{total_tokens} | {cost} | {attempts} | {result} |"
         )
 
 
