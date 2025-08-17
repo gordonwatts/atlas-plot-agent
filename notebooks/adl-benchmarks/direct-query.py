@@ -317,6 +317,11 @@ def ask(
     ignore_cache: bool = typer.Option(
         False, "--ignore-cache", help="Ignore disk cache for model queries."
     ),
+    error_info: bool = typer.Option(
+        False,
+        "--write-error-info",
+        help="Writes a small `fail` file for each error that can be analyzed later",
+    ),
     n_iter: int = typer.Option(
         1, "--n-iter", "-n", min=1, help="Number of iterations to run (must be >= 1)."
     ),
@@ -387,10 +392,27 @@ def ask(
                 break
             print("</details>")
 
-            # Build up prompt info for next time.
+            # It is also possible there was a catastrophic failure, and we shouldn't
+            # even try again.
             if row[2] is None or row[3] is None:
                 break
+
+            # If we are writing out the error info, we should do that here
             code = row[3]
+            if error_info:
+                e_info = {
+                    "code": code,
+                    "question": question,
+                    "stdout": row[2].stdout,
+                    "stderr": row[2].stderr,
+                    "model": model_name,
+                    "iteration": iter + 1,
+                }
+                output_file = f"z_fail_{question_hash}_{model_name}_{iter+1}.yaml"
+                with open(output_file, "w") as f:
+                    yaml.dump(e_info, f)
+
+            # Build up prompt info for next time.
             errors = "\n".join([row[2].stdout, row[2].stderr])
 
         total_usage = sum_usage_infos([u for u, _ in run_info])
