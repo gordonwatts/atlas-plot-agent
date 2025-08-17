@@ -5114,7 +5114,7 @@ RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Some
 
 ## CSV
 
-Model(s),Time (s),Prompt Tokens,Completion Tokens,Total Tokens,Estimated Cost ($),Attempts,Result
+Model,Time,PromptTokens,CompletionTokens,TotalTokens,EstimatedCost,Attempts,Result
 gpt-4.1,55.12,24825,2495,27320,0.070,2,Success
 gpt-5,84.75,11665,4667,16332,0.061,1,Success
 gpt-5-mini,124.19,38664,9301,47965,0.028,3,Fail

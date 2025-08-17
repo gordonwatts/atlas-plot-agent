@@ -2285,7 +2285,7 @@ bash: no job control in this shell
 
 ## CSV
 
-Model(s),Time (s),Prompt Tokens,Completion Tokens,Total Tokens,Estimated Cost ($),Attempts,Result
+Model,Time,PromptTokens,CompletionTokens,TotalTokens,EstimatedCost,Attempts,Result
 gpt-4.1,90.79,36731,2258,38989,0.092,3,Success
 gpt-5,113.68,36178,5726,41904,0.102,3,Success
 gpt-5-mini,102.34,37475,6951,44426,0.023,3,Fail

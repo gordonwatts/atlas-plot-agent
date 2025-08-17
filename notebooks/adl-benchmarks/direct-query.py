@@ -402,12 +402,12 @@ def ask(
     # CSV header
     # Determine max number of python run attempts
     csv_header = [
-        "Model(s)",
-        "Time (s)",
-        "Prompt Tokens",
-        "Completion Tokens",
-        "Total Tokens",
-        "Estimated Cost ($)",
+        "Model",
+        "Time",
+        "PromptTokens",
+        "CompletionTokens",
+        "TotalTokens",
+        "EstimatedCost",
         "Attempts",
         "Result",
     ]
