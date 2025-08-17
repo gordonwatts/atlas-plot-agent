@@ -287,7 +287,7 @@ def run_model(
         print(f"*Error:*\n```\n{result.stderr}\n```")
 
         # Did we run without an error?
-        run_result = result.exit_code == 0
+        run_result = result.exit_code == 0 and len(result.png_files) > 0
 
         # Save PNG files locally, prefixed with model name
         if run_result:

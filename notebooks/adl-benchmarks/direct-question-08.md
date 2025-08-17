@@ -2502,7 +2502,6 @@ bash: no job control in this shell
 ```
 </details>
 
-
 ## Model gpt-4o
 <details><summary>Run 1 Details</summary>
 
@@ -5671,7 +5670,6 @@ servicex.query_core.ServiceXException: Transform "lepton_fetch" completed with f
 ```
 </details>
 
-
 ## Model anthropic/claude-sonnet-4
 <details><summary>Run 1 Details</summary>
 
@@ -8212,13 +8210,13 @@ Model,Time,PromptTokens,CompletionTokens,TotalTokens,EstimatedCost,Attempts,Resu
 gpt-4.1,104.47,26122,4850,30972,0.091,2,Success
 gpt-5,199.59,25842,10608,36450,0.138,2,Success
 gpt-5-mini,142.45,39377,13962,53339,0.038,3,Fail
-gpt-5-nano,130.75,41602,30996,72598,0.014,3,Success
+gpt-5-nano,130.75,41602,30996,72598,0.014,3,Fail
 gpt-4o,83.03,38514,3685,42199,0.133,3,Fail
 o4-mini,110.30,38726,11434,50160,0.093,3,Fail
 openai/gpt-oss-120b,138.62,38435,7751,46186,0.010,3,Fail
 openai/gpt-oss-20b,11.04,11748,2048,13796,0.001,1,Fail
 Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8,97.46,39450,6144,45594,0.091,3,Fail
-arcee-ai/coder-large,76.65,40073,5846,45919,0.025,3,Success
+arcee-ai/coder-large,76.65,40073,5846,45919,0.025,3,Fail
 anthropic/claude-sonnet-4,150.65,31288,5458,36746,0.176,3,Success
 google/gemini-2.5-flash,56.14,46535,12217,58752,0.045,3,Success
 deepseek/deepseek-chat-v3-0324,319.66,39693,4588,44281,0.015,3,Fail
@@ -8230,13 +8228,13 @@ deepseek/deepseek-chat-v3-0324,319.66,39693,4588,44281,0.015,3,Fail
 | gpt-4.1 | 104.47 | 26122 | 4850 | 30972 | $0.091 | 2 | Success |
 | gpt-5 | 199.59 | 25842 | 10608 | 36450 | $0.138 | 2 | Success |
 | gpt-5-mini | 142.45 | 39377 | 13962 | 53339 | $0.038 | 3 | Fail |
-| gpt-5-nano | 130.75 | 41602 | 30996 | 72598 | $0.014 | 3 | Success |
+| gpt-5-nano | 130.75 | 41602 | 30996 | 72598 | $0.014 | 3 | Fail |
 | gpt-4o | 83.03 | 38514 | 3685 | 42199 | $0.133 | 3 | Fail |
 | o4-mini | 110.30 | 38726 | 11434 | 50160 | $0.093 | 3 | Fail |
 | openai/gpt-oss-120b | 138.62 | 38435 | 7751 | 46186 | $0.010 | 3 | Fail |
 | openai/gpt-oss-20b | 11.04 | 11748 | 2048 | 13796 | $0.001 | 1 | Fail |
 | Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 97.46 | 39450 | 6144 | 45594 | $0.091 | 3 | Fail |
-| arcee-ai/coder-large | 76.65 | 40073 | 5846 | 45919 | $0.025 | 3 | Success |
+| arcee-ai/coder-large | 76.65 | 40073 | 5846 | 45919 | $0.025 | 3 | Fail |
 | anthropic/claude-sonnet-4 | 150.65 | 31288 | 5458 | 36746 | $0.176 | 3 | Success |
 | google/gemini-2.5-flash | 56.14 | 46535 | 12217 | 58752 | $0.045 | 3 | Success |
 | deepseek/deepseek-chat-v3-0324 | 319.66 | 39693 | 4588 | 44281 | $0.015 | 3 | Fail |

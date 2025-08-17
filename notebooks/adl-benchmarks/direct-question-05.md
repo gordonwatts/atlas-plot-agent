@@ -1542,7 +1542,6 @@ bash: no job control in this shell
 ```
 </details>
 
-
 ## Model gpt-4o
 <details><summary>Run 1 Details</summary>
 
@@ -5118,7 +5117,7 @@ Model,Time,PromptTokens,CompletionTokens,TotalTokens,EstimatedCost,Attempts,Resu
 gpt-4.1,55.12,24825,2495,27320,0.070,2,Success
 gpt-5,84.75,11665,4667,16332,0.061,1,Success
 gpt-5-mini,124.19,38664,9301,47965,0.028,3,Fail
-gpt-5-nano,145.99,38992,25502,64494,0.012,3,Success
+gpt-5-nano,145.99,38992,25502,64494,0.012,3,Fail
 gpt-4o,57.53,37445,2862,40307,0.122,3,Fail
 o4-mini,60.12,24785,5589,30374,0.052,2,Success
 openai/gpt-oss-120b,27.93,11730,2342,14072,0.003,1,Success
@@ -5136,7 +5135,7 @@ deepseek/deepseek-chat-v3-0324,122.29,38776,3096,41872,0.014,3,Fail
 | gpt-4.1 | 55.12 | 24825 | 2495 | 27320 | $0.070 | 2 | Success |
 | gpt-5 | 84.75 | 11665 | 4667 | 16332 | $0.061 | 1 | Success |
 | gpt-5-mini | 124.19 | 38664 | 9301 | 47965 | $0.028 | 3 | Fail |
-| gpt-5-nano | 145.99 | 38992 | 25502 | 64494 | $0.012 | 3 | Success |
+| gpt-5-nano | 145.99 | 38992 | 25502 | 64494 | $0.012 | 3 | Fail |
 | gpt-4o | 57.53 | 37445 | 2862 | 40307 | $0.122 | 3 | Fail |
 | o4-mini | 60.12 | 24785 | 5589 | 30374 | $0.052 | 2 | Success |
 | openai/gpt-oss-120b | 27.93 | 11730 | 2342 | 14072 | $0.003 | 1 | Success |
