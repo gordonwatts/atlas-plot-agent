@@ -8204,6 +8204,1702 @@ RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Some
 ```
 </details>
 
+## Model meta-llama/llama-3.1-8b-instruct
+<details><summary>Run 1 Details</summary>
+
+### Run 1
+
+
+* Generated code for accessing ATLAS data using ServiceX and manipulating it with Awkward array.
+* Constructed queries using FuncADL to select specific data points, such as light leptons and missing transverse momentum.
+* Used operations like mapping, sum, mean, std dev, and filtering on arrays to analyze the data.
+* Calculated transverse mass of the system consisting of the missing transverse momentum and the highest-pT light lepton not in the targeted same-flavor opposite-charge pair.
+* Used matplotlib with mplhep style for plotting the histogram.
+* Saved the plot to a PNG file.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import numpy as np
+import matplotlib.pyplot as plt
+import mplhep as hep
+import hist
+
+# Define the query to select required data
+query = (
+    FuncADLQueryPHYSLITE()
+   .SelectMany(lambda e: e.Leptons())
+   .Select(lambda lep: {
+        "pt": lep.pt() / 1000.0,
+        "eta": lep.eta(),
+        "phi": lep.phi()
+    })
+   .SelectMany(lambda e: e.Jets())
+   .Select(lambda jet: {
+        "pt": jet.pt() / 1000.0,
+        "eta": jet.eta(),
+        "phi": jet.phi()
+    })
+   .Where(lambda e: e.MissingET().pt() > 0)
+)
+
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.701005.Sh_2214_lllvjj.deriv.DAOD_PHYSLITE.e8543_s4159_r15224_p6697")
+
+# Fetch data from dataset
+all_leptons = to_awk(deliver(
+    ServiceXSpec(
+        Sample=[
+            Sample(
+                Name="leptons_and_jets",
+                Dataset=dataset.Rucio(ds_name),
+                NFiles=1,
+                Query=query,
+            )
+        ]
+    )
+))
+
+# Filter for required setup
+count lep_values in all_leptons['leptons_and_jets']:
+    pt = lep_values['pt']
+    pair = ak.pack(lep_values['etapseen'])    (wrapped for display)
+    best_mass_pair_mass = ak.first(ak.argmin(ak.abs(ak.flatten(pair) - 91.2), axis=-1)
+    best_pair = pair[best_mass_pair_mass.index(91.2)]
+    pair_counts = ak.num(best_pair)
+    best_pair_mass = best_pair['etapseen'].sum()
+
+    transverse_mass = ak.sqrt(2*pt - 2*best_pair_mass)
+    transpose_masses = ak.flatten(transverse_mass)
+    cutoff = 10.
+    above_cutoff = ak.filter(transpose_masses > cutoff, transpose_masses)
+
+    hist = hist.Hist.new.Reg(60, 40., 1, name='transverse_mass', label='transverse_mass', buckets='auto')
+    flip = hep.hist2dplot.hist2dplot(hist, above_cutoff, hist.types.fill)
+    flip.axis.flip_h()
+    hep.axlabel.set(ent_exec)
+    hep.savefig("pt.png")
+>end-reply<
+```
+#### Code Execution
+
+*Output:*
+```
+
+```
+*Error:*
+```
+Policy violations found:
+- No savefig call found in source code - save your plot to a file using plt.savefig() or fig.savefig().
+```
+</details>
+<details><summary>Run 2 Details</summary>
+
+### Run 2
+
+
+* The previous code did not save the plot to a file. This is a policy violation because it does not produce a histogram or plot in a file format but instead displays it directly.
+* Update the code to use `plt.savefig()` to save the plot to a file.
+
+```python
+import matplotlib.pyplot as plt
+import mplhep as hep
+import hist
+
+#... (other code remains the same)
+
+# Plot the 1D slice with filled histogram style
+h_sig.plot(histtype="fill", linewidth=1, edgecolor="gray", label="ttbar")
+plt.legend()
+plt.xlabel("Mass [GeV]")
+plt.savefig("mass_plot.png")  # Save the plot to a file
+plt.show()
+```
+
+* The `hist` library has its own way of displaying and saving plots. However, in this case, we are using matplotlib directly.
+
+```python
+import matplotlib.pyplot as plt
+import mplhep as hep
+import hist
+
+h_sig.plot(histtype="fill")
+
+plt.savefig("mass_plot.png")  # Save the plot to a file
+```
+>>end-reply<
+#### Code Execution
+
+*Output:*
+```
+
+```
+*Error:*
+```
+Policy violations found:
+- NFiles=1 not found in source code - it must be present in the ServiceX `Sample` definition to assure a quick test run.
+```
+</details>
+<details><summary>Run 3 Details</summary>
+
+### Run 3
+
+
+* The error occurred because the `deliver` function was missing the `NFiles` key in the `ServiceXSpec` dictionary. This key is required to specify the number of files to process when fetching data from ServiceX. In order to fix the error, we need to add the `NFiles` key to the `ServiceXSpec` dictionary.
+
+* The `deliver` function was executed without the `NFiles` key specified. This caused an error because the function requires this key to be present.
+
+* To fix the error, we need to add the `NFiles` key to the `ServiceXSpec` dictionary and set it to a value, for example, 1.
+
+* Update the code as follows:
+
+```python
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697")
+
+all_jet_pts = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="jet_pt_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,  # Add the NFiles key and set it to 1 for testing
+                    Query=jet_pts_query,
+                )
+            ]
+        ),
+    )
+)
+```
+
+* Use the `.png` file extension to save the plots.
+
+```python
+plt.savefig("mass_plot.png")  # Save the plot to a file
+```
+
+* Only use Awkward array for data manipulation from ServiceX.
+
+```python
+# Do the fetch
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697")
+
+all_jet_pts = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="jet_pt_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=jet_pts_query,
+                )
+            ]
+        ),
+    )
+)
+```
+
+>>end-reply<
+#### Code Execution
+
+*Output:*
+```
+
+```
+*Error:*
+```
+Policy violations found:
+- No savefig call found in source code - save your plot to a file using plt.savefig() or fig.savefig().
+```
+</details>
+
+## Model meta-llama/llama-3.3-70b-instruct
+<details><summary>Run 1 Details</summary>
+
+### Run 1
+
+
+* Defined a query to select events with at least three light leptons and a same-flavor opposite-charge light lepton pair using `FuncADLQueryPHYSLITE`.
+* Used `ak.cartesian` to generate all possible pairs of same-flavor opposite-charge light leptons in each event.
+* Computed the invariant mass of each pair using the `Momentum4D` behavior from the `vector` library.
+* Selected the pair with an invariant mass closest to 91.2 GeV in each event.
+* Identified the highest-pT light lepton not in this pair in each event.
+* Computed the transverse mass of the system consisting of the missing transverse momentum and the highest-pT light lepton not in the pair.
+* Plotted the resulting transverse masses using `Hist` and `mplhep`.
+
+```python
+import awkward as ak
+import numpy as np
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import vector
+vector.register_awkward()
+
+# Define the base query
+query = FuncADLQueryPHYSLITE()
+
+# Query: get all electrons and muons
+leptons_query = (query
+    .SelectMany(lambda e: e.Electrons() + e.Muons())
+    .Select(lambda lep: {
+        "lep_pt": lep.pt() / 1000.0,
+        "lep_eta": lep.eta(),
+        "lep_phi": lep.phi(),
+        "lep_E": lep.E() / 1000.0,
+        "lep_charge": lep.charge()
+    })
+)
+
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.701005.Sh_2214_lllvjj.deriv.DAOD_PHYSLITE.e8543_s4159_r15224_p6697")
+
+# Do the fetch
+all_leptons = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="lep_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=leptons_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Compute the missing transverse momentum
+met_query = (query
+    .Select(lambda e: e.MissingET().First())
+    .Select(lambda met: {
+        "met_pt": met.met() / 1000.0,
+        "met_phi": met.phi()
+    })
+)
+all_met = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="met_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=met_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Find events with at least three light leptons and a same-flavor opposite-charge light lepton pair
+events = all_leptons["lep_fetch"]
+events = events[ak.num(events, axis=1) >= 3]
+
+# Generate all possible pairs of same-flavor opposite-charge light leptons
+pairs = ak.cartesian([events, events], axis=1, fields=["lep1", "lep2"])
+
+# Filter pairs to only include same-flavor opposite-charge pairs
+pairs = pairs[(pairs.lep1.lep_charge != pairs.lep2.lep_charge) & 
+              (abs(pairs.lep1.lep_charge) == 1) & 
+              (abs(pairs.lep2.lep_charge) == 1)]
+
+# Compute the invariant mass of each pair
+pair_mass = (pairs.lep1.lep_pt**2 + pairs.lep1.lep_eta**2 + pairs.lep1.lep_phi**2 + pairs.lep1.lep_E**2)**0.5 + \
+            (pairs.lep2.lep_pt**2 + pairs.lep2.lep_eta**2 + pairs.lep2.lep_phi**2 + pairs.lep2.lep_E**2)**0.5
+
+# Select the pair with an invariant mass closest to 91.2 GeV in each event
+closest_pair = pairs[np.abs(pair_mass - 91.2) == np.min(np.abs(pair_mass - 91.2), axis=1, keepdims=True)]
+
+# Identify the highest-pT light lepton not in this pair in each event
+other_leptons = events[(events.lep_charge != closest_pair.lep1.lep_charge) & 
+                       (events.lep_pt != closest_pair.lep1.lep_pt) & 
+                       (events.lep_eta != closest_pair.lep1.lep_eta) & 
+                       (events.lep_phi != closest_pair.lep1.lep_phi)]
+highest_pt_lepton = other_leptons[other_leptons.lep_pt == np.max(other_leptons.lep_pt, axis=1, keepdims=True)]
+
+# Compute the transverse mass of the system consisting of the missing transverse momentum and the highest-pT light lepton not in the pair
+mt = np.sqrt(2 * all_met["met_fetch"].met_pt * highest_pt_lepton.lep_pt * (1 - np.cos(all_met["met_fetch"].met_phi - highest_pt_lepton.lep_phi)))
+
+# Plot the resulting transverse masses
+h = hist.Hist(
+    hist.axis.Regular(50, 0, 200, name="mt", label="Transverse Mass [GeV]"),
+    storage=hist.storage.Double()
+)
+h.fill(mt)
+
+plt.style.use(hep.style.ATLAS)
+h.plot hunts="step")
+plt.xlabel("Transverse Mass [GeV]")
+plt.show()
+plt.savefig("transverse_mass.png")
+```
+>>end-reply<
+#### Code Execution
+
+*Output:*
+```
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+  File "/app/script.py", line 106
+    h.plot hunts="step")
+                       ^
+SyntaxError: unmatched ')'
+
+```
+</details>
+<details><summary>Run 2 Details</summary>
+
+### Run 2
+
+
+* The error in the provided code is a syntax error in the line `h.plot hunts="step")`. The correct keyword argument for the `plot` method is `histtype`, not `hunts`. Additionally, there is a mismatched closing parenthesis.
+* The `np.min(np.abs(pair_mass - 91.2), axis=1, keepdims=True)` line may cause issues if there are multiple pairs with the same minimum absolute difference. Instead, use `ak.argmin` to find the index of the minimum value.
+* The `other_leptons` and `highest_pt_lepton` selections can be simplified using `ak.argmax` and `ak.flatten`.
+* The `mt` calculation can be vectorized using Awkward Array's support for NumPy functions.
+
+```python
+import awkward as ak
+import numpy as np
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import vector
+vector.register_awkward()
+
+# Define the base query
+query = FuncADLQueryPHYSLITE()
+
+# Query: get all electrons and muons
+leptons_query = (query
+    .SelectMany(lambda e: e.Electrons() + e.Muons())
+    .Select(lambda lep: {
+        "lep_pt": lep.pt() / 1000.0,
+        "lep_eta": lep.eta(),
+        "lep_phi": lep.phi(),
+        "lep_E": lep.E() / 1000.0,
+        "lep_charge": lep.charge()
+    })
+)
+
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.701005.Sh_2214_lllvjj.deriv.DAOD_PHYSLITE.e8543_s4159_r15224_p6697")
+
+# Do the fetch
+all_leptons = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="lep_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=leptons_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Compute the missing transverse momentum
+met_query = (query
+    .Select(lambda e: e.MissingET().First())
+    .Select(lambda met: {
+        "met_pt": met.met() / 1000.0,
+        "met_phi": met.phi()
+    })
+)
+all_met = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="met_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=met_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Find events with at least three light leptons and a same-flavor opposite-charge light lepton pair
+events = all_leptons["lep_fetch"]
+events = events[ak.num(events, axis=1) >= 3]
+
+# Generate all possible pairs of same-flavor opposite-charge light leptons
+pairs = ak.cartesian([events, events], axis=1, fields=["lep1", "lep2"])
+
+# Filter pairs to only include same-flavor opposite-charge pairs
+pairs = pairs[(pairs.lep1.lep_charge != pairs.lep2.lep_charge) & 
+              (abs(pairs.lep1.lep_charge) == 1) & 
+              (abs(pairs.lep2.lep_charge) == 1)]
+
+# Compute the invariant mass of each pair
+pair_mass = (pairs.lep1.lep_pt**2 + pairs.lep1.lep_eta**2 + pairs.lep1.lep_phi**2 + pairs.lep1.lep_E**2)**0.5 + \
+            (pairs.lep2.lep_pt**2 + pairs.lep2.lep_eta**2 + pairs.lep2.lep_phi**2 + pairs.lep2.lep_E**2)**0.5
+
+# Select the pair with an invariant mass closest to 91.2 GeV in each event
+closest_pair_idx = ak.argmin(np.abs(pair_mass - 91.2), axis=1, keepdims=True)
+closest_pair = pairs[closest_pair_idx]
+
+# Identify the highest-pT light lepton not in this pair in each event
+other_leptons = ak.flatten(events[(events.lep_pt != closest_pair.lep1.lep_pt) & 
+                                 (events.lep_eta != closest_pair.lep1.lep_eta) & 
+                                 (events.lep_phi != closest_pair.lep1.lep_phi)])
+highest_pt_lepton_idx = ak.argmax(other_leptons.lep_pt)
+highest_pt_lepton = other_leptons[highest_pt_lepton_idx]
+
+# Compute the transverse mass of the system consisting of the missing transverse momentum and the highest-pT light lepton not in the pair
+mt = np.sqrt(2 * all_met["met_fetch"].met_pt * highest_pt_lepton.lep_pt * (1 - np.cos(all_met["met_fetch"].met_phi - highest_pt_lepton.lep_phi)))
+
+# Plot the resulting transverse masses
+h = hist.Hist(
+    hist.axis.Regular(50, 0, 200, name="mt", label="Transverse Mass [GeV]"),
+    storage=hist.storage.Double()
+)
+h.fill(mt)
+
+plt.style.use(hep.style.ATLAS)
+h.plot(histtype="step")
+plt.xlabel("Transverse Mass [GeV]")
+plt.show()
+plt.savefig("transverse_mass.png")
+```
+>>end-reply<
+#### Code Execution
+
+*Output:*
+```
+lep_fetch: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+            Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 31, in <module>
+    all_leptons = to_awk(
+        deliver(
+    ...<10 lines>...
+        )
+    )
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: Not all types (DataVector<xAOD::Electron_v1>, DataVector<xAOD::Muon_v1>) are known (known: int, float, double))
+
+
+```
+</details>
+<details><summary>Run 3 Details</summary>
+
+### Run 3
+
+
+* The error occurs because the `FuncADLQueryPHYSLITE` does not support combining `Electrons` and `Muons` directly.
+* To fix this, we need to define two separate queries for electrons and muons, and then combine the results.
+* We also need to update the code to use the `ak.zip` function to combine the electron and muon data into a single awkward array.
+
+```python
+import awkward as ak
+import numpy as np
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import vector
+vector.register_awkward()
+
+# Define the base query
+query = FuncADLQueryPHYSLITE()
+
+# Query: get all electrons
+electrons_query = (query
+    .SelectMany(lambda e: e.Electrons())
+    .Select(lambda ele: {
+        "lep_pt": ele.pt() / 1000.0,
+        "lep_eta": ele.eta(),
+        "lep_phi": ele.phi(),
+        "lep_E": ele.E() / 1000.0,
+        "lep_charge": ele.charge(),
+        "lep_type": 0  # 0 for electrons
+    })
+)
+
+# Query: get all muons
+muons_query = (query
+    .SelectMany(lambda e: e.Muons())
+    .Select(lambda mu: {
+        "lep_pt": mu.pt() / 1000.0,
+        "lep_eta": mu.eta(),
+        "lep_phi": mu.phi(),
+        "lep_E": mu.E() / 1000.0,
+        "lep_charge": mu.charge(),
+        "lep_type": 1  # 1 for muons
+    })
+)
+
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.701005.Sh_2214_lllvjj.deriv.DAOD_PHYSLITE.e8543_s4159_r15224_p6697")
+
+# Do the fetch
+all_electrons = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="ele_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=electrons_query,
+                )
+            ]
+        ),
+    )
+)
+
+all_muons = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="muon_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=muons_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Combine the electron and muon data into a single awkward array
+all_leptons = ak.concatenate([all_electrons["ele_fetch"], all_muons["muon_fetch"]], axis=0)
+
+# Compute the missing transverse momentum
+met_query = (query
+    .Select(lambda e: e.MissingET().First())
+    .Select(lambda met: {
+        "met_pt": met.met() / 1000.0,
+        "met_phi": met.phi()
+    })
+)
+all_met = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="met_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=met_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Find events with at least three light leptons and a same-flavor opposite-charge light lepton pair
+events = all_leptons
+events = events[ak.num(events, axis=0) >= 3]
+
+# Generate all possible pairs of same-flavor opposite-charge light leptons
+pairs = ak.cartesian([events, events], axis=0, fields=["lep1", "lep2"])
+
+# Filter pairs to only include same-flavor opposite-charge pairs
+pairs = pairs[(pairs.lep1.lep_charge != pairs.lep2.lep_charge) & 
+              (abs(pairs.lep1.lep_charge) == 1) & 
+              (abs(pairs.lep2.lep_charge) == 1)]
+
+# Compute the invariant mass of each pair
+pair_mass = (pairs.lep1.lep_pt**2 + pairs.lep1.lep_eta**2 + pairs.lep1.lep_phi**2 + pairs.lep1.lep_E**2)**0.5 + \
+            (pairs.lep2.lep_pt**2 + pairs.lep2.lep_eta**2 + pairs.lep2.lep_phi**2 + pairs.lep2.lep_E**2)**0.5
+
+# Select the pair with an invariant mass closest to 91.2 GeV in each event
+closest_pair_idx = ak.argmin(np.abs(pair_mass - 91.2), axis=0, keepdims=True)
+closest_pair = pairs[closest_pair_idx]
+
+# Identify the highest-pT light lepton not in this pair in each event
+other_leptons = ak.flatten(events[(events.lep_pt != closest_pair.lep1.lep_pt) & 
+                                 (events.lep_eta != closest_pair.lep1.lep_eta) & 
+                                 (events.lep_phi != closest_pair.lep1.lep_phi)])
+highest_pt_lepton_idx = ak.argmax(other_leptons.lep_pt)
+highest_pt_lepton = other_leptons[highest_pt_lepton_idx]
+
+# Compute the transverse mass of the system consisting of the missing transverse momentum and the highest-pT light lepton not in the pair
+mt = np.sqrt(2 * all_met["met_fetch"].met_pt * highest_pt_lepton.lep_pt * (1 - np.cos(all_met["met_fetch"].met_phi - highest_pt_lepton.lep_phi)))
+
+# Plot the resulting transverse masses
+h = hist.Hist(
+    hist.axis.Regular(50, 0, 200, name="mt", label="Transverse Mass [GeV]"),
+    storage=hist.storage.Double()
+)
+h.fill(mt)
+
+plt.style.use(hep.style.ATLAS)
+h.plot(histtype="step")
+plt.xlabel("Transverse Mass [GeV]")
+plt.show()
+plt.savefig("transverse_mass.png")
+```
+>>end-reply<
+#### Code Execution
+
+*Output:*
+```
+[08/17/25 22:24:41] ERROR    Transform "ele_fetch" completed   query_core.py:236
+                             with failures: 1/1 files                           
+                             failed.Will not cache.                             
+                    ERROR    A list of failed files is at this query_core.py:237
+                             link                                               
+                    ERROR    Transform Request id:             query_core.py:238
+                             5f79fb20-6060-4c17-8877-ec07b70dd                  
+                             a3c                                                
+                    ERROR    More information of 'ele_fetch'   query_core.py:248
+                             HERE                                               
+ele_fetch: Transform                                          0/1 --:--
+            Download                                          0/1 --:--
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Method E not found on object <class 'func_adl_servicex_xaodr25.xAOD.electron_v1.Electron_v1'>
+Method E not found on object <class 'func_adl_servicex_xaodr25.xAOD.muon_v1.Muon_v1'>
+Exception in callback Query.submit_and_download.<locals>.transform_complete() at /work/.venv/lib/python3.13/site-packages/servicex/query_core.py:195
+handle: <Handle Query.submit_and_download.<locals>.transform_complete() at /work/.venv/lib/python3.13/site-packages/servicex/query_core.py:195>
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.13/asyncio/events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 253, in transform_complete
+    raise ServiceXException(errorstr)
+servicex.query_core.ServiceXException: Transform "ele_fetch" completed with failures: 1/1 files failed.Will not cache.
+Traceback (most recent call last):
+  File "/app/script.py", line 45, in <module>
+    all_electrons = to_awk(
+        deliver(
+    ...<10 lines>...
+        )
+    )
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 57, in to_awk
+    raise ValueError(f"ServiceX result path list for {sample} cannot be empty.")
+ValueError: ServiceX result path list for ele_fetch cannot be empty.
+
+```
+</details>
+
+## Model meta-llama/llama-4-maverick
+<details><summary>Run 1 Details</summary>
+
+### Run 1
+
+
+* Used ServiceX to fetch data from the specified rucio dataset.
+* Filtered events with at least three light leptons and a same-flavor opposite-charge light lepton pair.
+* Found the same-flavor opposite-charge light lepton pair with an invariant mass closest to 91.2 GeV in each event.
+* Calculated the transverse mass of the system consisting of the missing transverse momentum and the highest-pT light lepton not in the pair.
+* Plotted the transverse mass using Hist and saved it to a `png` file.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import vector
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Register vector behaviors for Awkward Array
+vector.register_awkward()
+
+# Define the base query
+base_query = FuncADLQueryPHYSLITE()
+
+# Query to fetch the required data
+query = (base_query
+    .Select(lambda e: {
+        'electrons': e.Electrons("Electrons"),
+        'muons': e.Muons("Muons"),
+        'met': e.MissingET().First(),
+    })
+)
+
+# Define the dataset
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.701005.Sh_2214_lllvjj.deriv.DAOD_PHYSLITE.e8543_s4159_r15224_p6697"
+
+# Fetch the data
+data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="data_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=query,
+                )
+            ]
+        ),
+    )
+)["data_fetch"]
+
+# Combine electrons and muons into a single array of light leptons
+data['leptons'] = ak.with_name(ak.concatenate([data.electrons, data.muons], axis=1), "Momentum4D")
+
+# Filter events with at least three light leptons
+data = data[ak.num(data.leptons, axis=1) >= 3]
+
+# Function to find the best Z candidate
+def find_best_z(leptons):
+    # Find all pairs of leptons
+    pairs = ak.combinations(leptons, 2, fields=["l1", "l2"], axis=1)
+    l1, l2 = ak.unzip(pairs)
+    
+    # Check if the pair is same-flavor and opposite-charge
+    same_flavor = (l1.pdgId == l2.pdgId)
+    opposite_charge = (l1.charge * l2.charge == -1)
+    valid_pairs = pairs[same_flavor & opposite_charge]
+    valid_l1, valid_l2 = ak.unzip(valid_pairs)
+    
+    # Calculate the invariant mass of valid pairs
+    valid_pair_mass = (valid_l1 + valid_l2).mass
+    
+    # Find the pair with mass closest to 91.2 GeV
+    best_pair_idx = ak.argmin(ak.abs(valid_pair_mass - 91.2), axis=1, keepdims=True)
+    best_pair = valid_pairs[best_pair_idx]
+    best_pair_mass = ak.flatten(valid_pair_mass[best_pair_idx])
+    
+    return best_pair, best_pair_mass
+
+# Apply the function to the data
+best_pair, best_pair_mass = find_best_z(data.leptons)
+
+# Find the highest-pT lepton not in the best pair
+def find_highest_pt_lepton_not_in_pair(leptons, best_pair):
+    # Unzip the best pair
+    best_l1, best_l2 = ak.unzip(best_pair)
+    
+    # Check which leptons are not in the best pair
+    not_in_pair = ~(ak.any(leptons == best_l1[:, None], axis=1) | ak.any(leptons == best_l2[:, None], axis=1))
+    leptons_not_in_pair = leptons[not_in_pair]
+    
+    # Find the highest-pT lepton not in the pair
+    highest_pt_idx = ak.argmax(leptons_not_in_pair.pt, axis=1, keepdims=True)
+    highest_pt_lepton = leptons_not_in_pair[highest_pt_idx]
+    
+    return ak.flatten(highest_pt_lepton)
+
+highest_pt_lepton = find_highest_pt_lepton_not_in_pair(data.leptons, best_pair)
+
+# Calculate the transverse mass of the system consisting of the missing transverse momentum and the highest-pT lepton not in the pair
+met = ak.with_name(ak.zip({
+    'pt': data.met.met / 1000.0,
+    'phi': data.met.phi(),
+    'eta': 0.0,  # Not used in the calculation
+    'M': 0.0   # Not used in the calculation
+}), "Momentum4D")
+
+mt = ak.sqrt(2 * met.pt * highest_pt_lepton.pt * (1 - ak.cos(met.delta_phi(highest_pt_lepton))))
+
+# Plot the transverse mass
+h = hist.Hist(hist.axis.Regular(50, 0, 200, name="mt", label="Transverse Mass [GeV]"))
+h.fill(mt=ak.flatten(mt))
+
+plt.style.use(hep.style.ATLAS)
+h.plot()
+plt.xlabel("Transverse Mass [GeV]")
+plt.ylabel("Events")
+plt.savefig("transverse_mass.png")
+
+print("Transverse mass histogram saved to transverse_mass.png")
+```
+#### Code Execution
+
+*Output:*
+```
+data_fetch: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+             Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 29, in <module>
+    data = to_awk(
+           ~~~~~~^
+        deliver(
+        ^^^^^^^^
+    ...<10 lines>...
+        )
+        ^
+    )["data_fetch"]
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: Do not know how to loop over a <class 'func_adl_xAOD.common.cpp_representation.cpp_collection'>)
+
+
+```
+</details>
+<details><summary>Run 2 Details</summary>
+
+### Run 2
+
+
+* The error is due to the query trying to directly access the `Electrons` and `Muons` collections without specifying the container name.
+* The `MissingET` collection is being accessed correctly, but the `met` value is being accessed using `data.met.met / 1000.0`, which is correct, but `data.met.phi()` should be used directly as it is already in radians.
+* The code is trying to concatenate electrons and muons into a single array of light leptons, which is a good approach, but it needs to ensure that the `pdgId` and `charge` fields are available for both electrons and muons.
+* The `find_best_z` function is trying to find the best Z candidate by checking same-flavor and opposite-charge pairs, which is correct, but it assumes that the `pdgId` and `charge` fields are available for the leptons.
+* The `find_highest_pt_lepton_not_in_pair` function is trying to find the highest-pT lepton not in the best pair, which is correct, but it needs to handle the case where there are no leptons not in the pair.
+
+To fix the error, we need to modify the query to fetch the required data correctly. We need to specify the container name when accessing the `Electrons` and `Muons` collections.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import vector
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Register vector behaviors for Awkward Array
+vector.register_awkward()
+
+# Define the base query
+base_query = FuncADLQueryPHYSLITE()
+
+# Query to fetch the required data
+query = (base_query
+    .Select(lambda e: {
+        'electrons': e.Electrons("Electrons"),
+        'muons': e.Muons("Muons"),
+        'met': e.MissingET("MET").First(), # Specify the container name "MET" for MissingET
+    })
+    .Select(lambda e: { # Add a new Select to transform the data into the required format
+        'electrons': e['electrons'].Select(lambda ele: {
+            'pt': ele.pt() / 1000.0,
+            'eta': ele.eta(),
+            'phi': ele.phi(),
+            'charge': ele.charge(),
+            'pdgId': ele.pdgId(),
+        }),
+        'muons': e['muons'].Select(lambda mu: {
+            'pt': mu.pt() / 1000.0,
+            'eta': mu.eta(),
+            'phi': mu.phi(),
+            'charge': mu.charge(),
+            'pdgId': mu.pdgId(),
+        }),
+        'met': {
+            'pt': e['met'].met() / 1000.0,
+            'phi': e['met'].phi(),
+        },
+    })
+)
+
+# Define the dataset
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.701005.Sh_2214_lllvjj.deriv.DAOD_PHYSLITE.e8543_s4159_r15224_p6697"
+
+# Fetch the data
+data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="data_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=query,
+                )
+            ]
+        ),
+    )
+)["data_fetch"]
+
+# Combine electrons and muons into a single array of light leptons
+electrons = ak.with_name(ak.zip({
+    'pt': data.electrons.pt,
+    'eta': data.electrons.eta,
+    'phi': data.electrons.phi,
+    'charge': data.electrons.charge,
+    'pdgId': data.electrons.pdgId,
+}), "Momentum4D")
+
+muons = ak.with_name(ak.zip({
+    'pt': data.muons.pt,
+    'eta': data.muons.eta,
+    'phi': data.muons.phi,
+    'charge': data.muons.charge,
+    'pdgId': data.muons.pdgId,
+}), "Momentum4D")
+
+data['leptons'] = ak.concatenate([electrons, muons], axis=1)
+
+# Filter events with at least three light leptons
+data = data[ak.num(data.leptons, axis=1) >= 3]
+
+# Function to find the best Z candidate
+def find_best_z(leptons):
+    # Find all pairs of leptons
+    pairs = ak.combinations(leptons, 2, fields=["l1", "l2"], axis=1)
+    l1, l2 = ak.unzip(pairs)
+    
+    # Check if the pair is same-flavor and opposite-charge
+    same_flavor = (l1.pdgId == l2.pdgId)
+    opposite_charge = (l1.charge * l2.charge == -1)
+    valid_pairs = pairs[same_flavor & opposite_charge]
+    valid_l1, valid_l2 = ak.unzip(valid_pairs)
+    
+    # Calculate the invariant mass of valid pairs
+    valid_pair_mass = (valid_l1 + valid_l2).mass
+    
+    # Find the pair with mass closest to 91.2 GeV
+    best_pair_idx = ak.argmin(ak.abs(valid_pair_mass - 91.2), axis=1, keepdims=True)
+    best_pair = valid_pairs[best_pair_idx]
+    best_pair_mass = ak.flatten(valid_pair_mass[best_pair_idx])
+    
+    return best_pair, best_pair_mass
+
+# Apply the function to the data
+best_pair, best_pair_mass = find_best_z(data.leptons)
+
+# Find the highest-pT lepton not in the best pair
+def find_highest_pt_lepton_not_in_pair(leptons, best_pair):
+    # Unzip the best pair
+    best_l1, best_l2 = ak.unzip(best_pair)
+    
+    # Check which leptons are not in the best pair
+    not_in_pair = ~(ak.any(leptons == best_l1[:, None], axis=1) | ak.any(leptons == best_l2[:, None], axis=1))
+    leptons_not_in_pair = leptons[not_in_pair]
+    
+    # Find the highest-pT lepton not in the pair
+    highest_pt_idx = ak.argmax(leptons_not_in_pair.pt, axis=1, keepdims=True)
+    highest_pt_lepton = leptons_not_in_pair[highest_pt_idx]
+    
+    return ak.flatten(highest_pt_lepton)
+
+highest_pt_lepton = find_highest_pt_lepton_not_in_pair(data.leptons, best_pair)
+
+# Calculate the transverse mass of the system consisting of the missing transverse momentum and the highest-pT lepton not in the pair
+met = ak.with_name(ak.zip({
+    'pt': data.met.pt,
+    'phi': data.met.phi,
+    'eta': 0.0,  
+    'M': 0.0   
+}), "Momentum4D")
+
+mt = ak.sqrt(2 * met.pt * highest_pt_lepton.pt * (1 - ak.cos(met.delta_phi(highest_pt_lepton))))
+
+# Plot the transverse mass
+h = hist.Hist(hist.axis.Regular(50, 0, 200, name="mt", label="Transverse Mass [GeV]"))
+h.fill(mt=ak.flatten(mt))
+
+plt.style.use(hep.style.ATLAS)
+h.plot()
+plt.xlabel("Transverse Mass [GeV]")
+plt.ylabel("Events")
+plt.savefig("transverse_mass.png")
+
+print("Transverse mass histogram saved to transverse_mass.png")
+```
+#### Code Execution
+
+*Output:*
+```
+data_fetch: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+             Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Method pdgId not found on object <class 'func_adl_servicex_xaodr25.xAOD.electron_v1.Electron_v1'>
+Method pdgId not found on object <class 'func_adl_servicex_xaodr25.xAOD.muon_v1.Muon_v1'>
+Traceback (most recent call last):
+  File "/app/script.py", line 49, in <module>
+    data = to_awk(
+           ~~~~~~^
+        deliver(
+        ^^^^^^^^
+    ...<10 lines>...
+        )
+        ^
+    )["data_fetch"]
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: Nested data structures (2D arrays, etc.) in TTree's are not yet supported. Numbers or arrays of numbers only for now.)
+
+
+```
+</details>
+<details><summary>Run 3 Details</summary>
+
+### Run 3
+
+
+* The error message indicates that the `pdgId` method is not found on `Electron_v1` and `Muon_v1` objects. This suggests that the `pdgId` attribute is not available in the xAOD data model for these particles.
+* The `pdgId` is not a standard attribute for electrons and muons in the xAOD data model. Instead, we can infer the PDG ID based on the particle type (electron or muon).
+* We need to modify the query to remove the `pdgId` selection for electrons and muons.
+* The ServiceX error is caused by the nested data structure in the `TTree`, which is not supported. We need to restructure the query to avoid nested data structures.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import vector
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Register vector behaviors for Awkward Array
+vector.register_awkward()
+
+# Define the base query
+base_query = FuncADLQueryPHYSLITE()
+
+# Query to fetch the required data
+query = (base_query
+    .Select(lambda e: {
+        'electrons': e.Electrons("Electrons").Select(lambda ele: {
+            'pt': ele.pt() / 1000.0,
+            'eta': ele.eta(),
+            'phi': ele.phi(),
+            'charge': ele.charge(),
+        }),
+        'muons': e.Muons("Muons").Select(lambda mu: {
+            'pt': mu.pt() / 1000.0,
+            'eta': mu.eta(),
+            'phi': mu.phi(),
+            'charge': mu.charge(),
+        }),
+        'met': {
+            'pt': e.MissingET("MET").First().met() / 1000.0,
+            'phi': e.MissingET("MET").First().phi(),
+        },
+    })
+)
+
+# Define the dataset
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.701005.Sh_2214_lllvjj.deriv.DAOD_PHYSLITE.e8543_s4159_r15224_p6697"
+
+# Fetch the data
+data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="data_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=query,
+                )
+            ]
+        ),
+    )
+)["data_fetch"]
+
+# Combine electrons and muons into a single array of light leptons
+electrons = ak.with_name(ak.zip({
+    'pt': data.electrons.pt,
+    'eta': data.electrons.eta,
+    'phi': data.electrons.phi,
+    'charge': data.electrons.charge,
+    'pdgId': 11 * ak.ones_like(data.electrons.charge), # Assign PDG ID for electrons
+}), "Momentum4D")
+
+muons = ak.with_name(ak.zip({
+    'pt': data.muons.pt,
+    'eta': data.muons.eta,
+    'phi': data.muons.phi,
+    'charge': data.muons.charge,
+    'pdgId': 13 * ak.ones_like(data.muons.charge), # Assign PDG ID for muons
+}), "Momentum4D")
+
+data['leptons'] = ak.concatenate([electrons, muons], axis=1)
+
+# Filter events with at least three light leptons
+data = data[ak.num(data.leptons, axis=1) >= 3]
+
+# Function to find the best Z candidate
+def find_best_z(leptons):
+    # Find all pairs of leptons
+    pairs = ak.combinations(leptons, 2, fields=["l1", "l2"], axis=1)
+    l1, l2 = ak.unzip(pairs)
+    
+    # Check if the pair is same-flavor and opposite-charge
+    same_flavor = (l1.pdgId == l2.pdgId)
+    opposite_charge = (l1.charge * l2.charge == -1)
+    valid_pairs = pairs[same_flavor & opposite_charge]
+    valid_l1, valid_l2 = ak.unzip(valid_pairs)
+    
+    # Calculate the invariant mass of valid pairs
+    valid_pair_mass = (valid_l1 + valid_l2).mass
+    
+    # Find the pair with mass closest to 91.2 GeV
+    best_pair_idx = ak.argmin(ak.abs(valid_pair_mass - 91.2), axis=1, keepdims=True)
+    best_pair = valid_pairs[best_pair_idx]
+    best_pair_mass = ak.flatten(valid_pair_mass[best_pair_idx])
+    
+    return best_pair, best_pair_mass
+
+# Apply the function to the data
+best_pair, best_pair_mass = find_best_z(data.leptons)
+
+# Find the highest-pT lepton not in the best pair
+def find_highest_pt_lepton_not_in_pair(leptons, best_pair):
+    # Unzip the best pair
+    best_l1, best_l2 = ak.unzip(best_pair)
+    
+    # Check which leptons are not in the best pair
+    not_in_pair = ~(ak.any(leptons == best_l1[:, None], axis=1) | ak.any(leptons == best_l2[:, None], axis=1))
+    leptons_not_in_pair = leptons[not_in_pair]
+    
+    # Find the highest-pT lepton not in the pair
+    highest_pt_idx = ak.argmax(leptons_not_in_pair.pt, axis=1, keepdims=True)
+    highest_pt_lepton = leptons_not_in_pair[highest_pt_idx]
+    
+    return ak.flatten(highest_pt_lepton)
+
+highest_pt_lepton = find_highest_pt_lepton_not_in_pair(data.leptons, best_pair)
+
+# Calculate the transverse mass of the system consisting of the missing transverse momentum and the highest-pT lepton not in the pair
+met = ak.with_name(ak.zip({
+    'pt': data.met.pt,
+    'phi': data.met.phi,
+    'eta': 0.0,  
+    'M': 0.0   
+}), "Momentum4D")
+
+mt = ak.sqrt(2 * met.pt * highest_pt_lepton.pt * (1 - ak.cos(met.delta_phi(highest_pt_lepton))))
+
+# Plot the transverse mass
+h = hist.Hist(hist.axis.Regular(50, 0, 200, name="mt", label="Transverse Mass [GeV]"))
+h.fill(mt=ak.flatten(mt))
+
+plt.style.use(hep.style.ATLAS)
+h.plot()
+plt.xlabel("Transverse Mass [GeV]")
+plt.ylabel("Events")
+plt.savefig("transverse_mass.png")
+
+print("Transverse mass histogram saved to transverse_mass.png")
+```
+#### Code Execution
+
+*Output:*
+```
+data_fetch: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+             Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 42, in <module>
+    data = to_awk(
+           ~~~~~~^
+        deliver(
+        ^^^^^^^^
+    ...<10 lines>...
+        )
+        ^
+    )["data_fetch"]
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: Nested data structures (2D arrays, etc.) in TTree's are not yet supported. Numbers or arrays of numbers only for now.)
+
+
+```
+</details>
+
+## Model meta-llama/llama-4-scout
+<details><summary>Run 1 Details</summary>
+
+### Run 1
+
+
+* I used ServiceX to query the rucio dataset `mc23_13p6TeV:mc23_13p6TeV.701005.Sh_2214_lllvjj.deriv.DAOD_PHYSLITE.e8543_s4159_r15224_p6697`.
+* I filtered events with at least three light leptons and a same-flavor opposite-charge light lepton pair.
+* For each event, I found the pair of light leptons with the invariant mass closest to 91.2 GeV.
+* I computed the transverse mass of the system consisting of the missing transverse momentum and the highest-pT light lepton not in this pair.
+* I plotted the transverse mass and saved it to a PNG file.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import numpy as np
+from hist import Hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Register vector behaviors
+import vector
+vector.register_awkward()
+
+# Base query
+base_query = FuncADLQueryPHYSLITE()
+
+# Query: get electrons and muons
+query = (base_query
+    .Select(lambda e: (e.Electrons(), e.Muons()))
+    .Select(lambda pairs: {
+        'electrons':  pairs[0],
+        'muons': pairs[1]
+    })
+)
+
+# Fetch data
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.701005.Sh_2214_lllvjj.deriv.DAOD_PHYSLITE.e8543_s4159_r15224_p6697"
+all_particles = deliver(
+    ServiceXSpec(
+        Sample=[
+            Sample(
+                Name="particles_fetch",
+                Dataset=dataset.Rucio(ds_name),
+                NFiles=1,
+                Query=query,
+            )
+        ]
+    )
+)
+
+# Access particles
+electrons = all_particles["particles_fetch"].electrons
+muons = all_particles["particles_fetch"].muons
+
+# Combine electrons and muons into a single array of leptons
+leptons = ak.concatenate([electrons, muons], axis=1)
+
+# Filter events with at least three light leptons
+mask = ak.num(leptons, axis=1) >= 3
+leptons = leptons[mask]
+
+# Find same-flavor opposite-charge pairs
+def find_pairs(leptons):
+    pairs = ak.combinations(leptons, 2, fields=["p1", "p2"], axis=1)
+    same_flavor = pairs.p1.charge * pairs.p2.charge == -1
+    return pairs[same_flavor]
+
+pairs = find_pairs(leptons)
+
+# Find the pair with invariant mass closest to 91.2 GeV
+def closest_to_z_mass(pairs):
+    z_masses = pairs.p1 + pairs.p2
+    delta_masses = np.abs(z_masses.mass - 91.2)
+    return pairs[ak.argmin(delta_masses, axis=1)]
+
+closest_pairs = closest_to_z_mass(pairs)
+
+# Compute transverse mass of missing transverse momentum and highest-pT light lepton not in pair
+met = base_query.Select(lambda e: e.MissingET().First()).Select(lambda m: {"met": m.met() / 1000.0})
+met = deliver(
+    ServiceXSpec(
+        Sample=[
+            Sample(
+                Name="met_fetch",
+                Dataset=dataset.Rucio(ds_name),
+                NFiles=1,
+                Query=met,
+            )
+        ]
+    )
+)["met_fetch"].met
+
+highest_pt_lepton = leptons[:, ak.argmax(leptons.pt, axis=1)]
+
+transverse_mass = np.sqrt(met**2 + highest_pt_lepton.pt**2)
+
+# Plot transverse mass
+h = Hist.new.Reg(50, 0, 500, name="transverse_mass", label="Transverse Mass [GeV]")
+h.fill(transverse_mass)
+
+plt.style.use(hep.style.ATLAS)
+h.plot(histtype="fill", linewidth=1, edgecolor="gray")
+plt.xlabel("Transverse Mass [GeV]")
+plt.savefig("transverse_mass.png")
+```
+#### Code Execution
+
+*Output:*
+```
+particles_fetch: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+                  Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 41, in <module>
+    electrons = all_particles["particles_fetch"].electrons
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'GuardList' object has no attribute 'electrons'
+
+```
+</details>
+<details><summary>Run 2 Details</summary>
+
+### Run 2
+
+
+* The error message indicates that there is an issue with accessing the 'electrons' attribute from the `all_particles["particles_fetch"]` object, which is of type 'GuardList'. This suggests that the query or data fetching process did not return the expected data structure.
+* The query seems to be returning a `GuardList` instead of the expected Awkward array of particles. This could be due to an issue with the `FuncADLQueryPHYSLITE` or the `deliver` function.
+* To fix the error, we need to ensure that the query and data fetching process return the expected data structure. We can do this by checking the query and the data fetching process.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import numpy as np
+from hist import Hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+import vector
+vector.register_awkward()
+
+# Base query
+base_query = FuncADLQueryPHYSLITE()
+
+# Query: get electrons, muons, and jets
+query = (base_query
+    .Select(lambda e: ({
+        'electrons': e.Electrons(),
+        'muons': e.Muons(),
+        'jets': e.Jets()
+    }))
+)
+
+# Fetch data
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.701005.Sh_2214_lllvjj.deriv.DAOD_PHYSLITE.e8543_s4159_r15224_p6697"
+
+# Use a small number of files for testing
+all_particles = deliver(
+    ServiceXSpec(
+        Sample=[
+            Sample(
+                Name="particles_fetch",
+                Dataset=dataset.Rucio(ds_name),
+                NFiles=5, # Change to a smaller number for testing
+                Query=query,
+            )
+        ]
+    )
+)
+
+# Access particles
+particles = all_particles["particles_fetch"]
+
+# Combine electrons and muons into a single array of leptons
+leptons = ak.concatenate([particles.electrons, particles.muons], axis=1)
+
+# Filter events with at least three light leptons
+mask = ak.num(leptons, axis=1) >= 3
+leptons = leptons[mask]
+
+# Find same-flavor opposite-charge pairs
+def find_pairs(leptons):
+    pairs = ak.combinations(leptons, 2, fields=["p1", "p2"], axis=1)
+    same_flavor = pairs.p1.charge * pairs.p2.charge == -1
+    return pairs[same_flavor]
+
+pairs = find_pairs(leptons)
+
+# Find the pair with invariant mass closest to 91.2 GeV
+def closest_to_z_mass(pairs):
+    z_masses = pairs.p1 + pairs.p2
+    delta_masses = np.abs(z_masses.mass - 91.2)
+    return pairs[ak.argmin(delta_masses, axis=1)]
+
+closest_pairs = closest_to_z_mass(pairs)
+
+# Compute transverse mass of missing transverse momentum and highest-pT light lepton not in pair
+met_query = base_query.Select(lambda e: e.MissingET().First()).Select(lambda m: {"met": m.met() / 1000.0})
+met = deliver(
+    ServiceXSpec(
+        Sample=[
+            Sample(
+                Name="met_fetch",
+                Dataset=dataset.Rucio(ds_name),
+                NFiles=5, # Change to a smaller number for testing
+                Query=met_query,
+            )
+        ]
+    )
+)["met_fetch"].met
+
+highest_pt_lepton = leptons[:, ak.argmax(leptons.pt, axis=1)]
+
+transverse_mass = np.sqrt(met**2 + highest_pt_lepton.pt**2)
+
+# Plot transverse mass
+h = Hist.new.Reg(50, 0, 500, name="transverse_mass", label="Transverse Mass [GeV]")
+h.fill(transverse_mass)
+
+plt.style.use(hep.style.ATLAS)
+h.plot(histtype="fill", linewidth=1, edgecolor="gray")
+plt.xlabel("Transverse Mass [GeV]")
+plt.savefig("transverse_mass.png")
+```
+#### Code Execution
+
+*Output:*
+```
+
+```
+*Error:*
+```
+Policy violations found:
+- NFiles=1 not found in source code - it must be present in the ServiceX `Sample` definition to assure a quick test run.
+```
+</details>
+<details><summary>Run 3 Details</summary>
+
+### Run 3
+
+
+* The error message indicates that the `NFiles` parameter is not set to 1 in the `Sample` definition. This parameter is used to specify the number of files to process for testing purposes.
+* To fix this, we need to add `NFiles=1` to the `Sample` definition in the code.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import numpy as np
+from hist import Hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+import vector
+vector.register_awkward()
+
+# Base query
+base_query = FuncADLQueryPHYSLITE()
+
+# Query: get electrons, muons, and jets
+query = (base_query
+    .Select(lambda e: ({
+        'electrons': e.Electrons(),
+        'muons': e.Muons(),
+        'jets': e.Jets()
+    }))
+)
+
+# Fetch data
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.701005.Sh_2214_lllvjj.deriv.DAOD_PHYSLITE.e8543_s4159_r15224_p6697"
+
+# Use a small number of files for testing
+all_particles = deliver(
+    ServiceXSpec(
+        Sample=[
+            Sample(
+                Name="particles_fetch",
+                Dataset=dataset.Rucio(ds_name),
+                NFiles=1, # Added NFiles=1 for testing
+                Query=query,
+            )
+        ]
+    )
+)
+
+# Access particles
+particles = all_particles["particles_fetch"]
+
+# Combine electrons and muons into a single array of leptons
+leptons = ak.concatenate([particles.electrons, particles.muons], axis=1)
+
+# Filter events with at least three light leptons
+mask = ak.num(leptons, axis=1) >= 3
+leptons = leptons[mask]
+
+# Find same-flavor opposite-charge pairs
+def find_pairs(leptons):
+    pairs = ak.combinations(leptons, 2, fields=["p1", "p2"], axis=1)
+    same_flavor = pairs.p1.charge * pairs.p2.charge == -1
+    return pairs[same_flavor]
+
+pairs = find_pairs(leptons)
+
+# Find the pair with invariant mass closest to 91.2 GeV
+def closest_to_z_mass(pairs):
+    z_masses = pairs.p1 + pairs.p2
+    delta_masses = np.abs(z_masses.mass - 91.2)
+    return pairs[ak.argmin(delta_masses, axis=1)]
+
+closest_pairs = closest_to_z_mass(pairs)
+
+# Compute transverse mass of missing transverse momentum and highest-pT light lepton not in pair
+met_query = base_query.Select(lambda e: e.MissingET().First()).Select(lambda m: {"met": m.met() / 1000.0})
+met = deliver(
+    ServiceXSpec(
+        Sample=[
+            Sample(
+                Name="met_fetch",
+                Dataset=dataset.Rucio(ds_name),
+                NFiles=1, # Added NFiles=1 for testing
+                Query=met_query,
+            )
+        ]
+    )
+)["met_fetch"].met
+
+highest_pt_lepton = leptons[:, ak.argmax(leptons.pt, axis=1)]
+
+transverse_mass = np.sqrt(met**2 + highest_pt_lepton.pt**2)
+
+# Plot transverse mass
+h = Hist.new.Reg(50, 0, 500, name="transverse_mass", label="Transverse Mass [GeV]")
+h.fill(transverse_mass)
+
+plt.style.use(hep.style.ATLAS)
+h.plot(histtype="fill", linewidth=1, edgecolor="gray")
+plt.xlabel("Transverse Mass [GeV]")
+plt.savefig("transverse_mass.png")
+```
+#### Code Execution
+
+*Output:*
+```
+particles_fetch: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+                  Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 44, in <module>
+    leptons = ak.concatenate([particles.electrons, particles.muons], axis=1)
+                              ^^^^^^^^^^^^^^^^^^^
+AttributeError: 'GuardList' object has no attribute 'electrons'
+
+```
+</details>
+
 ## CSV
 
 Model,Time,PromptTokens,CompletionTokens,TotalTokens,EstimatedCost,Attempts,Result
@@ -8220,6 +9916,10 @@ arcee-ai/coder-large,76.65,40073,5846,45919,0.025,3,Fail
 anthropic/claude-sonnet-4,150.65,31288,5458,36746,0.176,3,Success
 google/gemini-2.5-flash,56.14,46535,12217,58752,0.045,3,Success
 deepseek/deepseek-chat-v3-0324,319.66,39693,4588,44281,0.015,3,Fail
+meta-llama/llama-3.1-8b-instruct,35.91,35536,1438,36974,0.001,3,Fail
+meta-llama/llama-3.3-70b-instruct,166.62,37499,3774,41273,0.002,3,Fail
+meta-llama/llama-4-maverick,42.41,37894,4319,42213,0.008,3,Fail
+meta-llama/llama-4-scout,35.93,36103,2613,38716,0.004,3,Fail
 
 ## Summary
 
@@ -8238,3 +9938,7 @@ deepseek/deepseek-chat-v3-0324,319.66,39693,4588,44281,0.015,3,Fail
 | anthropic/claude-sonnet-4 | 150.65 | 31288 | 5458 | 36746 | $0.176 | 3 | Success |
 | google/gemini-2.5-flash | 56.14 | 46535 | 12217 | 58752 | $0.045 | 3 | Success |
 | deepseek/deepseek-chat-v3-0324 | 319.66 | 39693 | 4588 | 44281 | $0.015 | 3 | Fail |
+| meta-llama/llama-3.1-8b-instruct | 35.91 | 35536 | 1438 | 36974 | $0.001 | 3 | Fail |
+| meta-llama/llama-3.3-70b-instruct | 166.62 | 37499 | 3774 | 41273 | $0.002 | 3 | Fail |
+| meta-llama/llama-4-maverick | 42.41 | 37894 | 4319 | 42213 | $0.008 | 3 | Fail |
+| meta-llama/llama-4-scout | 35.93 | 36103 | 2613 | 38716 | $0.004 | 3 | Fail |

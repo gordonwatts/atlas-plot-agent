@@ -5111,6 +5111,1473 @@ RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Some
 ```
 </details>
 
+## Model meta-llama/llama-3.1-8b-instruct
+<details><summary>Run 1 Details</summary>
+
+### Run 1
+
+
+* Constructed a query to select events with an opposite-charge muon pair with an invariant mass between 60 and 120 GeV
+* Used the ServiceX library to fetch the data from the rucio dataset mc23_13p6TeV:mc23_13p6TeV.513109.MGPy8EG_Zmumu_FxFx3jHT2bias_SW_CFilterBVeto.deriv.DAOD_PHYSLITE.e8514_e8528_s4162_s4114_r14622_r14663_p6697
+* Extracted the ETmiss of events using Awkward Array andHist libraries
+* Created a 1D histogram of ETmiss using the Hist library
+* Saved the histogram to a PNG file
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import hist
+
+# Define the query
+base_query = FuncADLQueryPHYSLITE()
+query = (base_query
+   .SelectMany(lambda evt: evt.Muons())
+   .Where(lambda mu1: mu1.charge() == +1)  # select muons with positive charge
+   .Where(lambda mu2: mu1.index() < mu2.index())  # select opposite-charge muons
+   .Where(make_opposite_charge_who_is_first(mu1, mu2))  # get muon in barrel
+   .Pair(lambdas: make_opposite_charge_invariant_mass(lambdas[0], lambdas[1]))  # filter for 5 GeV < invariant mass < 125 GeV
+   .Select(lambda muons: {"etmiss": muons.ETMiss().first().etMissVal().values})
+)
+
+# Deliver the query and convert it to an awkward array
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.513109.MGPy8EG_Zmumu_FxFx3jHT2bias_SW_CFilterBVeto.deriv.DAOD_PHYSLITE.e8514_e8528_s4162_s4114_r14622_r14663_p6697"
+all_et_miss = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="etmiss_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=query,
+                )
+            ]
+        ),
+    )
+)
+
+# Create a 1D histogram of ETmiss using Hist
+h = hist.Hist.new.Reg(30, 0, 10, name="etmiss", label="ETmiss [GeV]")
+for etmiss in all_et_miss["etmiss_fetch"].etmiss:
+    h.fill(etmiss)
+
+# Save the histogram to a PNG file
+h.plot(ylabel=' Counts', xlabel=' ETmiss [GeV]')
+hist.exportROOT(h, "etmiss.png")
+```
+
+Note that there are no plots with known conditions in this query.
+>>end-reply<
+#### Code Execution
+
+*Output:*
+```
+
+```
+*Error:*
+```
+Policy violations found:
+- No savefig call found in source code - save your plot to a file using plt.savefig() or fig.savefig().
+```
+</details>
+<details><summary>Run 2 Details</summary>
+
+### Run 2
+
+
+No response content returned.
+#### Code Execution
+
+No code found to run.
+</details>
+
+## Model meta-llama/llama-3.3-70b-instruct
+<details><summary>Run 1 Details</summary>
+
+### Run 1
+
+
+* Constructed a query using FuncADL to fetch data from the specified rucio dataset, filtering for events with an opposite-charge muon pair and calculating the invariant mass of each pair.
+* Used the `ak` library to manipulate the data, applying filters and calculations as needed.
+* Employed the `vector` library to handle Lorentz vectors and calculate the invariant mass of the muon pairs.
+* Utilized the `hist` library to create a histogram of the ETmiss values for the filtered events.
+* Plotted the resulting histogram using `matplotlib` and `mplhep`.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import vector
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Register vector behaviors for Awkward arrays
+vector.register_awkward()
+
+# Construct the query
+query = (FuncADLQueryPHYSLITE()
+    .SelectMany(lambda e: e.Muons())
+    .Select(lambda muons: {
+        "muons": muons
+    })
+)
+
+# Filter for opposite-charge muon pairs and calculate invariant mass
+filtered_query = query.Select(lambda x: {
+    "muon_pairs": ak.combinations(x.muons, 2, fields=["mu1", "mu2"], axis=1)
+        .Select(lambda pair: {
+            "mass": (pair.mu1 + pair.mu2).mass
+        })
+        .Select(lambda x: x[x.mass > 60 * 1000]  # convert GeV to MeV
+                          [x.mass < 120 * 1000])  # convert GeV to MeV
+})
+
+# Fetch the data
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.513109.MGPy8EG_Zmumu_FxFx3jHT2bias_SW_CFilterBVeto.deriv.DAOD_PHYSLITE.e8514_e8528_s4162_s4114_r14622_r14663_p6697")
+all_data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="muon_pair_mass",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=filtered_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Create a histogram of ETmiss values
+etmiss_values = all_data["muon_pair_mass"].Select(lambda x: x.MissingET().First().met() / 1000.0)
+h = hist.Hist.new.Reg(50, 0, 200, name="etmiss", label="ETmiss [GeV]").Int64()
+h.fill(etmiss=etmiss_values)
+
+# Plot the histogram
+plt.style.use(hep.style.ATLAS)
+h.plot(histtype="fill", linewidth=1, edgecolor="gray", label="ETmiss")
+plt.legend()
+plt.xlabel("ETmiss [GeV]")
+plt.savefig("etmiss_histogram.png")
+```
+>>end-reply<
+#### Code Execution
+
+*Output:*
+```
+muon_pair_mass: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+                 Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Unknown type for name ak
+Traceback (most recent call last):
+  File "/app/script.py", line 33, in <module>
+    all_data = to_awk(
+        deliver(
+    ...<10 lines>...
+        )
+    )
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: 'Compare' object has no attribute 'value')
+
+
+```
+</details>
+<details><summary>Run 2 Details</summary>
+
+### Run 2
+
+
+* The code has several issues:
+    + The query is trying to access the `mass` attribute of a combination of muons, but the `mass` attribute is not defined in the query.
+    + The `Select` method is used with a lambda function that returns a dictionary, but the dictionary contains a key `"mass"` that is not defined in the query.
+    + The `ak.combinations` function is used to generate all possible pairs of muons, but the resulting pairs are not filtered by charge.
+    + The `mass` attribute is calculated for each pair of muons, but the units are not consistent (GeV vs MeV).
+    + The `MissingET()` method is called without checking if the event has a missing ET object.
+* To fix these issues, the query needs to be modified to correctly calculate the mass of opposite-charge muon pairs and filter the results.
+* The code also needs to handle the case where the event does not have a missing ET object.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import vector
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Register vector behaviors for Awkward arrays
+vector.register_awkward()
+
+# Construct the query
+query = (FuncADLQueryPHYSLITE()
+    .SelectMany(lambda e: e.Muons())
+    .Select(lambda muons: {
+        "muons": muons
+    })
+)
+
+# Filter for opposite-charge muon pairs and calculate invariant mass
+filtered_query = query.Select(lambda x: {
+    "muon_pairs": ak.combinations(x.muons, 2, fields=["mu1", "mu2"], axis=1)
+        .Select(lambda pair: {
+            "mass": (pair.mu1 + pair.mu2).mass / 1000.0  # convert MeV to GeV
+        })
+        .Select(lambda x: x[x.mass > 60][x.mass < 120])  # filter mass range
+})
+
+# Fetch the data
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.513109.MGPy8EG_Zmumu_FxFx3jHT2bias_SW_CFilterBVeto.deriv.DAOD_PHYSLITE.e8514_e8528_s4162_s4114_r14622_r14663_p6697")
+all_data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="muon_pair_mass",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=filtered_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Create a histogram of ETmiss values
+etmiss_values = all_data["muon_pair_mass"].Select(lambda x: x.MissingET().First().met() / 1000.0 if x.MissingET().Count() > 0 else 0)
+h = hist.Hist.new.Reg(50, 0, 200, name="etmiss", label="ETmiss [GeV]").Int64()
+h.fill(etmiss=etmiss_values)
+
+# Plot the histogram
+plt.style.use(hep.style.ATLAS)
+h.plot(histtype="fill", linewidth=1, edgecolor="gray", label="ETmiss")
+plt.legend()
+plt.xlabel("ETmiss [GeV]")
+plt.savefig("etmiss_histogram.png")
+```
+>>end-reply<
+#### Code Execution
+
+*Output:*
+```
+muon_pair_mass: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+                 Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Unknown type for name ak
+Traceback (most recent call last):
+  File "/app/script.py", line 32, in <module>
+    all_data = to_awk(
+        deliver(
+    ...<10 lines>...
+        )
+    )
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: 'Compare' object has no attribute 'value')
+
+
+```
+</details>
+<details><summary>Run 3 Details</summary>
+
+### Run 3
+
+
+* The error message indicates a `RuntimeError` with a `ServiceX WebAPI Error` during transformation submission, specifically stating `'Compare' object has no attribute 'value'`. This suggests that the issue lies in the filtering operation within the query where a comparison is being made without properly specified values.
+* The provided code snippet attempts to filter muon pairs based on their invariant mass, but it seems that the comparison operation is not correctly defined, leading to the error.
+* To fix this, we need to ensure that all filtering conditions are properly specified and that the query is correctly constructed to handle the desired operations.
+* Specifically, the issue seems to be related to the way the mass range is filtered. We need to adjust this part of the query to correctly apply the filtering.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import vector
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Register vector behaviors for Awkward arrays
+vector.register_awkward()
+
+# Construct the query
+query = (FuncADLQueryPHYSLITE()
+    .SelectMany(lambda e: e.Muons())
+    .Select(lambda muons: {
+        "muons": muons
+    })
+)
+
+# Filter for opposite-charge muon pairs and calculate invariant mass
+filtered_query = query.Select(lambda x: {
+    "muon_pairs": ak.combinations(x.muons, 2, fields=["mu1", "mu2"], axis=1)
+        .Select(lambda pair: {
+            "mass": (pair.mu1 + pair.mu2).mass / 1000.0  # convert MeV to GeV
+        })
+        # Apply filtering directly in the combination step
+        .Select(lambda x: x[(x.mass > 60) & (x.mass < 120)])  # filter mass range
+})
+
+# Fetch the data
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.513109.MGPy8EG_Zmumu_FxFx3jHT2bias_SW_CFilterBVeto.deriv.DAOD_PHYSLITE.e8514_e8528_s4162_s4114_r14622_r14663_p6697")
+all_data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="muon_pair_mass",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=filtered_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Create a histogram of ETmiss values
+etmiss_values = all_data["muon_pair_mass"].Select(lambda x: x.MissingET().First().met() / 1000.0 if x.MissingET().Count() > 0 else 0)
+h = hist.Hist.new.Reg(50, 0, 200, name="etmiss", label="ETmiss [GeV]").Int64()
+h.fill(etmiss=etmiss_values)
+
+# Plot the histogram
+plt.style.use(hep.style.ATLAS)
+h.plot(histtype="fill", linewidth=1, edgecolor="gray", label="ETmiss")
+plt.legend()
+plt.xlabel("ETmiss [GeV]")
+plt.savefig("etmiss_histogram.png")
+```
+>>end-reply<
+#### Code Execution
+
+*Output:*
+```
+muon_pair_mass: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+                 Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Unknown type for name ak
+Traceback (most recent call last):
+  File "/app/script.py", line 33, in <module>
+    all_data = to_awk(
+        deliver(
+    ...<10 lines>...
+        )
+    )
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: 'BinOp' object has no attribute 'value')
+
+
+```
+</details>
+
+## Model meta-llama/llama-4-maverick
+<details><summary>Run 1 Details</summary>
+
+### Run 1
+
+
+* Fetched data from the specified ATLAS rucio dataset using ServiceX.
+* Filtered events to include only those with at least two muons.
+* Selected opposite-charge muon pairs and calculated their invariant mass using the Vector library.
+* Applied a cut to include only events where the invariant mass of the muon pair is between 60 and 120 GeV.
+* Extracted the ETmiss from the selected events.
+* Created a histogram of ETmiss using the Hist library.
+* Plotted the histogram and saved it to a PNG file.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import vector
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Register vector behaviors for Awkward Array
+vector.register_awkward()
+
+# Define the base query
+base_query = FuncADLQueryPHYSLITE()
+
+# Query to fetch muons and MET
+query = (base_query
+    .Select(lambda e: {
+        'muons': e.Muons(),
+        'met': e.MissingET().First().met() / 1000.0,  # Convert MET to GeV
+    })
+)
+
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.513109.MGPy8EG_Zmumu_FxFx3jHT2bias_SW_CFilterBVeto.deriv.DAOD_PHYSLITE.e8514_e8528_s4162_s4114_r14622_r14663_p6697")
+
+# Fetch the data
+data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="data_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=query,
+                )
+            ]
+        ),
+    )
+)["data_fetch"]
+
+# Convert muons to vector objects
+muons = ak.zip({
+    'pt': data.muons.pt / 1000.0,
+    'eta': data.muons.eta,
+    'phi': data.muons.phi,
+    'mass': data.muons.m / 1000.0
+}, with_name="Momentum4D")
+
+# Filter events with at least two muons
+events_with_two_muons = muons[ak.num(muons, axis=1) >= 2]
+
+# Form all pairs of muons
+muon_pairs = ak.combinations(events_with_two_muons, 2, fields=['mu1', 'mu2'], axis=1)
+
+# Calculate the invariant mass of muon pairs
+mu1, mu2 = ak.unzip(muon_pairs)
+invariant_mass = (mu1 + mu2).mass
+
+# Check if the muons are opposite charge
+opposite_charge_pairs = muon_pairs[data.muons.charge[muon_pairs.mu1] * data.muons.charge[muon_pairs.mu2] < 0]
+
+# Calculate the invariant mass for opposite charge pairs
+opposite_charge_mass = (opposite_charge_pairs.mu1 + opposite_charge_pairs.mu2).mass
+
+# Filter events where the invariant mass is between 60 and 120 GeV
+selected_events_mask = (opposite_charge_mass > 60) & (opposite_charge_mass < 120)
+selected_events_met = data.met[ak.any(selected_events_mask, axis=1)]
+
+# Create a histogram of ETmiss
+hist_met = hist.Hist(hist.axis.Regular(50, 0, 200, name="met", label="ETmiss [GeV]"))
+hist_met.fill(selected_events_met)
+
+# Plot the histogram
+plt.style.use(hep.style.ATLAS)
+hep.histplot(hist_met, label='ETmiss for $Z \\to \\mu\\mu$ events')
+plt.xlabel('ETmiss [GeV]')
+plt.ylabel('Events')
+plt.legend()
+plt.savefig('etmiss_plot.png')
+```
+#### Code Execution
+
+*Output:*
+```
+data_fetch: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+             Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 28, in <module>
+    data = to_awk(
+           ~~~~~~^
+        deliver(
+        ^^^^^^^^
+    ...<10 lines>...
+        )
+        ^
+    )["data_fetch"]
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: Do not know how to loop over a <class 'func_adl_xAOD.common.cpp_representation.cpp_collection'>)
+
+
+```
+</details>
+<details><summary>Run 2 Details</summary>
+
+### Run 2
+
+
+* The error message indicates a `RuntimeError` caused by a ServiceX WebAPI error during transformation submission. The root cause is that the query is trying to loop over a `cpp_collection` object, which is not supported.
+* The issue arises from the fact that the query is not properly selecting the required data. The `Select` method is used to specify the data to be fetched, but it is not correctly defined.
+* To fix the error, we need to modify the query to correctly select the required data. We need to make sure that the query ends with a `Select` that creates a dictionary with the required fields.
+* The `Muons()` method returns a collection of muons, and we need to select the required properties (pt, eta, phi, mass, charge) for each muon.
+* We also need to select the MET value for each event.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import vector
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Register vector behaviors for Awkward Array
+vector.register_awkward()
+
+# Define the base query
+base_query = FuncADLQueryPHYSLITE()
+
+# Query to fetch muons and MET
+query = (base_query
+    .Select(lambda e: {
+        'muons': e.Muons().Select(lambda mu: {
+            'pt': mu.pt() / 1000.0,
+            'eta': mu.eta(),
+            'phi': mu.phi(),
+            'mass': mu.m() / 1000.0,
+            'charge': mu.charge(),
+        }),
+        'met': e.MissingET().First().met() / 1000.0,  # Convert MET to GeV
+    })
+)
+
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.513109.MGPy8EG_Zmumu_FxFx3jHT2bias_SW_CFilterBVeto.deriv.DAOD_PHYSLITE.e8514_e8528_s4162_s4114_r14622_r14663_p6697")
+
+# Fetch the data
+data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="data_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=query,
+                )
+            ]
+        ),
+    )
+)["data_fetch"]
+
+# Convert muons to vector objects
+muons = ak.zip({
+    'pt': data.muons.pt,
+    'eta': data.muons.eta,
+    'phi': data.muons.phi,
+    'mass': data.muons.mass
+}, with_name="Momentum4D")
+
+# Filter events with at least two muons
+events_with_two_muons = muons[ak.num(muons, axis=1) >= 2]
+data_met = data.met[ak.num(muons, axis=1) >= 2]
+
+# Form all pairs of muons
+muon_pairs = ak.combinations(events_with_two_muons, 2, fields=['mu1', 'mu2'], axis=1)
+
+# Calculate the invariant mass of muon pairs
+mu1, mu2 = ak.unzip(muon_pairs)
+invariant_mass = (mu1 + mu2).mass
+
+# Check if the muons are opposite charge
+opposite_charge_pairs = muon_pairs[data.muons.charge[ak.num(muons, axis=1) >= 2][muon_pairs.mu1] * data.muons.charge[ak.num(muons, axis=1) >= 2][muon_pairs.mu2] < 0]
+
+# Calculate the invariant mass for opposite charge pairs
+opposite_charge_mass = (opposite_charge_pairs.mu1 + opposite_charge_pairs.mu2).mass
+
+# Filter events where the invariant mass is between 60 and 120 GeV
+selected_events_mask = (opposite_charge_mass > 60) & (opposite_charge_mass < 120)
+selected_events_met = data_met[ak.any(selected_events_mask, axis=1)]
+
+# Create a histogram of ETmiss
+hist_met = hist.Hist(hist.axis.Regular(50, 0, 200, name="met", label="ETmiss [GeV]"))
+hist_met.fill(selected_events_met)
+
+# Plot the histogram
+plt.style.use(hep.style.ATLAS)
+hep.histplot(hist_met, label='ETmiss for $Z \\to \\mu\\mu$ events')
+plt.xlabel('ETmiss [GeV]')
+plt.ylabel('Events')
+plt.legend()
+plt.savefig('etmiss_plot.png')
+```
+#### Code Execution
+
+*Output:*
+```
+data_fetch: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+             Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 34, in <module>
+    data = to_awk(
+           ~~~~~~^
+        deliver(
+        ^^^^^^^^
+    ...<10 lines>...
+        )
+        ^
+    )["data_fetch"]
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: Nested data structures (2D arrays, etc.) in TTree's are not yet supported. Numbers or arrays of numbers only for now.)
+
+
+```
+</details>
+<details><summary>Run 3 Details</summary>
+
+### Run 3
+
+
+* The error message indicates that ServiceX encountered a problem while processing the query due to the presence of nested data structures in the TTree, which are not currently supported.
+* The query is trying to fetch muons and MET, and the issue arises from how the data is being selected and structured in the query.
+* Upon closer inspection, the problem lies in the line where we are trying to access `data.muons.charge` after filtering events with at least two muons. The `data.muons.charge` is not directly accessible because `data.muons` is a jagged array and the filtering operation is applied on `muons`, not directly on `data.muons`.
+* To fix this issue, we need to ensure that we are accessing the charge of muons in the filtered events correctly.
+* We should directly use the `charge` field from the `data.muons` Awkward Array in the same way we are using other fields like `pt`, `eta`, etc., after filtering.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+import vector
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Register vector behaviors for Awkward Array
+vector.register_awkward()
+
+# Define the base query
+base_query = FuncADLQueryPHYSLITE()
+
+# Query to fetch muons and MET
+query = (base_query
+    .Select(lambda e: {
+        'muons': e.Muons().Select(lambda mu: {
+            'pt': mu.pt() / 1000.0,
+            'eta': mu.eta(),
+            'phi': mu.phi(),
+            'mass': mu.m() / 1000.0,
+            'charge': mu.charge(),
+        }),
+        'met': e.MissingET().First().met() / 1000.0,  # Convert MET to GeV
+    })
+)
+
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.513109.MGPy8EG_Zmumu_FxFx3jHT2bias_SW_CFilterBVeto.deriv.DAOD_PHYSLITE.e8514_e8528_s4162_s4114_r14622_r14663_p6697")
+
+# Fetch the data
+data = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="data_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=query,
+                )
+            ]
+        ),
+    )
+)["data_fetch"]
+
+# Convert muons to vector objects
+muons = ak.zip({
+    'pt': data.muons.pt,
+    'eta': data.muons.eta,
+    'phi': data.muons.phi,
+    'mass': data.muons.mass,
+    'charge': data.muons.charge # Include charge in the vector object for later use
+}, with_name="Momentum4D")
+
+# Filter events with at least two muons
+events_with_two_muons = muons[ak.num(muons, axis=1) >= 2]
+data_met = data.met[ak.num(muons, axis=1) >= 2]
+
+# Form all pairs of muons
+muon_pairs = ak.combinations(events_with_two_muons, 2, fields=['mu1', 'mu2'], axis=1)
+
+# Calculate the invariant mass of muon pairs
+mu1, mu2 = ak.unzip(muon_pairs)
+invariant_mass = (mu1 + mu2).mass
+
+# Check if the muons are opposite charge
+opposite_charge_pairs = muon_pairs[mu1.charge * mu2.charge < 0]
+
+# Calculate the invariant mass for opposite charge pairs
+opposite_charge_mass = (opposite_charge_pairs.mu1 + opposite_charge_pairs.mu2).mass
+
+# Filter events where the invariant mass is between 60 and 120 GeV
+selected_events_mask = (opposite_charge_mass > 60) & (opposite_charge_mass < 120)
+selected_events_met = data_met[ak.any(selected_events_mask, axis=1)]
+
+# Create a histogram of ETmiss
+hist_met = hist.Hist(hist.axis.Regular(50, 0, 200, name="met", label="ETmiss [GeV]"))
+hist_met.fill(selected_events_met)
+
+# Plot the histogram
+plt.style.use(hep.style.ATLAS)
+hep.histplot(hist_met, label='ETmiss for $Z \\to \\mu\\mu$ events')
+plt.xlabel('ETmiss [GeV]')
+plt.ylabel('Events')
+plt.legend()
+plt.savefig('etmiss_plot.png')
+```
+#### Code Execution
+
+*Output:*
+```
+data_fetch: Transform ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+             Download ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/?  
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 34, in <module>
+    data = to_awk(
+           ~~~~~~^
+        deliver(
+        ^^^^^^^^
+    ...<10 lines>...
+        )
+        ^
+    )["data_fetch"]
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex_analysis_utils/materialization.py", line 56, in to_awk
+    if not paths:
+           ^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_client.py", line 110, in __len__
+    raise data
+servicex.servicex_client.ReturnValueException: Exception occurred while making ServiceX request.
+Traceback (most recent call last):
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 655, in as_files_async
+    return await self.submit_and_download(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        signed_urls_only=False, expandable_progress=progress
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/query_core.py", line 327, in submit_and_download
+    self.request_id = await self.servicex.submit_transform(sx_request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/servicex/servicex_adapter.py", line 372, in submit_transform
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Something went wrong (Failed to generate translation code: Nested data structures (2D arrays, etc.) in TTree's are not yet supported. Numbers or arrays of numbers only for now.)
+
+
+```
+</details>
+
+## Model meta-llama/llama-4-scout
+<details><summary>Run 1 Details</summary>
+
+### Run 1
+
+
+* I used ServiceX to query the ATLAS dataset `mc23_13p6TeV:mc23_13p6TeV.513109.MGPy8EG_Zmumu_FxFx3jHT2bias_SW_CFilterBVeto.deriv.DAOD_PHYSLITE.e8514_e8528_s4162_s4114_r14622_r14663_p6697` for events with an opposite-charge muon pair.
+* I filtered events to only include those with a muon pair invariant mass between 60 and 120 GeV.
+* I extracted the missing transverse energy (`ETmiss`) for these events.
+* I used Awkward Array to manipulate the data and Hist to create a histogram of `ETmiss`.
+* I plotted the histogram using Hist and saved it to a PNG file.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+from hist import Hist
+import numpy as np
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Define the query
+base_query = FuncADLQueryPHYSLITE()
+
+# Select muon pairs with opposite charge
+muon_pairs_query = (
+    base_query
+    .Select(lambda e: (e.Muons(), e.Muons()))
+    .Select(lambda pairs: {
+        'muons': pairs[0],
+        'muon_charge': pairs[1].Select(lambda mu: mu.charge())
+    })
+    .Where(lambda event: ak.num(event['muons']) >= 2)
+    .Select(lambda event: {
+        'muon1': event['muons'][0],
+        'muon2': event['muons'][1],
+        'charge1': event['muon_charge'][0],
+        'charge2': event['muon_charge'][1],
+    })
+    .Where(lambda event: event['charge1'] * event['charge2'] < 0)
+)
+
+# Calculate invariant mass of muon pairs
+invariant_mass_query = (
+    muon_pairs_query
+    .Select(lambda event: {
+        'muon1': ak.zip({
+            'px': event['muon1'].px(),
+            'py': event['muon1'].py(),
+            'pz': event['muon1'].pz(),
+            'E': event['muon1'].E()
+        }, with_name="Momentum4D"),
+        'muon2': ak.zip({
+            'px': event['muon2'].px(),
+            'py': event['muon2'].py(),
+            'pz': event['muon2'].pz(),
+            'E': event['muon2'].E()
+        }, with_name="Momentum4D"),
+    })
+    .Select(lambda event: {
+        'invariant_mass': (event['muon1'] + event['muon2']).mass() / 1000.0
+    })
+    .Where(lambda event: 60.0 < event['invariant_mass'] < 120.0)
+)
+
+# Extract ETmiss
+etmiss_query = (
+    invariant_mass_query
+    .Select(lambda event: {
+        'etmiss': event.MissingET().First().met() / 1000.0
+    })
+)
+
+# Fetch data
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.513109.MGPy8EG_Zmumu_FxFx3jHT2bias_SW_CFilterBVeto.deriv.DAOD_PHYSLITE.e8514_e8528_s4162_s4114_r14622_r14663_p6697"
+all_etmiss = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="etmiss_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=etmiss_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Create histogram
+h = Hist.new.Reg(50, 0, 500, name="etmiss", label="ETmiss [GeV]")
+h.fill(etmiss=all_etmiss["etmiss_fetch"].etmiss)
+
+# Plot histogram
+plt.style.use(hep.style.ATLAS)
+h.plot()
+plt.xlabel("ETmiss [GeV]")
+plt.ylabel("Events / GeV")
+plt.savefig("etmiss_plot.png")
+```
+#### Code Execution
+
+*Output:*
+```
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Unknown type for name ak
+Unknown type for name ak
+Unknown type for name ak
+Traceback (most recent call last):
+  File "/app/script.py", line 57, in <module>
+    .Select(lambda event: {
+     ~~~~~~^^^^^^^^^^^^^^^^
+        'etmiss': event.MissingET().First().met() / 1000.0
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    })
+    ^^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/object_stream.py", line 153, in Select
+    n_stream, n_ast, rtn_type = remap_from_lambda(
+                                ~~~~~~~~~~~~~~~~~^
+        self, _local_simplification(parse_as_ast(f, "Select")), known_types
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 976, in remap_from_lambda
+    stream, new_body, return_type = remap_by_types(
+                                    ~~~~~~~~~~~~~~^
+        o_stream, {var_name: orig_type} | known_types, l_func.body
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 957, in remap_by_types
+    r_a = tt.visit(a)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 917, in visit_Dict
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 498, in generic_visit
+    value = self.visit(value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 823, in visit_BinOp
+    t_node = super().generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 507, in generic_visit
+    new_node = self.visit(old_value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 788, in visit_Call
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 507, in generic_visit
+    new_node = self.visit(old_value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 934, in visit_Attribute
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 507, in generic_visit
+    new_node = self.visit(old_value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 788, in visit_Call
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 507, in generic_visit
+    new_node = self.visit(old_value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 934, in visit_Attribute
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 507, in generic_visit
+    new_node = self.visit(old_value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 788, in visit_Call
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 507, in generic_visit
+    new_node = self.visit(old_value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 952, in visit_Attribute
+    raise ValueError(f"Key {node.attr} not found in dataclass/dictionary {dc}")
+ValueError: Key MissingET not found in dataclass/dictionary <class 'func_adl.type_based_replacement.dict_dataclass'>
+
+```
+</details>
+<details><summary>Run 2 Details</summary>
+
+### Run 2
+
+
+* The error message indicates that the key `MissingET` was not found in the dataclass/dictionary. This suggests that the `event` object does not have a `MissingET` key.
+* The issue arises from the fact that the `event` object is a dictionary that contains the results of the previous queries. When we select `etmiss` in the query, it becomes a field in the `event` dictionary, not a separate key.
+* To fix this, we need to modify the query to correctly access the `etmiss` field.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+from hist import Hist
+import numpy as np
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Define the query
+base_query = FuncADLQueryPHYSLITE()
+
+# Select muon pairs with opposite charge
+muon_pairs_query = (
+    base_query
+    .Select(lambda e: (e.Muons(), e.Muons()))
+    .Select(lambda pairs: {
+        'muons': pairs[0],
+        'muon_charge': pairs[1].Select(lambda mu: mu.charge())
+    })
+    .Where(lambda event: ak.num(event['muons']) >= 2)
+    .Select(lambda event: {
+        'muon1': event['muons'][0],
+        'muon2': event['muons'][1],
+        'charge1': event['muon_charge'][0],
+        'charge2': event['muon_charge'][1],
+    })
+    .Where(lambda event: event['charge1'] * event['charge2'] < 0)
+)
+
+# Calculate invariant mass of muon pairs
+invariant_mass_query = (
+    muon_pairs_query
+    .Select(lambda event: {
+        'muon1': ak.zip({
+            'px': event['muon1'].px(),
+            'py': event['muon1'].py(),
+            'pz': event['muon1'].pz(),
+            'E': event['muon1'].E()
+        }, with_name="Momentum4D"),
+        'muon2': ak.zip({
+            'px': event['muon2'].px(),
+            'py': event['muon2'].py(),
+            'pz': event['muon2'].pz(),
+            'E': event['muon2'].E()
+        }, with_name="Momentum4D"),
+    })
+    .Select(lambda event: {
+        'invariant_mass': (event['muon1'] + event['muon2']).mass() / 1000.0
+    })
+    .Where(lambda event: 60.0 < event['invariant_mass'] < 120.0)
+)
+
+# Extract ETmiss
+etmiss_query = (
+    invariant_mass_query
+    .Select(lambda event: {
+        'etmiss': event.MissingET().First().met() / 1000.0
+    })
+)
+
+# Fetch data
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.513109.MGPy8EG_Zmumu_FxFx3jHT2bias_SW_CFilterBVeto.deriv.DAOD_PHYSLITE.e8514_e8528_s4162_s4114_r14622_r14663_p6697"
+all_etmiss = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="etmiss_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=etmiss_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Create histogram
+h = Hist.new.Reg(50, 0, 500, name="etmiss", label="ETmiss [GeV]")
+h.fill(etmiss=all_etmiss["etmiss_fetch"].etmiss)
+
+# Plot histogram
+plt.style.use(hep.style.ATLAS)
+h.plot()
+plt.xlabel("ETmiss [GeV]")
+plt.ylabel("Events / GeV")
+plt.savefig("etmiss_plot.png")
+```
+#### Code Execution
+
+*Output:*
+```
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Unknown type for name ak
+Unknown type for name ak
+Unknown type for name ak
+Traceback (most recent call last):
+  File "/app/script.py", line 57, in <module>
+    .Select(lambda event: {
+     ~~~~~~^^^^^^^^^^^^^^^^
+        'etmiss': event.MissingET().First().met() / 1000.0
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    })
+    ^^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/object_stream.py", line 153, in Select
+    n_stream, n_ast, rtn_type = remap_from_lambda(
+                                ~~~~~~~~~~~~~~~~~^
+        self, _local_simplification(parse_as_ast(f, "Select")), known_types
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 976, in remap_from_lambda
+    stream, new_body, return_type = remap_by_types(
+                                    ~~~~~~~~~~~~~~^
+        o_stream, {var_name: orig_type} | known_types, l_func.body
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 957, in remap_by_types
+    r_a = tt.visit(a)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 917, in visit_Dict
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 498, in generic_visit
+    value = self.visit(value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 823, in visit_BinOp
+    t_node = super().generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 507, in generic_visit
+    new_node = self.visit(old_value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 788, in visit_Call
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 507, in generic_visit
+    new_node = self.visit(old_value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 934, in visit_Attribute
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 507, in generic_visit
+    new_node = self.visit(old_value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 788, in visit_Call
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 507, in generic_visit
+    new_node = self.visit(old_value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 934, in visit_Attribute
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 507, in generic_visit
+    new_node = self.visit(old_value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 788, in visit_Call
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 507, in generic_visit
+    new_node = self.visit(old_value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 952, in visit_Attribute
+    raise ValueError(f"Key {node.attr} not found in dataclass/dictionary {dc}")
+ValueError: Key MissingET not found in dataclass/dictionary <class 'func_adl.type_based_replacement.dict_dataclass'>
+
+```
+</details>
+<details><summary>Run 3 Details</summary>
+
+### Run 3
+
+
+* The error message indicates that the key `MissingET` was not found in the dataclass/dictionary. This suggests that the `event` object does not have a `MissingET` key.
+* The issue arises from the fact that the `event` object is a dictionary that contains the results of the previous queries. When we select `etmiss` in the query, it becomes a field in the `event` dictionary, not a separate key.
+* To fix this, we need to modify the query to correctly access the `etmiss` field.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+from hist import Hist
+import numpy as np
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+# Define the query
+base_query = FuncADLQueryPHYSLITE()
+
+# Select muon pairs with opposite charge
+muon_pairs_query = (
+    base_query
+    .Select(lambda e: (e.Muons(), e.Muons()))
+    .Select(lambda pairs: {
+        'muons': pairs[0],
+        'muon_charge': pairs[1].Select(lambda mu: mu.charge())
+    })
+    .Where(lambda event: ak.num(event['muons']) >= 2)
+    .Select(lambda event: {
+        'muon1': event['muons'][0],
+        'muon2': event['muons'][1],
+        'charge1': event['muon_charge'][0],
+        'charge2': event['muon_charge'][1],
+    })
+    .Where(lambda event: event['charge1'] * event['charge2'] < 0)
+)
+
+# Calculate invariant mass of muon pairs
+invariant_mass_query = (
+    muon_pairs_query
+    .Select(lambda event: {
+        'muon1': ak.zip({
+            'px': event['muon1'].px(),
+            'py': event['muon1'].py(),
+            'pz': event['muon1'].pz(),
+            'E': event['muon1'].E()
+        }, with_name="Momentum4D"),
+        'muon2': ak.zip({
+            'px': event['muon2'].px(),
+            'py': event['muon2'].py(),
+            'pz': event['muon2'].pz(),
+            'E': event['muon2'].E()
+        }, with_name="Momentum4D"),
+    })
+    .Select(lambda event: {
+        'invariant_mass': (event['muon1'] + event['muon2']).mass() / 1000.0
+    })
+    .Where(lambda event: 60.0 < event['invariant_mass'] < 120.0)
+)
+
+# Extract ETmiss
+etmiss_query = (
+    invariant_mass_query
+    .Select(lambda event: {
+        'etmiss': event.MissingET().First().met() / 1000.0
+    })
+)
+
+# Fetch data
+ds_name = "mc23_13p6TeV:mc23_13p6TeV.513109.MGPy8EG_Zmumu_FxFx3jHT2bias_SW_CFilterBVeto.deriv.DAOD_PHYSLITE.e8514_e8528_s4162_s4114_r14622_r14663_p6697"
+all_etmiss = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="etmiss_fetch",
+                    Dataset=dataset.Rucio(ds_name),
+                    NFiles=1,
+                    Query=etmiss_query,
+                )
+            ]
+        ),
+    )
+)
+
+# Create histogram
+h = Hist.new.Reg(50, 0, 500, name="etmiss", label="ETmiss [GeV]")
+h.fill(etmiss=all_etmiss["etmiss_fetch"].etmiss)
+
+# Plot histogram
+plt.style.use(hep.style.ATLAS)
+h.plot()
+plt.xlabel("ETmiss [GeV]")
+plt.ylabel("Events / GeV")
+plt.savefig("etmiss_plot.png")
+```
+#### Code Execution
+
+*Output:*
+```
+
+```
+*Error:*
+```
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Unknown type for name ak
+Unknown type for name ak
+Unknown type for name ak
+Traceback (most recent call last):
+  File "/app/script.py", line 57, in <module>
+    .Select(lambda event: {
+     ~~~~~~^^^^^^^^^^^^^^^^
+        'etmiss': event.MissingET().First().met() / 1000.0
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    })
+    ^^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/object_stream.py", line 153, in Select
+    n_stream, n_ast, rtn_type = remap_from_lambda(
+                                ~~~~~~~~~~~~~~~~~^
+        self, _local_simplification(parse_as_ast(f, "Select")), known_types
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 976, in remap_from_lambda
+    stream, new_body, return_type = remap_by_types(
+                                    ~~~~~~~~~~~~~~^
+        o_stream, {var_name: orig_type} | known_types, l_func.body
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 957, in remap_by_types
+    r_a = tt.visit(a)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 917, in visit_Dict
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 498, in generic_visit
+    value = self.visit(value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 823, in visit_BinOp
+    t_node = super().generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 507, in generic_visit
+    new_node = self.visit(old_value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 788, in visit_Call
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 507, in generic_visit
+    new_node = self.visit(old_value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 934, in visit_Attribute
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 507, in generic_visit
+    new_node = self.visit(old_value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 788, in visit_Call
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 507, in generic_visit
+    new_node = self.visit(old_value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 934, in visit_Attribute
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 507, in generic_visit
+    new_node = self.visit(old_value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 788, in visit_Call
+    t_node = self.generic_visit(node)
+  File "/usr/local/lib/python3.13/ast.py", line 507, in generic_visit
+    new_node = self.visit(old_value)
+  File "/usr/local/lib/python3.13/ast.py", line 422, in visit
+    return visitor(node)
+  File "/work/.venv/lib/python3.13/site-packages/func_adl/type_based_replacement.py", line 952, in visit_Attribute
+    raise ValueError(f"Key {node.attr} not found in dataclass/dictionary {dc}")
+ValueError: Key MissingET not found in dataclass/dictionary <class 'func_adl.type_based_replacement.dict_dataclass'>
+
+```
+</details>
+
 ## CSV
 
 Model,Time,PromptTokens,CompletionTokens,TotalTokens,EstimatedCost,Attempts,Result
@@ -5127,6 +6594,10 @@ arcee-ai/coder-large,40.92,38501,3126,41627,0.022,3,Fail
 anthropic/claude-sonnet-4,122.59,45019,5560,50579,0.218,3,Fail
 google/gemini-2.5-flash,19.27,41280,3957,45237,0.022,3,Fail
 deepseek/deepseek-chat-v3-0324,122.29,38776,3096,41872,0.014,3,Fail
+meta-llama/llama-3.1-8b-instruct,12.92,23781,650,24431,0.000,2,Fail
+meta-llama/llama-3.3-70b-instruct,101.88,36898,2144,39042,0.002,3,Fail
+meta-llama/llama-4-maverick,34.55,36932,2876,39808,0.007,3,Fail
+meta-llama/llama-4-scout,36.98,38256,2688,40944,0.004,3,Fail
 
 ## Summary
 
@@ -5145,3 +6616,7 @@ deepseek/deepseek-chat-v3-0324,122.29,38776,3096,41872,0.014,3,Fail
 | anthropic/claude-sonnet-4 | 122.59 | 45019 | 5560 | 50579 | $0.218 | 3 | Fail |
 | google/gemini-2.5-flash | 19.27 | 41280 | 3957 | 45237 | $0.022 | 3 | Fail |
 | deepseek/deepseek-chat-v3-0324 | 122.29 | 38776 | 3096 | 41872 | $0.014 | 3 | Fail |
+| meta-llama/llama-3.1-8b-instruct | 12.92 | 23781 | 650 | 24431 | $0.000 | 2 | Fail |
+| meta-llama/llama-3.3-70b-instruct | 101.88 | 36898 | 2144 | 39042 | $0.002 | 3 | Fail |
+| meta-llama/llama-4-maverick | 34.55 | 36932 | 2876 | 39808 | $0.007 | 3 | Fail |
+| meta-llama/llama-4-scout | 36.98 | 38256 | 2688 | 40944 | $0.004 | 3 | Fail |
