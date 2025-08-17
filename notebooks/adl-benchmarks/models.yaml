@@ -58,6 +58,33 @@ models:
     input_cost_per_million: 0.28
     output_cost_per_million: 0.88
     endpoint: https://openrouter.ai/api/v1
+  llama-3.1-8b:
+    # Can't run because context is only 8K
+    model_name: meta-llama/llama-3.1-8b-instruct
+    input_cost_per_million: 0.015
+    output_cost_per_million: 0.02
+    endpoint: https://openrouter.ai/api/v1
+  llama-3.3-70b:
+    model_name: meta-llama/llama-3.3-70b-instruct
+    input_cost_per_million: 0.038
+    output_cost_per_million: 0.12
+    endpoint: https://openrouter.ai/api/v1
+  llama-4-maverick-400B:
+    model_name: meta-llama/llama-4-maverick
+    input_cost_per_million: 0.15
+    output_cost_per_million: 0.60
+    endpoint: https://openrouter.ai/api/v1
+  llama-4-scout-109B:
+    model_name: meta-llama/llama-4-scout
+    input_cost_per_million: 0.08
+    output_cost_per_million: 0.30
+    endpoint: https://openrouter.ai/api/v1
+  # llama-3-8b:
+  #   # Can't run because context is only 8K
+  #   model_name: meta-llama/llama-3-8b-instruct
+  #   input_cost_per_million: 0.015
+  #   output_cost_per_million: 0.02
+  #   endpoint: https://openrouter.ai/api/v1
 
   # Not supported in the API that I'm using here (chat completions).
   # codex-mini-latest:
