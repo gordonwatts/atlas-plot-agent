@@ -2283,20 +2283,37 @@ bash: no job control in this shell
 
 ![2fc7e91d_deepseek_deepseek-chat-v3-0324_etmiss_hist.png](2fc7e91d_deepseek_deepseek-chat-v3-0324_etmiss_hist.png)
 
+## CSV
+
+Model,Time,PromptTokens,CompletionTokens,TotalTokens,EstimatedCost,Attempts,Result
+gpt-4.1,90.79,36731,2258,38989,0.092,3,Success
+gpt-5,113.68,36178,5726,41904,0.102,3,Success
+gpt-5-mini,102.34,37475,6951,44426,0.023,3,Fail
+gpt-5-nano,14.52,11639,3619,15258,0.002,1,Success
+gpt-4o,7.01,11640,568,12208,0.035,1,Success
+o4-mini,12.23,11639,1343,12982,0.019,1,Success
+openai/gpt-oss-120b,27.56,24339,2048,26387,0.005,2,Success
+openai/gpt-oss-20b,6.34,11704,1209,12913,0.001,1,Success
+Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8,11.20,11904,641,12545,0.025,1,Success
+arcee-ai/coder-large,7.45,11925,559,12484,0.006,1,Success
+anthropic/claude-sonnet-4,23.32,13473,931,14404,0.054,1,Success
+google/gemini-2.5-flash,11.02,26355,1731,28086,0.012,2,Success
+deepseek/deepseek-chat-v3-0324,15.41,11975,533,12508,0.004,1,Success
+
 ## Summary
 
-| Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) | Python Run 1 | Python Run 2 | Python Run 3 |
-|-------|----------|--------------|------------------|--------------|--------------------|--------------|--------------|--------------|
-| gpt-4.1,gpt-4.1,gpt-4.1 | 90.79 | 36731 | 2258 | 38989 | $0.092 | Fail | Fail | Success |
-| gpt-5,gpt-5,gpt-5 | 113.68 | 36178 | 5726 | 41904 | $0.102 | Fail | Fail | Success |
-| gpt-5-mini,gpt-5-mini,gpt-5-mini | 102.34 | 37475 | 6951 | 44426 | $0.023 | Fail | Fail | Fail |
-| gpt-5-nano | 14.52 | 11639 | 3619 | 15258 | $0.002 | Success |
-| gpt-4o | 7.01 | 11640 | 568 | 12208 | $0.035 | Success |
-| o4-mini | 12.23 | 11639 | 1343 | 12982 | $0.019 | Success |
-| openai/gpt-oss-120b,openai/gpt-oss-120b | 27.56 | 24339 | 2048 | 26387 | $0.005 | Fail | Success |
-| openai/gpt-oss-20b | 6.34 | 11704 | 1209 | 12913 | $0.001 | Success |
-| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 11.20 | 11904 | 641 | 12545 | $0.025 | Success |
-| arcee-ai/coder-large | 7.45 | 11925 | 559 | 12484 | $0.006 | Success |
-| anthropic/claude-sonnet-4 | 23.32 | 13473 | 931 | 14404 | $0.054 | Success |
-| google/gemini-2.5-flash,google/gemini-2.5-flash | 11.02 | 26355 | 1731 | 28086 | $0.012 | Fail | Success |
-| deepseek/deepseek-chat-v3-0324 | 15.41 | 11975 | 533 | 12508 | $0.004 | Success |
+| Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) | Attempts | Result |
+|-------|----------|--------------|------------------|--------------|--------------------|----------|--------|
+| gpt-4.1 | 90.79 | 36731 | 2258 | 38989 | $0.092 | 3 | Success |
+| gpt-5 | 113.68 | 36178 | 5726 | 41904 | $0.102 | 3 | Success |
+| gpt-5-mini | 102.34 | 37475 | 6951 | 44426 | $0.023 | 3 | Fail |
+| gpt-5-nano | 14.52 | 11639 | 3619 | 15258 | $0.002 | 1 | Success |
+| gpt-4o | 7.01 | 11640 | 568 | 12208 | $0.035 | 1 | Success |
+| o4-mini | 12.23 | 11639 | 1343 | 12982 | $0.019 | 1 | Success |
+| openai/gpt-oss-120b | 27.56 | 24339 | 2048 | 26387 | $0.005 | 2 | Success |
+| openai/gpt-oss-20b | 6.34 | 11704 | 1209 | 12913 | $0.001 | 1 | Success |
+| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 11.20 | 11904 | 641 | 12545 | $0.025 | 1 | Success |
+| arcee-ai/coder-large | 7.45 | 11925 | 559 | 12484 | $0.006 | 1 | Success |
+| anthropic/claude-sonnet-4 | 23.32 | 13473 | 931 | 14404 | $0.054 | 1 | Success |
+| google/gemini-2.5-flash | 11.02 | 26355 | 1731 | 28086 | $0.012 | 2 | Success |
+| deepseek/deepseek-chat-v3-0324 | 15.41 | 11975 | 533 | 12508 | $0.004 | 1 | Success |
