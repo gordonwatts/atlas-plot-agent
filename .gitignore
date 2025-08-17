@@ -126,3 +126,4 @@ DAOD_PHYS*
 # Caches
 *.db
 *.val
+z*.yaml
