@@ -51,7 +51,11 @@ def sum_usage_infos(usages: List[UsageInfo]) -> UsageInfo:
             "`sum_usage_infos` must be given a non-zero length usage list."
         )
 
-    model = ",".join(u.model for u in usages)
+    model_names = [u.model for u in usages]
+    if all(m == model_names[0] for m in model_names):
+        model = model_names[0]
+    else:
+        model = ",".join(model_names)
     elapsed = sum(u.elapsed if u.elapsed is not None else 0 for u in usages)
 
     def sum_or_zero(attr):

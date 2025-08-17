@@ -397,25 +397,61 @@ def ask(
         attempt_results = [r for _, r in run_info]
         table_rows.append([total_usage, attempt_results])
 
-    # Print markdown table
-    print("\n## Summary\n")
+    # CSV section
+    print("\n## CSV\n")
+    # CSV header
     # Determine max number of python run attempts
-    max_attempts = max(len(attempts) for _, attempts in table_rows) if table_rows else 0
+    csv_header = [
+        "Model(s)",
+        "Time (s)",
+        "Prompt Tokens",
+        "Completion Tokens",
+        "Total Tokens",
+        "Estimated Cost ($)",
+        "Attempts",
+        "Result",
+    ]
+    print(",".join(csv_header))
+    for row in table_rows:
+        usage_info, run_result = row
+        model = usage_info.model
+        elapsed = f"{usage_info.elapsed:.2f}"
+        prompt_tokens = (
+            usage_info.prompt_tokens if usage_info.prompt_tokens is not None else "-"
+        )
+        completion_tokens = (
+            usage_info.completion_tokens
+            if usage_info.completion_tokens is not None
+            else "-"
+        )
+        total_tokens = (
+            usage_info.total_tokens if usage_info.total_tokens is not None else "-"
+        )
+        cost = f"{usage_info.cost:.3f}" if usage_info.cost is not None else "-"
+        attempts = len(run_result)
+        result = "Success" if any(run_result) else "Fail"
+        csv_row = [
+            str(model),
+            str(elapsed),
+            str(prompt_tokens),
+            str(completion_tokens),
+            str(total_tokens),
+            str(cost),
+            str(attempts),
+            result,
+        ]
+        print(",".join(csv_row))
+
+    # Markdown summary section
+    print("\n## Summary\n")
     # Build header
-    base_header = (
-        "| Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens "
-        "| Estimated Cost ($) |"
-    )
-    attempt_headers = (
-        "".join([f" Python Run {i+1} |" for i in range(max_attempts)])
-        if max_attempts
-        else ""
-    )
-    print(base_header + attempt_headers)
     print(
-        "|-------|----------|--------------|------------------|--------------"
-        "|--------------------|"
-        + "".join(["--------------|" for _ in range(max_attempts)])
+        "| Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | "
+        "Estimated Cost ($) | Attempts | Result |"
+    )
+    print(
+        "|-------|----------|--------------|------------------|--------------|"
+        "--------------------|----------|--------|"
     )
     for row in table_rows:
         usage_info, run_result = row
@@ -433,10 +469,11 @@ def ask(
             usage_info.total_tokens if usage_info.total_tokens is not None else "-"
         )
         cost = f"${usage_info.cost:.3f}" if usage_info.cost is not None else "-"
-        run_cell = "".join(" Success |" if r else " Fail |" for r in run_result)
+        attempts = len(run_result)
+        result = "Success" if any(run_result) else "Fail"
         print(
-            f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | {total_tokens} "
-            f"| {cost} |" + run_cell
+            f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | "
+            f"{total_tokens} | {cost} | {attempts} | {result} |"
         )
 
 
