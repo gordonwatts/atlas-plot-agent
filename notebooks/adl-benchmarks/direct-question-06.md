@@ -9087,20 +9087,37 @@ RuntimeError: ServiceX WebAPI Error during transformation submission: 500 - Some
 ```
 </details>
 
+## CSV
+
+Model(s),Time (s),Prompt Tokens,Completion Tokens,Total Tokens,Estimated Cost ($),Attempts,Result
+gpt-4.1,166.27,39841,7736,47577,0.142,3,Fail
+gpt-5,293.51,39484,14498,53982,0.194,3,Success
+gpt-5-mini,142.03,40871,13582,54453,0.037,3,Fail
+gpt-5-nano,122.97,40804,28109,68913,0.013,3,Fail
+gpt-4o,106.92,38248,4910,43158,0.145,3,Fail
+o4-mini,125.55,38206,11860,50066,0.094,3,Fail
+openai/gpt-oss-120b,106.01,38748,9107,47855,0.011,3,Fail
+openai/gpt-oss-20b,10.65,11741,2048,13789,0.001,1,Fail
+Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8,67.39,26016,3455,29471,0.059,2,Success
+arcee-ai/coder-large,83.49,40020,6564,46584,0.025,3,Fail
+anthropic/claude-sonnet-4,129.26,13508,2989,16497,0.085,1,Success
+google/gemini-2.5-flash,47.32,47529,11911,59440,0.044,3,Fail
+deepseek/deepseek-chat-v3-0324,268.81,39472,5401,44873,0.016,3,Fail
+
 ## Summary
 
-| Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) | Python Run 1 | Python Run 2 | Python Run 3 |
-|-------|----------|--------------|------------------|--------------|--------------------|--------------|--------------|--------------|
-| gpt-4.1,gpt-4.1,gpt-4.1 | 166.27 | 39841 | 7736 | 47577 | $0.142 | Fail | Fail | Fail |
-| gpt-5,gpt-5,gpt-5 | 293.51 | 39484 | 14498 | 53982 | $0.194 | Fail | Fail | Success |
-| gpt-5-mini,gpt-5-mini,gpt-5-mini | 142.03 | 40871 | 13582 | 54453 | $0.037 | Fail | Fail | Fail |
-| gpt-5-nano,gpt-5-nano,gpt-5-nano | 122.97 | 40804 | 28109 | 68913 | $0.013 | Fail | Fail | Fail |
-| gpt-4o,gpt-4o,gpt-4o | 106.92 | 38248 | 4910 | 43158 | $0.145 | Fail | Fail | Fail |
-| o4-mini,o4-mini,o4-mini | 125.55 | 38206 | 11860 | 50066 | $0.094 | Fail | Fail | Fail |
-| openai/gpt-oss-120b,openai/gpt-oss-120b,openai/gpt-oss-120b | 106.01 | 38748 | 9107 | 47855 | $0.011 | Fail | Fail | Fail |
-| openai/gpt-oss-20b | 10.65 | 11741 | 2048 | 13789 | $0.001 | Fail |
-| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8,Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 67.39 | 26016 | 3455 | 29471 | $0.059 | Fail | Success |
-| arcee-ai/coder-large,arcee-ai/coder-large,arcee-ai/coder-large | 83.49 | 40020 | 6564 | 46584 | $0.025 | Fail | Fail | Fail |
-| anthropic/claude-sonnet-4 | 129.26 | 13508 | 2989 | 16497 | $0.085 | Success |
-| google/gemini-2.5-flash,google/gemini-2.5-flash,google/gemini-2.5-flash | 47.32 | 47529 | 11911 | 59440 | $0.044 | Fail | Fail | Fail |
-| deepseek/deepseek-chat-v3-0324,deepseek/deepseek-chat-v3-0324,deepseek/deepseek-chat-v3-0324 | 268.81 | 39472 | 5401 | 44873 | $0.016 | Fail | Fail | Fail |
+| Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost ($) | Attempts | Result |
+|-------|----------|--------------|------------------|--------------|--------------------|----------|--------|
+| gpt-4.1 | 166.27 | 39841 | 7736 | 47577 | $0.142 | 3 | Fail |
+| gpt-5 | 293.51 | 39484 | 14498 | 53982 | $0.194 | 3 | Success |
+| gpt-5-mini | 142.03 | 40871 | 13582 | 54453 | $0.037 | 3 | Fail |
+| gpt-5-nano | 122.97 | 40804 | 28109 | 68913 | $0.013 | 3 | Fail |
+| gpt-4o | 106.92 | 38248 | 4910 | 43158 | $0.145 | 3 | Fail |
+| o4-mini | 125.55 | 38206 | 11860 | 50066 | $0.094 | 3 | Fail |
+| openai/gpt-oss-120b | 106.01 | 38748 | 9107 | 47855 | $0.011 | 3 | Fail |
+| openai/gpt-oss-20b | 10.65 | 11741 | 2048 | 13789 | $0.001 | 1 | Fail |
+| Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8 | 67.39 | 26016 | 3455 | 29471 | $0.059 | 2 | Success |
+| arcee-ai/coder-large | 83.49 | 40020 | 6564 | 46584 | $0.025 | 3 | Fail |
+| anthropic/claude-sonnet-4 | 129.26 | 13508 | 2989 | 16497 | $0.085 | 1 | Success |
+| google/gemini-2.5-flash | 47.32 | 47529 | 11911 | 59440 | $0.044 | 3 | Fail |
+| deepseek/deepseek-chat-v3-0324 | 268.81 | 39472 | 5401 | 44873 | $0.016 | 3 | Fail |
