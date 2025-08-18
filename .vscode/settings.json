@@ -26,6 +26,7 @@
         "qwen",
         "Rucio",
         "streamlit",
+        "tqdm",
         "ttbar",
         "typer",
         "venv",

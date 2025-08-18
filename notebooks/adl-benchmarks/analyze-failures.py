@@ -8,6 +8,7 @@ from disk_cache import diskcache_decorator
 from dotenv import dotenv_values, find_dotenv
 from hint_files import load_hint_files
 from query_config import load_config
+from tqdm import tqdm
 
 app = typer.Typer()
 
@@ -143,7 +144,7 @@ def analyze(files: List[str]):
 
     # Loop through each of the files and accumulate the results
     error_catalog = []
-    for file_path in files:
+    for file_path in tqdm(files, desc="Analyzing files"):
         with open(file_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
