@@ -9,7 +9,6 @@ import openai
 import typer
 import yaml
 from disk_cache import diskcache_decorator
-from diskcache import Cache
 from dotenv import dotenv_values, find_dotenv
 from hint_files import load_hint_files
 from pydantic import BaseModel
@@ -44,10 +43,7 @@ def load_models(models_path: str = "models.yaml") -> Dict[str, ModelInfo]:
     return {name: ModelInfo(**info) for name, info in raw_models.items()}
 
 
-response_cache = Cache(".openai_response_cache")
-
-
-@diskcache_decorator(response_cache)
+@diskcache_decorator(".openai_response_cache")
 def get_openai_response(prompt: str, model_name: str, endpoint: Optional[str] = None):
     import time
 
@@ -65,11 +61,7 @@ def get_openai_response(prompt: str, model_name: str, endpoint: Optional[str] = 
     return {"response": response, "elapsed": elapsed}
 
 
-# Diskcache for docker results
-docker_cache = Cache(".docker_run_cache")
-
-
-@diskcache_decorator(docker_cache)
+@diskcache_decorator(".docker_run_cache")
 def cached_run_python_in_docker(code: str, ignore_cache=False):
     "Caching version"
     return run_python_in_docker(code)
