@@ -162,7 +162,7 @@ def analyze(files: List[str]):
             d["model"] = data.get("model", "")
             d["question"] = data.get("question", "")
 
-        error_catalog.append(result)
+        error_catalog.extend(result)
 
     # Store the error analysis
     with open("error_catalog.yaml", "w", encoding="utf-8") as f:
