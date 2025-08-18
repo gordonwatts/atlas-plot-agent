@@ -18,15 +18,22 @@ You will be given the original particle physics question that an LLM generated t
 a set of hint files that guided the LLM in generating the code, the code that was generated,
 and stdout and stderr from running that code.
 
+There is a special kind of error - if the LLM was trying to do something that was not needed to
+answer the question (e.g. it made the question more complex), or it didn't understand the question.
+In that case, there was an *interpretation* error.
+
 Your task is to:
-1. Understand which phase the error occurred in: servicex, awkward, hist, or vector.
-1. Write a one line description of what the error was
+1. Understand what the code was trying to do when it encountered the error (e.g. what part of the
+question was it trying to answer)
+1. Understand which phase the error occurred in: interpretation, servicex, awkward, hist, or
+vector.
+1. Write a one line description of what the error was.
 1. Determine if this was a policy error (e.g. there will be a note in the
 stderr output to that effect)
 1. And determine if the code does not follow instructions in the hint files (the alternative
 is not using servicex or award correctly)
-1. If relevant, a line of text to add to the hint files to help avoid this error next time the original
-LLM runs.
+1. If relevant, a line of text to add to the hint files to help avoid this error next time the
+original LLM runs.
 
 ** Question that generated the code **
 {question}
@@ -54,7 +61,8 @@ LLM runs.
 Please write your reply in this form (yaml). If you find more than one error,
 add more than one entry:
 >>start-reply<<
-- phase: "<phase>"
+- goal: "<what-part-of-question-was-it-trying-to-answer>"
+  phase: "<phase>"
   error_description: "<error_description>"
   policy_error: <True/False>
   hint_violation: <True/False>
@@ -133,18 +141,28 @@ def analyze(files: List[str]):
     os.environ["OPENAI_API_KEY"] = api_key
     openai.api_key = api_key
 
-    # Loop through each of th files and accumulate the results
+    # Loop through each of the files and accumulate the results
+    error_catalog = []
     for file_path in files:
         with open(file_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
+
         code = data.get("code", "")
         stderr = data.get("stderr", "")
         stdout = data.get("stdout", "")
         question = data.get("question", "")
         result = analysis(question, code, stderr, stdout, hint_text)
-        typer.echo(f"Analysis for {file_path}: {result}")
+
+        for d in result:
+            d["iteration"] = data.get("iteration", 1)
+            d["model"] = data.get("model", "")
+            d["question"] = data.get("question", "")
+
+        error_catalog.append(result)
 
     # Store the error analysis
+    with open("error_catalog.yaml", "w", encoding="utf-8") as f:
+        yaml.dump(error_catalog, f)
 
 
 if __name__ == "__main__":
