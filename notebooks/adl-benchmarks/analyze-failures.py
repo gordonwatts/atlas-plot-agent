@@ -36,6 +36,9 @@ is not using servicex or award correctly)
 1. If relevant, a line of text to add to the hint files to help avoid this error next time the
 original LLM runs.
 
+Repeat as necessary above if you spot more than one error (e.g. an interpretation error and
+a code error itself.)
+
 ** Question that generated the code **
 {question}
 
