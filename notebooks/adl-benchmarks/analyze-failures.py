@@ -24,8 +24,8 @@ answer the question (e.g. it made the question more complex), or it didn't under
 In that case, there was an *interpretation* error.
 
 Your task is to:
-1. Understand what the code was trying to do when it encountered the error (e.g. what part of the
-question was it trying to answer)
+1. Understand what the code was trying to do when it encountered the error and how it is related
+to the original question (e.g. was it explicitly asked for or a necessary step)
 1. Understand which phase the error occurred in: interpretation, servicex, awkward, hist, or
 vector.
 1. Write a one line description of what the error was.
