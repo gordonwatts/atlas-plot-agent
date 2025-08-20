@@ -5,7 +5,7 @@ import typer
 from enum import Enum
 from query_config import load_plan_config
 from hint_files import load_hint_files
-from models import load_models, process_model_request
+from models import load_models, process_model_request, run_llm
 
 
 # Enum for allowed cache types
@@ -56,8 +56,6 @@ def ask(
     else:
         logging.basicConfig(level=logging.DEBUG)
 
-    logging.error(ignore_cache)
-
     # Get the config loaded
     config = load_plan_config()
     plan_hint_contents = load_hint_files(
@@ -76,12 +74,22 @@ def ask(
     for model_name in valid_model_names:
         print(f"\n## Model {all_models[model_name].model_name}")
 
+        # Build prompt
         base_prompt = config.plan_prompt
         prompt = base_prompt.format(
             question=question,
             hints="\n".join(plan_hint_contents),
         )
         logging.debug(f"Built prompt for planning: {prompt}")
+
+        # Run against model
+        logging.debug(f"Running against model {all_models[model_name].model_name}")
+        usage_info, message = run_llm(
+            prompt,
+            all_models[model_name],
+            ignore_cache=CacheType.llm_plan in ignore_cache,
+        )
+        print(usage_info)
 
 
 if __name__ == "__main__":
