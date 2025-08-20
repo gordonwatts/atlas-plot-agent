@@ -1,0 +1,37 @@
+hint_files:
+  "coding":
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/mainservicex-hints.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/mainxaod-hints.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/mainawkward-hints.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/mainvector-hints.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/mainhist-hints.md"
+  "plan":
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-plot.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-servicex.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-awkward.md"
+model_name: "gpt-oss-120b"
+plan_prompt: |
+  The user has asked us to produce a plot from ATLAS data. In this first phase you will plan the
+  code that we will write in stages to produce this plots.
+
+  1. You will read the hint files below which will tell you how to plan each major phase.
+  2. You will read the question from the user.
+  3. You will write out the plan in english separated by each phase, and within each phase,
+     a set of steps.
+
+  ** Hints **
+  {hints}
+
+  ** User Question **
+  {question}
+
+  ** Final Instructions **
+  Please reply in the following format:
+  >>start-reply<<
+  ## Phase <name-of-phase 1>
+  <instructions for phase 1>
+
+  ## Phase <name-of-phase 2>
+  <instructions for phase 2>
+  ...
+  >>end-reply<<

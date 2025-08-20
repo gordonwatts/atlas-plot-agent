@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Dict, List
 
 import yaml
 from pydantic import BaseModel
@@ -40,10 +41,34 @@ class DirectQueryConfig(BaseModel):
     model_name: str = "gpt-4-1106-preview"
 
 
-def load_config(config_path: str = "direct-query-config.yaml") -> DirectQueryConfig:
+def load_config(
+    config_path: str = "plan-query-config.yaml",
+) -> DirectQueryConfig:
     """
     Load configuration from a YAML file and return a DirectQueryConfig instance.
     Sets default model_name to gpt-4-1106-preview if not present.
     """
     data = load_yaml_file(config_path)
     return DirectQueryConfig(**data)
+
+
+class PlanQueryConfig(BaseModel):
+    """
+    Configuration model for direct-query CLI.
+    Contains a list of hint files, a prompt string, and a model name.
+    """
+
+    hint_files: Dict[str, List[str]]
+    plan_prompt: str
+    model_name: str
+
+
+def load_plan_config(
+    config_path: str = "plan-query-config.yaml",
+) -> PlanQueryConfig:
+    """
+    Load configuration from a YAML file and return a DirectQueryConfig instance.
+    Sets default model_name to gpt-4-1106-preview if not present.
+    """
+    data = load_yaml_file(config_path)
+    return PlanQueryConfig(**data)
