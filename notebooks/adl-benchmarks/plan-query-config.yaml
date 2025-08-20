@@ -9,6 +9,7 @@ hint_files:
     - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-plot.md"
     - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-servicex.md"
     - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-awkward.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-hist.md"
 model_name: "gpt-oss-120b"
 plan_prompt: |
   The user has asked us to produce a plot from ATLAS data. In this first phase you will plan the

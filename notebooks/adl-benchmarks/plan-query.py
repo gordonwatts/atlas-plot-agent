@@ -60,7 +60,9 @@ def ask(
 
     # Get the config loaded
     config = load_plan_config()
-    plan_hint_contents = load_hint_files(config.hint_files["plan"])
+    plan_hint_contents = load_hint_files(
+        config.hint_files["plan"], CacheType.hints in ignore_cache
+    )
 
     # Load models
     all_models = load_models()
