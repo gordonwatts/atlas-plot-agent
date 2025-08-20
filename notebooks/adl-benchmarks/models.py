@@ -118,7 +118,7 @@ def run_llm(prompt: str, model_info, ignore_cache=False) -> Tuple[UsageInfo, str
 
     print("\n")
     if message:
-        cleaned_message = message.strip()
+        cleaned_message = strip_being_end(message)
         sys.stdout.flush()
         sys.stdout.buffer.write((cleaned_message + "\n").encode("utf-8"))
         sys.stdout.flush()
@@ -128,3 +128,15 @@ def run_llm(prompt: str, model_info, ignore_cache=False) -> Tuple[UsageInfo, str
     usage_info = get_usage_info(response, model_info, elapsed)
 
     return usage_info, str(message)
+
+
+def strip_being_end(message: str) -> str:
+    "Strip the being and end response strings off"
+    message = message.strip()
+    if message.startswith(">>start-reply<<"):
+        message = message[15:]
+
+    if message.endswith(">>end-reply<<"):
+        message = message[: len(message) - 13]
+
+    return message.strip()

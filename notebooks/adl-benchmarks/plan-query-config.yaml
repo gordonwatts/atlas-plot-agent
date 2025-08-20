@@ -11,28 +11,70 @@ hint_files:
     - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-awkward.md"
     - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-hist.md"
 model_name: "gpt-oss-120b"
-plan_prompt: |
-  The user has asked us to produce a plot from ATLAS data. In this first phase you will plan the
-  code that we will write in stages to produce this plots.
+prompts:
+  preplan: |
+    The user has asked us to produce a plot from ATLAS data with a prompt. You will carefully analyze the question
+    with an eye to how we will code up the query against the data.
 
-  1. You will read the hint files below which will tell you how to plan each major phase.
-  2. You will read the question from the user.
-  3. You will write out the plan in english separated by each phase, and within each phase,
-     a set of steps.
+    1. List the item(s) that needed to be plotted, and what kind of plot (histogram, etc.)
+      * For each list what needs to be plotted and the plot type (e.g. histogram, scatter plot)
+    2. List the filters that need to be applied
+      * For each line what needs to be filtered.
+    3. List a collection of all the data that must be read from the ATLAS data file in order to do both filtering and plotting.
+      * First should be the full dataset name the user has given us (or "unknown")
+      * Next for each type of physics object (e.g. jets, electrons, etc.)
+        * for each item (e.g. pt) and why it is needed (for filtering, for plotting, for both, etc.)
 
-  ** Hints **
-  {hints}
+    Please do your best to only produce the plot that is requested in the User Plot Prompt. Do not add any options or extensions beyond exactly what the user requested.
 
-  ** User Question **
-  {question}
+    **User Plot Prompt**
+    {question}
 
-  ** Final Instructions **
-  Please reply in the following format:
-  >>start-reply<<
-  ## Phase <name-of-phase 1>
-  <instructions for phase 1>
+    **Final Instructions**
+    Please respond in markdown ascii text. Feel free to add more steps for complex questions, but the steps must follow the format listed below.
+    >>start-reply<<
+    1. plots
 
-  ## Phase <name-of-phase 2>
-  <instructions for phase 2>
-  ...
-  >>end-reply<<
+        * <what-is-being-plotted>, <plot-type>
+
+    2. Filters
+
+        * <individual filter requirements or "None" if none>
+
+    3. Required Data
+
+        * Dataset: <dataset name>
+        * <physics-object>:
+          - <what-item-1> (needed <why needed)
+          - <what-item-2> (needed <why needed)
+
+    <extra-notes-for-user-to-read-about-choices-you-made>
+
+    >>end-reply<<
+  plan: |
+    The user has asked us to produce a plot from ATLAS data. In this first phase you will plan the
+    code that we will write in stages to produce this plots.
+
+    1. You will read the hint files below which will tell you how to plan each major phase.
+    2. You will read the question from the user.
+    3. You will write out the plan in english separated by each phase, and within each phase,
+      a set of steps.
+
+    ** Hints **
+    {hints}
+
+    ** User Question **
+    {question}
+
+    ** Final Instructions **
+    Do NOT use any unicode characters. Use plain markdown for everything.
+    
+    Please reply in the following format:
+    >>start-reply<<
+    ## Phase <name-of-phase 1>
+    <instructions for phase 1>
+
+    ## Phase <name-of-phase 2>
+    <instructions for phase 2>
+    ...
+    >>end-reply<<

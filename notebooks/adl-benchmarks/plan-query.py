@@ -75,7 +75,7 @@ def ask(
         print(f"\n## Model {all_models[model_name].model_name}")
 
         # Build prompt
-        base_prompt = config.plan_prompt
+        base_prompt = config.prompts["preplan"]
         prompt = base_prompt.format(
             question=question,
             hints="\n".join(plan_hint_contents),

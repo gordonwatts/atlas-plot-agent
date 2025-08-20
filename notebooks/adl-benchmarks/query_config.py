@@ -59,7 +59,7 @@ class PlanQueryConfig(BaseModel):
     """
 
     hint_files: Dict[str, List[str]]
-    plan_prompt: str
+    prompts: Dict[str, str]
     model_name: str
 
 
