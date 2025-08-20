@@ -1,9 +1,20 @@
 import hashlib
 import logging
+from typing import List
 import typer
+from enum import Enum
 from query_config import load_plan_config
 from hint_files import load_hint_files
 from models import load_models, process_model_request
+
+
+# Enum for allowed cache types
+class CacheType(str, Enum):
+    llm_plan = "llm_plan"
+    llm_code = "llm_code"
+    code = "code"
+    hints = "hints"
+
 
 app = typer.Typer()
 
@@ -16,11 +27,18 @@ def ask(
         help="Comma-separated list of model names to run (default: pulled from config). "
         "Use `all` to run all known models.",
     ),
-    ignore_cache: bool = typer.Option(
-        False, "--ignore-cache", help="Ignore disk cache for model queries."
+    ignore_cache: List[CacheType] = typer.Option(
+        [],
+        "--ignore-cache",
+        help="Cache types to ignore (llm_plan, llm_code, code, hints). Use multiple times.",
+        case_sensitive=True,
     ),
     n_iter: int = typer.Option(
-        1, "--n-iter", "-n", min=1, help="Number of iterations to run (must be >= 1)."
+        1,
+        "--n-iter",
+        "-n",
+        min=1,
+        help="Number of iterations to run (must be >= 1).",
     ),
     verbose: int = typer.Option(
         0,
@@ -38,6 +56,8 @@ def ask(
     else:
         logging.basicConfig(level=logging.DEBUG)
 
+    logging.error(ignore_cache)
+
     # Get the config loaded
     config = load_plan_config()
     plan_hint_contents = load_hint_files(config.hint_files["plan"])
@@ -48,7 +68,7 @@ def ask(
 
     # stdout is a markdown file
     print(f"# {question}\n")
-    question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
+    # question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
 
     # Loop over each model
     for model_name in valid_model_names:
