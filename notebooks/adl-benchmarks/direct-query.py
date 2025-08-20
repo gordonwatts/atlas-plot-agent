@@ -2,7 +2,7 @@ import hashlib
 import logging
 import os
 import sys
-from typing import Dict, Optional, Tuple
+from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 import openai
@@ -11,8 +11,8 @@ import yaml
 from disk_cache import diskcache_decorator
 from dotenv import dotenv_values, find_dotenv
 from hint_files import load_hint_files
-from pydantic import BaseModel
-from query_config import load_config, load_yaml_file
+from query_config import load_config
+from models import load_models, process_model_request
 
 from atlas_plot_agent.run_in_docker import (
     DockerRunResult,
@@ -25,22 +25,6 @@ if hasattr(sys.stdin, "reconfigure"):
     sys.stdin.reconfigure(encoding="utf-8")  # type: ignore
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
-
-
-class ModelInfo(BaseModel):
-    model_name: str
-    input_cost_per_million: float
-    output_cost_per_million: float
-    endpoint: Optional[str] = None  # e.g., OpenAI API endpoint or local server URL
-
-
-def load_models(models_path: str = "models.yaml") -> Dict[str, ModelInfo]:
-    """
-    Load models and their costs from a YAML file, returning a dict of model_name to ModelInfo.
-    """
-    data = load_yaml_file(models_path)
-    raw_models = data["models"]
-    return {name: ModelInfo(**info) for name, info in raw_models.items()}
 
 
 @diskcache_decorator(".openai_response_cache")
@@ -247,22 +231,9 @@ def ask(
 
     # Load models
     all_models = load_models()
-    if models:
-        model_names = [m.strip() for m in models.split(",") if m.strip()]
-        if "all" in model_names:
-            model_names = list(all_models.keys())
-    else:
-        model_names = [config.model_name]
+    valid_model_names = process_model_request(models, all_models, config.model_name)
 
-    # Validate model names
-    valid_model_names = [m for m in model_names if m in all_models]
-    invalid_model_names = [m for m in model_names if m not in all_models]
-    if invalid_model_names:
-        print(
-            f"Error: model(s) not found in models.yaml: {', '.join(invalid_model_names)}"
-        )
-        return
-
+    # Check number of requested iterations is good
     if n_iter < 1:
         logging.error(
             f"Error: command line option `n_iter` must be >= 1 (got {n_iter})"
