@@ -1,7 +1,16 @@
-from typing import Dict, List, Optional
+import logging
+import os
+import sys
+from typing import Dict, List, Optional, Tuple
+from urllib.parse import urlparse
 
+import openai
+from disk_cache import diskcache_decorator
+from dotenv import dotenv_values, find_dotenv
 from pydantic import BaseModel
 from query_config import load_yaml_file
+
+from atlas_plot_agent.usage_info import UsageInfo, get_usage_info
 
 
 class ModelInfo(BaseModel):
@@ -55,3 +64,67 @@ def process_model_request(
         )
 
     return model_names
+
+
+@diskcache_decorator(".openai_response_cache")
+def _get_openai_response(prompt: str, model_name: str, endpoint: Optional[str] = None):
+    import time
+
+    if endpoint:
+        client = openai.OpenAI(base_url=endpoint)
+    else:
+        client = openai.OpenAI()
+    start_time = time.time()
+    response = client.chat.completions.create(
+        model=model_name, messages=[{"role": "user", "content": prompt}]
+    )
+    elapsed = time.time() - start_time
+    assert response.choices[0].message.content is not None, "No content in response"
+    # Return both response and timing for caching
+    return {"response": response, "elapsed": elapsed}
+
+
+def run_llm(prompt: str, model_info, ignore_cache=False) -> Tuple[UsageInfo, str]:
+    # Set API key based on endpoint hostname, using <node-name>_API_KEY
+    endpoint_host = None
+    if model_info.endpoint:
+        endpoint_host = urlparse(model_info.endpoint).hostname
+    if not endpoint_host:
+        endpoint_host = "api.openai.com"
+    env_var = f"{endpoint_host.replace('.', '_')}_API_KEY"
+    env_path = find_dotenv()
+    env_vars = dotenv_values(env_path)
+    api_key = env_vars.get(env_var)
+    if api_key:
+        os.environ["OPENAI_API_KEY"] = api_key
+        openai.api_key = api_key
+    else:
+        logging.warning(f"API key not found for {env_var}")
+        if "OPENAI_API_KEY" in env_vars:
+            del os.environ["OPENAI_API_KEY"]
+
+    # Do the query
+    llm_result = _get_openai_response(
+        prompt,
+        model_info.model_name,
+        model_info.endpoint,
+        ignore_cache=ignore_cache,  # type: ignore
+    )
+    response = llm_result["response"]
+    elapsed = llm_result["elapsed"]
+    message = None
+    if response and response.choices and response.choices[0].message:
+        message = response.choices[0].message.content
+
+    print("\n")
+    if message:
+        cleaned_message = message.strip()
+        sys.stdout.flush()
+        sys.stdout.buffer.write((cleaned_message + "\n").encode("utf-8"))
+        sys.stdout.flush()
+    else:
+        print("No response content returned.")
+
+    usage_info = get_usage_info(response, model_info, elapsed)
+
+    return usage_info, str(message)
