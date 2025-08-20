@@ -13,8 +13,11 @@ def load_file_content(path: str) -> str:
     return content
 
 
-def load_hint_files(hint_files: list[str]) -> list[str]:
+def load_hint_files(hint_files: list[str], ignore_cache: bool = False) -> list[str]:
     """
     Load all hint files into a list of strings, using cache for speed.
     """
-    return [load_file_content(hint_file) for hint_file in hint_files]
+    return [
+        load_file_content(hint_file, ignore_cache=ignore_cache)  # type: ignore
+        for hint_file in hint_files
+    ]
