@@ -17,6 +17,7 @@ notebook = [
     "ipywidgets",
     "mplhep",
     "diskcache",
+    "tqdm",
 ]
 
 dev = ["pytest", "pytest-asyncio", "pytest-coverage", "black", "flake8"]

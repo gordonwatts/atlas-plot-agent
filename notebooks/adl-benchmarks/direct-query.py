@@ -1,4 +1,3 @@
-import functools
 import hashlib
 import logging
 import os
@@ -6,13 +5,14 @@ import sys
 from typing import Dict, Optional, Tuple
 from urllib.parse import urlparse
 
-import fsspec
 import openai
 import typer
 import yaml
-from diskcache import Cache
+from disk_cache import diskcache_decorator
 from dotenv import dotenv_values, find_dotenv
+from hint_files import load_hint_files
 from pydantic import BaseModel
+from query_config import load_config, load_yaml_file
 
 from atlas_plot_agent.run_in_docker import (
     DockerRunResult,
@@ -25,29 +25,6 @@ if hasattr(sys.stdin, "reconfigure"):
     sys.stdin.reconfigure(encoding="utf-8")  # type: ignore
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
-
-
-def load_yaml_file(filename: str) -> dict:
-    """
-    Load a YAML file from local or script directory and return its contents as a dict.
-    """
-    local_path = os.path.abspath(filename)
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    script_path = os.path.join(script_dir, filename)
-
-    if os.path.exists(local_path):
-        logging.info(f"Loaded {filename} from local directory: {local_path}")
-        path_to_load = local_path
-    elif os.path.exists(script_path):
-        logging.info(f"Loaded {filename} from script directory: {script_path}")
-        path_to_load = script_path
-    else:
-        raise FileNotFoundError(
-            f"File not found in local or script directory: {filename}"
-        )
-
-    with open(path_to_load, "r") as f:
-        return yaml.safe_load(f)
 
 
 class ModelInfo(BaseModel):
@@ -66,70 +43,7 @@ def load_models(models_path: str = "models.yaml") -> Dict[str, ModelInfo]:
     return {name: ModelInfo(**info) for name, info in raw_models.items()}
 
 
-class DirectQueryConfig(BaseModel):
-    """
-    Configuration model for direct-query CLI.
-    Contains a list of hint files, a prompt string, and a model name.
-    """
-
-    hint_files: list[str]
-    prompt: str
-    modify_prompt: str
-    model_name: str = "gpt-4-1106-preview"
-
-
-def load_config(config_path: str = "direct-query-config.yaml") -> DirectQueryConfig:
-    """
-    Load configuration from a YAML file and return a DirectQueryConfig instance.
-    Sets default model_name to gpt-4-1106-preview if not present.
-    """
-    data = load_yaml_file(config_path)
-    return DirectQueryConfig(**data)
-
-
-# Generic diskcache-backed decorator
-def diskcache_decorator(cache: Cache):
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            ignore_cache = kwargs.pop("ignore_cache", False)
-            key = (func.__name__, args, tuple(sorted(kwargs.items())))
-            if not ignore_cache and key in cache:
-                return cache[key]
-            result = func(*args, **kwargs)
-            cache[key] = result
-            return result
-
-        return wrapper
-
-    return decorator
-
-
-file_cache = Cache(".hint_file_cache")
-
-
-@diskcache_decorator(file_cache)
-def load_file_content(path: str) -> str:
-    """
-    Load file content using built-in open for local files, with disk-backed cache.
-    For remote filesystems, replace with fsspec.open or fsspec.open_files.
-    """
-    with fsspec.open(path, "r") as f:
-        content = f.read()  # type: ignore
-    return content
-
-
-def load_hint_files(hint_files: list[str]) -> list[str]:
-    """
-    Load all hint files into a list of strings, using cache for speed.
-    """
-    return [load_file_content(hint_file) for hint_file in hint_files]
-
-
-response_cache = Cache(".openai_response_cache")
-
-
-@diskcache_decorator(response_cache)
+@diskcache_decorator(".openai_response_cache")
 def get_openai_response(prompt: str, model_name: str, endpoint: Optional[str] = None):
     import time
 
@@ -147,11 +61,7 @@ def get_openai_response(prompt: str, model_name: str, endpoint: Optional[str] = 
     return {"response": response, "elapsed": elapsed}
 
 
-# Diskcache for docker results
-docker_cache = Cache(".docker_run_cache")
-
-
-@diskcache_decorator(docker_cache)
+@diskcache_decorator(".docker_run_cache")
 def cached_run_python_in_docker(code: str, ignore_cache=False):
     "Caching version"
     return run_python_in_docker(code)
@@ -317,6 +227,11 @@ def ask(
     ignore_cache: bool = typer.Option(
         False, "--ignore-cache", help="Ignore disk cache for model queries."
     ),
+    error_info: bool = typer.Option(
+        False,
+        "--write-error-info",
+        help="Writes a small `fail` file for each error that can be analyzed later",
+    ),
     n_iter: int = typer.Option(
         1, "--n-iter", "-n", min=1, help="Number of iterations to run (must be >= 1)."
     ),
@@ -387,10 +302,27 @@ def ask(
                 break
             print("</details>")
 
-            # Build up prompt info for next time.
+            # It is also possible there was a catastrophic failure, and we shouldn't
+            # even try again.
             if row[2] is None or row[3] is None:
                 break
+
+            # If we are writing out the error info, we should do that here
             code = row[3]
+            if error_info:
+                e_info = {
+                    "code": code,
+                    "question": question,
+                    "stdout": row[2].stdout,
+                    "stderr": row[2].stderr,
+                    "model": model_name,
+                    "iteration": iter + 1,
+                }
+                output_file = f"z_fail_{question_hash}_{model_name}_{iter+1}.yaml"
+                with open(output_file, "w") as f:
+                    yaml.dump(e_info, f)
+
+            # Build up prompt info for next time.
             errors = "\n".join([row[2].stdout, row[2].stderr])
 
         total_usage = sum_usage_infos([u for u, _ in run_info])
