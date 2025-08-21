@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run plan-query.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/notebooks/adl-benchmarks/plan-query.py",
+            "args": [
+                "3",
+                "output.md",
+                // "--ignore-cache",
+                // "llm_plan",
+            ],
+            "console": "integratedTerminal"
+        }
+    ]
+}
