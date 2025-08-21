@@ -45,8 +45,8 @@ prompts:
 
         * Dataset: <dataset name>
         * <physics-object>:
-          - <what-item-1> (needed <why needed)
-          - <what-item-2> (needed <why needed)
+          * <what-item-1> (needed <why needed)
+          * <what-item-2> (needed <why needed)
 
     <extra-notes-for-user-to-read-about-choices-you-made>
 

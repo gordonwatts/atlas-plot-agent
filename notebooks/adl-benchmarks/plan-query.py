@@ -1,11 +1,18 @@
-import hashlib
 import logging
-from typing import List
-import typer
 from enum import Enum
-from query_config import load_plan_config
+import sys
+from typing import List
+
+import typer
 from hint_files import load_hint_files
 from models import load_models, process_model_request, run_llm
+from query_config import load_plan_config
+from questions import extract_questions
+
+if hasattr(sys.stdin, "reconfigure"):
+    sys.stdin.reconfigure(encoding="utf-8")  # type: ignore
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
 
 
 # Enum for allowed cache types
@@ -55,6 +62,17 @@ def ask(
         logging.basicConfig(level=logging.INFO)
     else:
         logging.basicConfig(level=logging.DEBUG)
+
+    # See if this is a reference to a particular question.
+    if str.isdigit(question):
+        questions = extract_questions()
+        n_question = int(question)
+        if n_question > len(questions):
+            raise ValueError(
+                f"Requested question number {n_question} is out of range "
+                f"(there are only {len(questions)})"
+            )
+        question = questions[n_question - 1]
 
     # Get the config loaded
     config = load_plan_config()
