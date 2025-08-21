@@ -1,6 +1,6 @@
 import logging
 from enum import Enum
-import sys
+from pathlib import Path
 from typing import List
 
 import typer
@@ -8,11 +8,6 @@ from hint_files import load_hint_files
 from models import load_models, process_model_request, run_llm
 from query_config import load_plan_config
 from questions import extract_questions
-
-if hasattr(sys.stdin, "reconfigure"):
-    sys.stdin.reconfigure(encoding="utf-8")  # type: ignore
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
 
 
 # Enum for allowed cache types
@@ -33,6 +28,9 @@ def ask(
         None,
         help="Comma-separated list of model names to run (default: pulled from config). "
         "Use `all` to run all known models.",
+    ),
+    output: Path = typer.Argument(
+        Path("output.md"), help="Output filename, defaults to `output.md`"
     ),
     ignore_cache: List[CacheType] = typer.Option(
         [],
@@ -84,30 +82,33 @@ def ask(
     all_models = load_models()
     valid_model_names = process_model_request(models, all_models, config.model_name)
 
-    # stdout is a markdown file
-    print(f"# {question}\n")
-    # question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
+    with output.open("wt", encoding="utf-8") as fh_out:
 
-    # Loop over each model
-    for model_name in valid_model_names:
-        print(f"\n## Model {all_models[model_name].model_name}")
+        # stdout is a markdown file
+        fh_out.write(f"# {question}\n")
+        # question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
 
-        # Build prompt
-        base_prompt = config.prompts["preplan"]
-        prompt = base_prompt.format(
-            question=question,
-            hints="\n".join(plan_hint_contents),
-        )
-        logging.debug(f"Built prompt for planning: {prompt}")
+        # Loop over each model
+        for model_name in valid_model_names:
+            fh_out.write(f"\n## Model {all_models[model_name].model_name}")
 
-        # Run against model
-        logging.debug(f"Running against model {all_models[model_name].model_name}")
-        usage_info, message = run_llm(
-            prompt,
-            all_models[model_name],
-            ignore_cache=CacheType.llm_plan in ignore_cache,
-        )
-        print(usage_info)
+            # Build prompt
+            base_prompt = config.prompts["preplan"]
+            prompt = base_prompt.format(
+                question=question,
+                hints="\n".join(plan_hint_contents),
+            )
+            logging.debug(f"Built prompt for planning: {prompt}")
+
+            # Run against model
+            logging.debug(f"Running against model {all_models[model_name].model_name}")
+            usage_info, message = run_llm(
+                prompt,
+                all_models[model_name],
+                fh_out,
+                ignore_cache=CacheType.llm_plan in ignore_cache,
+            )
+            print(usage_info)
 
 
 if __name__ == "__main__":

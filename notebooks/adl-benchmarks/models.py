@@ -1,6 +1,6 @@
 import logging
 import os
-import sys
+from io import TextIOWrapper
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
@@ -84,7 +84,9 @@ def _get_openai_response(prompt: str, model_name: str, endpoint: Optional[str] =
     return {"response": response, "elapsed": elapsed}
 
 
-def run_llm(prompt: str, model_info, ignore_cache=False) -> Tuple[UsageInfo, str]:
+def run_llm(
+    prompt: str, model_info, out: TextIOWrapper, ignore_cache=False
+) -> Tuple[UsageInfo, str]:
     # Set API key based on endpoint hostname, using <node-name>_API_KEY
     endpoint_host = None
     if model_info.endpoint:
@@ -116,14 +118,12 @@ def run_llm(prompt: str, model_info, ignore_cache=False) -> Tuple[UsageInfo, str
     if response and response.choices and response.choices[0].message:
         message = response.choices[0].message.content
 
-    print("\n")
+    out.write("\n")
     if message:
         cleaned_message = strip_being_end(message)
-        sys.stdout.flush()
-        sys.stdout.buffer.write((cleaned_message + "\n").encode("utf-8"))
-        sys.stdout.flush()
+        out.write(cleaned_message + "\n")
     else:
-        print("No response content returned.")
+        out.write("No response content returned.")
 
     usage_info = get_usage_info(response, model_info, elapsed)
 
