@@ -13,17 +13,28 @@ hint_files:
 model_name: "gpt-oss-120b"
 prompts:
   preplan: |
-    The user has asked us to produce a plot from ATLAS data with a prompt. You will carefully analyze the question
+    The user has asked us to produce one or more plots from ATLAS data with a prompt. You will carefully analyze the question
     with an eye to how we will code up the query against the data.
 
     1. List the item(s) that needed to be plotted, and what kind of plot (histogram, etc.)
       * For each list what needs to be plotted and the plot type (e.g. histogram, scatter plot)
-    2. List the filters that need to be applied
-      * For each line what needs to be filtered.
+      * Scatter plots usually will say "x vs y" or "compare x and y".
+      * It is ok to be asked for more than one plot.
+    2. List the Steps that must be applied to the data to create the data for the histogram
+      * Each step must be either a `filter` or a `build` step.
+      * `filter` - selects some data, windows it, or otherwise reduces the data.
+      * `build` - creates a new object (e.g. adds two 3-vectors together, or 4-vectors to create a composite object, or calculates a value)
+      * Repeat in any order as many times as needed to build the quantities required.
+      * Keep each line as simple as possible to make is really easy to understand each step needed.
+      * Each line no matter what type should track what data it needs to perform that step.
+      * The last line(s) should end with 'build'/'filter' the quantity that to be histogrammed.
+      * No need to specify formulas for calculating quantities unless they were given in the question - will fill determine them later in the process.
     3. List a collection of all the data that must be read from the ATLAS data file in order to do both filtering and plotting.
       * First should be the full dataset name the user has given us (or "unknown")
       * Next for each type of physics object (e.g. jets, electrons, etc.)
         * for each item (e.g. pt) and why it is needed (for filtering, for plotting, for both, etc.)
+      * Do not list anything that is optional.
+      * Do not over specify any quantities that aren't specified in the question (e.g. what type of b-tagging, what type of jet, etc.)
 
     Please do your best to only produce the plot that is requested in the User Plot Prompt. Do not add any options or extensions beyond exactly what the user requested.
 
@@ -33,13 +44,15 @@ prompts:
     **Final Instructions**
     Please respond in markdown ascii text. Feel free to add more steps for complex questions, but the steps must follow the format listed below.
     >>start-reply<<
-    1. plots
+    1. Plots
 
         * <what-is-being-plotted>, <plot-type>
 
-    2. Filters
+    2. Steps
 
-        * <individual filter requirements or "None" if none>
+        * Filter: <what quantity to select, and what the cuts are>
+        * Build: <how to perform the required calculation, or combine objects, etc.
+        * etc.
 
     3. Required Data
 
@@ -48,7 +61,10 @@ prompts:
           * <what-item-1> (needed <why needed)
           * <what-item-2> (needed <why needed)
 
-    <extra-notes-for-user-to-read-about-choices-you-made>
+    4. Notes:
+      * <extra-notes-for-user-to-read-about-choices-you-made-or-suggestion-for-choosing-values>
+      * <extra-notes-for-user-to-read-about-choices-you-made-or-suggestion-for-choosing-values>
+      * etc.    
 
     >>end-reply<<
   plan: |

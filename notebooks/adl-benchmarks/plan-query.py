@@ -90,7 +90,7 @@ def ask(
 
         # Loop over each model
         for model_name in valid_model_names:
-            fh_out.write(f"\n## Model {all_models[model_name].model_name}")
+            fh_out.write(f"\n## Model {all_models[model_name].model_name}\n")
 
             # Build prompt
             base_prompt = config.prompts["preplan"]
