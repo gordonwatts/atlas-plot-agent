@@ -35,6 +35,7 @@ prompts:
         * for each item (e.g. pt) and why it is needed (for filtering, for plotting, for both, etc.)
       * Do not list anything that is optional.
       * Do not over specify any quantities that aren't specified in the question (e.g. what type of b-tagging, what type of jet, etc.)
+      * All data is automatically grouped per event - no need to keep event number (or similar) unless explicitly requested in the question.
 
     Please do your best to only produce the plot that is requested in the User Plot Prompt. Do not add any options or extensions beyond exactly what the user requested.
 
