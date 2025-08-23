@@ -1,54 +1,31 @@
 import hashlib
 import logging
-import re
 import sys
 from typing import Optional, Tuple
 
 import typer
 import yaml
-from disk_cache import diskcache_decorator
 from hint_files import load_hint_files
-from models import load_models, process_model_request, run_llm
+from models import (
+    load_models,
+    process_model_request,
+    run_llm,
+    ensure_closing_triple_backtick,
+    extract_code_from_response,
+)
 from query_config import load_config
 
 from atlas_plot_agent.run_in_docker import (
     DockerRunResult,
     check_code_policies,
-    run_python_in_docker,
 )
+from query_code import run_code_in_docker
 from atlas_plot_agent.usage_info import UsageInfo, sum_usage_infos
 
 if hasattr(sys.stdin, "reconfigure"):
     sys.stdin.reconfigure(encoding="utf-8")  # type: ignore
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
-
-
-@diskcache_decorator(".docker_run_cache")
-def cached_run_python_in_docker(code: str, ignore_cache=False):
-    "Caching version"
-    return run_python_in_docker(code)
-
-
-def extract_code_from_response(message: str) -> Optional[str]:
-    """
-    Extract Python code from an OpenAI response object.
-    Looks for code blocks in the message content and returns the first Python block
-    found.
-    """
-    if not message:
-        return None
-    message = ensure_closing_triple_backtick(message)
-
-    # Find all Python code blocks
-    code_blocks = re.findall(r"```python(.*?)```", message, re.DOTALL | re.IGNORECASE)
-    if code_blocks:
-        return code_blocks[-1].strip()
-    # Fallback: any code block
-    code_blocks = re.findall(r"```(.*?)```", message, re.DOTALL)
-    if code_blocks:
-        return code_blocks[0].strip()
-    return None
 
 
 app = typer.Typer(
@@ -71,7 +48,7 @@ def run_model(
         - The code
     """
     # Run the LLM and get back the response and usage info
-    usage_info, message = run_llm(prompt, model_info, ignore_cache)
+    usage_info, message = run_llm(prompt, model_info, ignore_cache=ignore_cache)
     message = ensure_closing_triple_backtick(message)
 
     # Run the code.
@@ -82,28 +59,7 @@ def run_model(
     if code is not None:
         r = check_code_policies(code)
         if r is True:
-            # Run code in Docker and capture output and files, using cache
-            # If we get timeouts, keep trying...
-            # TODO: We should be using a retry library, not this!
-            max_retries = 3
-            attempt = 0
-            result = None
-            while attempt < max_retries:
-                # For first attempt, use original ignore_cache; for retries,
-                # force ignore_cache=True
-                use_ignore_cache = ignore_cache if attempt == 0 else True
-                result = cached_run_python_in_docker(
-                    code, ignore_cache=use_ignore_cache
-                )
-                # If no ConnectTimeout, break
-                has_timeout = "httpcore.ConnectTimeout" in str(result.stderr)
-                if not has_timeout:
-                    break
-                attempt += 1
-                logging.warning(
-                    "Retrying cached_run_python_in_docker due to httpcore.ConnectTimeout "
-                    f"(attempt {attempt+1}/{max_retries})"
-                )
+            result = run_code_in_docker(code, ignore_cache=ignore_cache)
         else:
             assert isinstance(r, DockerRunResult)
             result = r
@@ -310,18 +266,6 @@ def ask(
             f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | "
             f"{total_tokens} | {cost} | {attempts} | {result} |"
         )
-
-
-def ensure_closing_triple_backtick(message: str) -> str:
-    """
-    Ensure that if a message contains an opening triple backtick, it also has a closing one.
-    If the number of triple backticks is odd, append a closing triple backtick.
-    """
-    if "```" in message:
-        backtick_count = message.count("```")
-        if backtick_count % 2 != 0:
-            message = message + "\n```"
-    return message
 
 
 if __name__ == "__main__":
