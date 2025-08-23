@@ -1,10 +1,11 @@
 import logging
-from disk_cache import diskcache_decorator
+from io import TextIOWrapper
+from typing import Dict
 
-from atlas_plot_agent.run_in_docker import (
-    DockerRunResult,
-    run_python_in_docker,
-)
+from disk_cache import diskcache_decorator
+from models import extract_code_from_response, run_llm, ModelInfo
+
+from atlas_plot_agent.run_in_docker import DockerRunResult, run_python_in_docker
 
 
 @diskcache_decorator(".docker_run_cache")
@@ -40,3 +41,71 @@ def run_code_in_docker(code: str, ignore_cache: bool = False) -> DockerRunResult
 
     assert result is not None
     return result
+
+
+def code_it_up(
+    fh_out: TextIOWrapper,
+    model: ModelInfo,
+    prompt_write_code: str,
+    prompt_fix_code: str,
+    max_iter: int,
+    prompt_args: Dict[str, str],
+    ignore_code_cache: bool = False,
+    ignore_llm_cache: bool = False,
+):
+
+    # Build code with initial prompt
+    fh_out.write("\n### Phase SX Code\n")
+    base_prompt = prompt_write_code
+
+    error_text = ""
+    output_text = ""
+    generated_code = ""
+
+    # Run iteration times, attempting to fix code if it doesn't work.
+    for n_iter in range(max_iter):
+        # Fill in prompt arguments
+        extra_args = {
+            "errors": error_text,
+            "output": output_text,
+            "code": generated_code,
+        }
+        prompt = base_prompt.format(**prompt_args, **extra_args)
+        logging.debug(f"Built prompt to generate code: {prompt}")
+
+        # Run against model
+        logging.debug(f"Running against model {model.model_name}")
+        usage_info, message = run_llm(
+            prompt,
+            model,
+            fh_out,
+            ignore_cache=ignore_llm_cache,
+        )
+        print(usage_info)
+
+        # Now run the code to fetch the data
+        code = extract_code_from_response(message)
+        assert code is not None, "Can't work with null code for now"
+        called_code = f"""
+{code}
+
+r = load_data_from_sx()
+print(r.type)
+print("**Success**")
+        """
+
+        result = run_code_in_docker(called_code, ignore_cache=ignore_code_cache)
+
+        fh_out.write(f"### stdout:\n\n```text\n{result.stdout}\n```\n\n")
+        fh_out.write(f"### stderr:\n\n```text\n{result.stderr}\n```\n\n")
+
+        # To test for success, look for "**Success**" in the output.
+        good_run = "**Success**" in result.stdout
+
+        if good_run:
+            break
+
+        base_prompt = prompt_fix_code
+        error_text = result.stderr
+        output_text = result.stdout
+        generated_code = code

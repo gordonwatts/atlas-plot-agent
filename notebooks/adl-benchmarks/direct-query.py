@@ -46,6 +46,8 @@ def run_model(
         - True/False if the run succeeded
         - DockerRunResult
         - The code
+
+    TODO: Replace with code that is in `code_it_up`.
     """
     # Run the LLM and get back the response and usage info
     usage_info, message = run_llm(prompt, model_info, ignore_cache=ignore_cache)

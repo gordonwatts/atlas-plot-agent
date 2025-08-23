@@ -136,3 +136,41 @@ prompts:
     ## Notes:
       * <any further notes the user might want to know>
     >>end-reply<<
+  phase_code_sx_fix: |
+    The user has asked us to produce a plot from ATLAS data. The code below is a python function that
+    fetches the required data from the dataset using servicex. However, when it was run, it failed.
+    You must fix it.
+
+    1. You will read the hint files below which will tell you how the servicex query was written. Use these to help address errors.
+    2. You will read the original function `load_data_from_sx` that did not work.
+    3. You will read any `stdout` and `stderr` that was captured.
+    4. You will write a short analysis of the error, and the proposed fix.
+    5. You will write out a python function `load_data_from_sx`, with your fix applied, leaving the rest alone.
+
+    ** Description of each Phase (in order) **
+    {hints}
+
+    ** Original Code **
+    ```python
+    {code}
+    ```
+
+    ** stdout **
+    {output}
+
+    ** stderr **
+    {errors}
+
+    ** Final Instructions **
+    Please reply in the following format:
+
+    >>start-reply<<
+
+    * <bullet list in Markdown of what caused the error and your proposed solution>
+
+    ```python
+    def load_data_from_sx():
+      <Original-function-body-with-fixed-code>
+      return data
+    ```
+    >>end-reply<<
