@@ -7,7 +7,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/notebooks/adl-benchmarks/plan-query.py",
             "args": [
-                "3",
+                "5",
                 "output.md",
                 // "--ignore-cache",
                 // "llm_plan",
