@@ -1,15 +1,19 @@
 hint_files:
   "coding":
-    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/mainservicex-hints.md"
-    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/mainxaod-hints.md"
-    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/mainawkward-hints.md"
-    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/mainvector-hints.md"
-    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/mainhist-hints.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/servicex-hints.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/xaod-hints.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/awkward-hints.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/vector-hints.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/hist-hints.md"
   "plan":
     - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-plot.md"
     - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-servicex.md"
     - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-awkward.md"
     - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-hist.md"
+  "phase_code_sx":
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/servicex-hints.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/xaod-hints.md"
+    
 model_name: "gpt-oss-120b"
 prompts:
   preplan: |
@@ -96,4 +100,39 @@ prompts:
     ## Phase <name-of-phase 2>
     <instructions for phase 2>
     ...
+    >>end-reply<<
+  phase_code_sx: |
+    The user has asked us to produce a plot from ATLAS data. In this phase you will write a python
+    function that fetches the required data from the dataset and returns an awkward array of that
+    data.
+
+    1. You will read the hint files below which will tell you how to write the servicex query and how to access specialized data in a servicex query.
+    3. You will read the list of data you need to extract.
+    4. You will write out a python function `load_data_from_sx` that returns the awkward array of loaded data.
+    5. You will write out a description of the name of each leaf in the awkward array.
+    6. Add any notes on decisions that were made building the query that the user might need to pay attention to later.
+
+    ** Description of each Phase (in order) **
+    {hints}
+
+    ** Solution Outline **
+    {sx_code}
+
+    ** Final Instructions **
+    Please reply in the following format:
+
+    >>start-reply<<
+
+    ```python
+    def load_data_from_sx():
+      <add-code-there to load from servicex>
+      return data
+    ```
+
+    ## Data:
+      * `<leaf-name-1>`: <what it is>
+      * ...
+
+    ## Notes:
+      * <any further notes the user might want to know>
     >>end-reply<<

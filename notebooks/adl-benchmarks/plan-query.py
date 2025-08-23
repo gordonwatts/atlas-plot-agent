@@ -5,9 +5,16 @@ from typing import List
 
 import typer
 from hint_files import load_hint_files
-from models import load_models, process_model_request, run_llm
+from models import (
+    load_models,
+    process_model_request,
+    run_llm,
+    extract_by_phase,
+    extract_code_from_response,
+)
 from query_config import load_plan_config
 from questions import extract_questions
+from query_code import run_code_in_docker
 
 
 # Enum for allowed cache types
@@ -131,6 +138,50 @@ def ask(
                 ignore_cache=CacheType.llm_plan in ignore_cache,
             )
             print(usage_info)
+
+            # Split the code into sections
+            code_sections = extract_by_phase(message)
+
+            # Next, make the code
+            fh_out.write("\n### Phase SX Code\n")
+            base_prompt = config.prompts["phase_code_sx"]
+            hint_phase_code_sx = load_hint_files(
+                config.hint_files["phase_code_sx"], CacheType.hints in ignore_cache
+            )
+
+            prompt = base_prompt.format(
+                question=question,
+                hints="\n".join(hint_phase_code_sx),
+                sx_code=code_sections["ServiceX"],
+            )
+            logging.debug(f"Built prompt for planning: {prompt}")
+
+            # Run against model
+            logging.debug(f"Running against model {all_models[model_name].model_name}")
+            usage_info, message = run_llm(
+                prompt,
+                all_models[model_name],
+                fh_out,
+                ignore_cache=CacheType.llm_plan in ignore_cache,
+            )
+            print(usage_info)
+
+            # Now run the code to fetch the data
+            code = extract_code_from_response(message)
+            assert code is not None, "Can't work with null code for now"
+            called_code = f"""
+{code}
+
+r = load_data_from_sx()
+print(r.type)
+"""
+
+            result = run_code_in_docker(
+                called_code, ignore_cache=CacheType.llm_code in ignore_cache
+            )
+
+            fh_out.write(f"### stdout:\n\n{result.stdout}\n\n")
+            fh_out.write(f"### stderr:\n\n{result.stderr}\n\n")
 
 
 if __name__ == "__main__":
