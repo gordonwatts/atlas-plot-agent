@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 from io import TextIOWrapper
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
@@ -62,7 +63,6 @@ def process_model_request(
         raise ValueError(
             f"Error: model(s) not found in models.yaml: {', '.join(invalid_model_names)}"
         )
-
     return model_names
 
 
@@ -140,3 +140,59 @@ def strip_being_end(message: str) -> str:
         message = message[: len(message) - 13]
 
     return message.strip()
+
+
+def ensure_closing_triple_backtick(message: str) -> str:
+    """
+    Ensure that if a message contains an opening triple backtick, it also has a closing one.
+    If the number of triple backticks is odd, append a closing triple backtick.
+    """
+    if "```" in message:
+        backtick_count = message.count("```")
+        if backtick_count % 2 != 0:
+            message = message + "\n```"
+    return message
+
+
+def extract_code_from_response(message: str) -> Optional[str]:
+    """
+    Extract Python code from an OpenAI response object.
+    Looks for code blocks in the message content and returns the first Python block
+    found.
+    """
+    if not message:
+        return None
+    message = ensure_closing_triple_backtick(message)
+
+    # Find all Python code blocks
+    code_blocks = re.findall(r"```python(.*?)```", message, re.DOTALL | re.IGNORECASE)
+    if code_blocks:
+        assert (
+            len(code_blocks) == 1
+        ), "Can't properly deal with more than one code block right now!"
+        return code_blocks[-1].strip()
+    # Fallback: any code block
+    code_blocks = re.findall(r"```(.*?)```", message, re.DOTALL)
+    if code_blocks:
+        return code_blocks[0].strip()
+    return None
+
+
+def extract_by_phase(text: str) -> Dict[str, str]:
+    """
+    Extracts sections from the input string that start with '## Phase XX',
+    returning a dictionary mapping 'XX' to the section text (up to the next '##').
+    """
+    phase_pattern = re.compile(r"^## Phase ([^\n]+)", re.MULTILINE)
+    matches = list(phase_pattern.finditer(text))
+    result = {}
+    for i, match in enumerate(matches):
+        phase_name = match.group(1).strip()
+        start = match.end()
+        if i + 1 < len(matches):
+            end = matches[i + 1].start()
+        else:
+            end = len(text)
+        section = text[start:end].strip()
+        result[phase_name] = section
+    return result
