@@ -68,25 +68,27 @@ prompts:
       * etc.    
 
     >>end-reply<<
-  plan: |
-    The user has asked us to produce a plot from ATLAS data. In this first phase you will plan the
+  phase_plan: |
+    The user has asked us to produce a plot from ATLAS data. In this second phase you will plan the
     code that we will write in stages to produce this plots.
 
     1. You will read the hint files below which will tell you how to plan each major phase.
     2. You will read the question from the user.
-    3. You will write out the plan in english separated by each phase, and within each phase,
-      a set of steps.
+    3. You will read the solution outline that tells us how to solve the problem.
+    3. You will write out plan in english separated by phases. Each phase is a logical "coding" block.
 
-    ** Hints **
+    ** Description of each Phase (in order) **
     {hints}
 
     ** User Question **
     {question}
 
+    ** Solution Outline **
+    {solution_outline}
+
     ** Final Instructions **
-    Do NOT use any unicode characters. Use plain markdown for everything.
-    
     Please reply in the following format:
+
     >>start-reply<<
     ## Phase <name-of-phase 1>
     <instructions for phase 1>

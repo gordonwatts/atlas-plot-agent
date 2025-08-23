@@ -93,10 +93,32 @@ def ask(
             fh_out.write(f"\n## Model {all_models[model_name].model_name}\n")
 
             # Build prompt
+            fh_out.write("\n### Solution Outline\n")
             base_prompt = config.prompts["preplan"]
             prompt = base_prompt.format(
                 question=question,
                 hints="\n".join(plan_hint_contents),
+            )
+            logging.debug(f"Built prompt for planning: {prompt}")
+
+            # Run against model
+            logging.debug(f"Running against model {all_models[model_name].model_name}")
+            usage_info, message = run_llm(
+                prompt,
+                all_models[model_name],
+                fh_out,
+                ignore_cache=CacheType.llm_plan in ignore_cache,
+            )
+            solution_outline = message
+            print(usage_info)
+
+            # Next, do the same for the phase plan
+            fh_out.write("\n### Solution Code Phases\n")
+            base_prompt = config.prompts["phase_plan"]
+            prompt = base_prompt.format(
+                question=question,
+                hints="\n".join(plan_hint_contents),
+                solution_outline=solution_outline,
             )
             logging.debug(f"Built prompt for planning: {prompt}")
 
