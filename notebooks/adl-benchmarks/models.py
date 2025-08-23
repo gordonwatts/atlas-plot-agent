@@ -85,7 +85,7 @@ def _get_openai_response(prompt: str, model_name: str, endpoint: Optional[str] =
 
 
 def run_llm(
-    prompt: str, model_info, out: TextIOWrapper, ignore_cache=False
+    prompt: str, model_info: ModelInfo, out: TextIOWrapper, ignore_cache=False
 ) -> Tuple[UsageInfo, str]:
     # Set API key based on endpoint hostname, using <node-name>_API_KEY
     endpoint_host = None
