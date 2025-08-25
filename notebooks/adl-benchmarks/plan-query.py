@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from enum import Enum
 from pathlib import Path
@@ -99,7 +100,7 @@ def ask(
 
         # stdout is a markdown file
         fh_out.write(f"# {question}\n")
-        # question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
+        question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
 
         # Loop over each model
         for model_name in valid_model_names:
@@ -187,7 +188,7 @@ r = generate_histogram_data(data)
 print(r.type)
         """
 
-            code_it_up(
+            _, awk_code = code_it_up(
                 fh_out,
                 all_models[model_name],
                 config.prompts["phase_code_awkward"],
@@ -203,6 +204,44 @@ print(r.type)
                 ignore_llm_cache=CacheType.llm_plan in ignore_cache,
                 ignore_code_cache=CacheType.llm_code in ignore_cache,
             )
+
+            # Build the code for histogram
+            hint_phase_code_hist = load_hint_files(
+                config.hint_files["phase_code_hist"], CacheType.hints in ignore_cache
+            )
+
+            called_code = f"""
+{sx_code}
+{awk_code}
+data = load_data_from_sx()
+r = generate_histogram_data(data)
+plot_hist(r)
+        """
+
+            hist_result, _ = code_it_up(
+                fh_out,
+                all_models[model_name],
+                config.prompts["phase_code_hist"],
+                config.prompts["phase_code_hist_fix"],
+                1,
+                called_code,
+                prompt_args={
+                    "question": question,
+                    "hints": "\n".join(hint_phase_code_hist),
+                    "hist_code": code_sections["Histogram"],
+                },
+                ignore_llm_cache=CacheType.llm_plan in ignore_cache,
+                ignore_code_cache=CacheType.llm_code in ignore_cache,
+            )
+
+            # If there are png files, then save them!
+            for f_name, data in hist_result.png_files:
+                # Sanitize model_name for filesystem
+                safe_model_name = all_models[model_name].model_name.replace("/", "_")
+                local_name = f"{question_hash}_{safe_model_name}_{f_name}"
+                with open(local_name, "wb") as dst:
+                    dst.write(data)
+                fh_out.write(f"![{local_name}]({local_name})")
 
 
 if __name__ == "__main__":

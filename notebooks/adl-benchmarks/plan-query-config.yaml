@@ -16,6 +16,8 @@ hint_files:
   "phase_code_awkward":
     - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/awkward-hints.md"
     - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/vector-hints.md"
+  "phase_code_hist":
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/hist-hints.md"
     
 model_name: "gpt-oss-120b"
 prompts:
@@ -258,5 +260,74 @@ prompts:
     def generate_histogram_data(data: ak.Array):
       <Original-function-body-with-fixed-code>
       return <awkward-histogram-data-1>, ...
+    ```
+    >>end-reply<<
+  phase_code_hist: |
+    The user has asked us to produce a plot from ATLAS data. In this phase you will write a python
+    function data ready for a histogram and makes the histogram and saves the plot.
+
+    1. You will read the hint files below which will tell you how to write the histo code.
+    2. You will read a Solution Outline, which tells you how to define the histogram.
+    4. You will write out a python function `plot_hist` that accepts the histogram data, creates the histogram, and plots it.
+    5. Add any notes on decisions that were made building the query that the user might need to pay attention to later.
+
+    The input data is a strict array of numbers. You should not need to even `ak.flatten` them - just do the fill directly.
+
+    ** Hints to help write histogram code **
+    {hints}
+
+    ** Solution Outline **
+    {hist_code}
+
+    ** Final Instructions **
+    Please reply in the following format:
+    >>start-reply<<
+
+    ```python
+    import awkward as ak
+    <other-includes-or-initialization>
+    def plot_hist(data: ak.Array):
+      <add-code-create-and-fill-histograms>
+    ```
+
+    ## Notes:
+      * <any further notes the user might want to know>
+    >>end-reply<<
+  phase_code_hist_fix: |
+    The user has asked us to produce a plot from ATLAS data. The code below is a python function that
+    data ready to histogram and fills the histogram.
+    However, when it was run, it failed. You must fix it.
+
+    1. You will read the hint files below which will tell you how hist code is written. Use these to help address errors.
+    3. You will read the original function `plot_hist` that did not work.
+    4. You will read any `stdout` and `stderr` that was captured.
+    5. You will write a short analysis of the error, and the proposed fix.
+    6. You will write out a python function `plot_hist`, with your fix applied, leaving the rest alone.
+
+    ** Description of each Phase (in order) **
+    {hints}
+
+    ** Original Code **
+    ```python
+    {code}
+    ```
+
+    ** stdout **
+    {output}
+
+    ** stderr **
+    {errors}
+
+    ** Final Instructions **
+    Please reply in the following format:
+    >>start-reply<<
+
+    * <bullet list in Markdown of what caused the error and your proposed solution>
+
+    ```python
+    import awkward as ak
+    <other-includes-or-initialization>
+    def plot_hist(data: ak.Array):
+      <updated-code-to-create-and-fill-histograms>
     ```
     >>end-reply<<
