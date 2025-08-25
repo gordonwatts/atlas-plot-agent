@@ -1,6 +1,7 @@
 import logging
 from enum import Enum
 from pathlib import Path
+import re
 from typing import List
 
 import typer
@@ -22,6 +23,12 @@ class CacheType(str, Enum):
     llm_code = "llm_code"
     code = "code"
     hints = "hints"
+
+
+def extract_struct_line(stdout: str) -> str:
+    match = re.search(r"^\d+\s*\*\s*\{.*\}$", stdout, re.MULTILINE)
+    assert match, f"Failed to find structured line in {stdout}"
+    return match.group(0)
 
 
 app = typer.Typer()
@@ -146,16 +153,52 @@ def ask(
                 config.hint_files["phase_code_sx"], CacheType.hints in ignore_cache
             )
 
-            code_it_up(
+            called_code = """
+r = load_data_from_sx()
+print(r.type)
+        """
+
+            sx_code_result, sx_code = code_it_up(
                 fh_out,
                 all_models[model_name],
                 config.prompts["phase_code_sx"],
                 config.prompts["phase_code_sx_fix"],
                 4,
+                called_code,
                 prompt_args={
                     "question": question,
                     "hints": "\n".join(hint_phase_code_sx),
                     "sx_code": code_sections["ServiceX"],
+                },
+                ignore_llm_cache=CacheType.llm_plan in ignore_cache,
+                ignore_code_cache=CacheType.llm_code in ignore_cache,
+            )
+
+            # Build the code for awkward
+            hint_phase_code_awkward = load_hint_files(
+                config.hint_files["phase_code_awkward"], CacheType.hints in ignore_cache
+            )
+            data_format = extract_struct_line(sx_code_result.stdout)
+
+            called_code = f"""
+{sx_code}
+data = load_data_from_sx()
+r = generate_histogram_data(data)
+print(r.type)
+        """
+
+            code_it_up(
+                fh_out,
+                all_models[model_name],
+                config.prompts["phase_code_awkward"],
+                config.prompts["phase_code_awkward_fix"],
+                4,
+                called_code,
+                prompt_args={
+                    "question": question,
+                    "hints": "\n".join(hint_phase_code_awkward),
+                    "awkward_code": code_sections["Awkward"],
+                    "data_format": data_format,
                 },
                 ignore_llm_cache=CacheType.llm_plan in ignore_cache,
                 ignore_code_cache=CacheType.llm_code in ignore_cache,

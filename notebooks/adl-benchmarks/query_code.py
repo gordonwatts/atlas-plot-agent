@@ -1,6 +1,6 @@
 import logging
 from io import TextIOWrapper
-from typing import Dict
+from typing import Dict, Tuple
 
 from disk_cache import diskcache_decorator
 from models import extract_code_from_response, run_llm, ModelInfo
@@ -49,10 +49,11 @@ def code_it_up(
     prompt_write_code: str,
     prompt_fix_code: str,
     max_iter: int,
+    called_code: str,
     prompt_args: Dict[str, str],
     ignore_code_cache: bool = False,
     ignore_llm_cache: bool = False,
-):
+) -> Tuple[DockerRunResult, str]:
 
     # Build code with initial prompt
     fh_out.write("\n### Phase SX Code\n")
@@ -86,15 +87,10 @@ def code_it_up(
         # Now run the code to fetch the data
         code = extract_code_from_response(message)
         assert code is not None, "Can't work with null code for now"
-        called_code = f"""
-{code}
 
-r = load_data_from_sx()
-print(r.type)
-print("**Success**")
-        """
+        code_to_run = code + "\n" + called_code + '\nprint("**Success**")\n'
 
-        result = run_code_in_docker(called_code, ignore_cache=ignore_code_cache)
+        result = run_code_in_docker(code_to_run, ignore_cache=ignore_code_cache)
 
         fh_out.write(f"### stdout:\n\n```text\n{result.stdout}\n```\n\n")
         fh_out.write(f"### stderr:\n\n```text\n{result.stderr}\n```\n\n")
@@ -109,3 +105,7 @@ print("**Success**")
         error_text = result.stderr
         output_text = result.stdout
         generated_code = code
+
+    assert isinstance(result, DockerRunResult)
+    assert isinstance(code, str)
+    return result, code

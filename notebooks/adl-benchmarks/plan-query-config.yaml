@@ -13,6 +13,9 @@ hint_files:
   "phase_code_sx":
     - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/servicex-hints.md"
     - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/xaod-hints.md"
+  "phase_code_awkward":
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/awkward-hints.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/vector-hints.md"
     
 model_name: "gpt-oss-120b"
 prompts:
@@ -172,5 +175,88 @@ prompts:
     def load_data_from_sx():
       <Original-function-body-with-fixed-code>
       return data
+    ```
+    >>end-reply<<
+  phase_code_awkward: |
+    The user has asked us to produce a plot from ATLAS data. In this phase you will write a python
+    function that takes pre-fetched data and produces the awkward arrays for plotting.
+
+    1. You will read the hint files below which will tell you how to write the awkward/vector code.
+    2. You will read a Solution Outline, manipulations that need to be preformed on the data.
+    3. You will read a short description of the input data that needs to be transformed into the histogram data.
+    4. You will write out a python function `generate_histogram_data` that accepts the read-in data and returns the awkward array(s) of data to be histogrammed.
+    5. Add any notes on decisions that were made building the query that the user might need to pay attention to later.
+
+    Place any includes or vector initialization code needed outside the function.
+
+    ** Hints to help write awkward and vector code **
+    {hints}
+
+    ** Solution Outline **
+    {awkward_code}
+
+    ** Input Data Format **
+    This is a dump of the awkward data type (`data.type.show()`).
+
+    {data_format}
+
+    ** Final Instructions **
+    Please reply in the following format:
+
+    >>start-reply<<
+
+    ```python
+    import awkward as ak
+    <other-includes-or-initialization>
+    def generate_histogram_data(data: ak.Array):
+      <add-code-there to create histogram data>
+      return <awkward-histogram-data-1>, ...
+    ```
+
+    ## Notes:
+      * <any further notes the user might want to know>
+    >>end-reply<<
+  phase_code_awkward_fix: |
+    The user has asked us to produce a plot from ATLAS data. The code below is a python function that
+    takes data from a dataset and converts it into histogram data using awkward and vector libraries. 
+    However, when it was run, it failed. You must fix it.
+
+    1. You will read the hint files below which will tell you how awkward/vector code is written. Use these to help address errors.
+    2. You will read the leaf names of the awkward input data.
+    3. You will read the original function `generate_histogram_data` that did not work.
+    4. You will read any `stdout` and `stderr` that was captured.
+    5. You will write a short analysis of the error, and the proposed fix.
+    6. You will write out a python function `generate_histogram_data`, with your fix applied, leaving the rest alone.
+
+    ** Description of each Phase (in order) **
+    {hints}
+
+    ** Input Data Format **
+    This is a dump of the awkward data type (`data.type.show()`).
+
+    {data_format}
+
+    ** Original Code **
+    ```python
+    {code}
+    ```
+
+    ** stdout **
+    {output}
+
+    ** stderr **
+    {errors}
+
+    ** Final Instructions **
+    Please reply in the following format:
+
+    >>start-reply<<
+
+    * <bullet list in Markdown of what caused the error and your proposed solution>
+
+    ```python
+    def generate_histogram_data(data: ak.Array):
+      <Original-function-body-with-fixed-code>
+      return <awkward-histogram-data-1>, ...
     ```
     >>end-reply<<
