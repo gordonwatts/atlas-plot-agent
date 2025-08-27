@@ -117,6 +117,10 @@ prompts:
     5. You will write out a description of the name of each leaf in the awkward array.
     6. Add any notes on decisions that were made building the query that the user might need to pay attention to later.
 
+    Notes:
+      
+      * When creating the awkward array always make sure each column has a label - even if you only have a single column.
+
     ** Description of each Phase (in order) **
     {hints}
 
@@ -185,11 +189,14 @@ prompts:
 
     1. You will read the hint files below which will tell you how to write the awkward/vector code.
     2. You will read a Solution Outline, manipulations that need to be preformed on the data.
-    3. You will read a short description of the input data that needs to be transformed into the histogram data.
+    3. You will read a short description of the input data layout that needs to be transformed into the histogram data.
     4. You will write out a python function `generate_histogram_data` that accepts the read-in data and returns the awkward array(s) of data to be histogrammed.
     5. Add any notes on decisions that were made building the query that the user might need to pay attention to later.
 
-    Place any includes or vector initialization code needed outside the function.
+    Notes:
+
+      * Place any includes or vector initialization code needed outside the function.
+      * The data layout *is* the format of the data the function will get, including field names. The function will never see anything but that form. Take this as "truth" about the array being given to the function.
 
     ** Hints to help write awkward and vector code **
     {hints}
