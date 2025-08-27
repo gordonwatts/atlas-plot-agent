@@ -296,7 +296,12 @@ plot_hist(r)
                     or len(hist_result.png_files) == 0
                 )
                 if not good_run:
-                    fh_out.write("\n**Failed Histogram Code Generation**\n")
+                    reason = (
+                        "Crash"
+                        if "**Success**" not in hist_result.stdout
+                        else "No PNG files found"
+                    )
+                    fh_out.write(f"\n**Failed Histogram Code Generation ({reason})**\n")
 
             # Print out usage info for this in a markdown table.
             fh_out.write("\n\n### Usage\n\n")
