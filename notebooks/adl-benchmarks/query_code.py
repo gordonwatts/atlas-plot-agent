@@ -35,11 +35,11 @@ def run_code_in_docker(code: str, ignore_cache: bool = False) -> DockerRunResult
         has_timeout = "httpcore.ConnectTimeout" in str(result.stderr)
         if not has_timeout:
             break
-        attempt += 1
         logging.warning(
             "Retrying cached_run_python_in_docker due to httpcore.ConnectTimeout "
             f"(attempt {attempt+1}/{max_retries})"
         )
+        attempt += 1
 
     assert result is not None
     return result
