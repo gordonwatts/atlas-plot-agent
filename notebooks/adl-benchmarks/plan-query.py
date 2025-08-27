@@ -109,7 +109,8 @@ def ask(
         question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
 
         # Loop over each model
-        model_usage: Dict[str, Tuple[UsageInfo, float]] = {}
+        model_usage: Dict[str, Tuple[UsageInfo, float, bool]] = {}
+        good_run = True
         for model_name in valid_model_names:
             fh_out.write(f"\n## Model {all_models[model_name].model_name}\n")
 
@@ -163,85 +164,103 @@ def ask(
 
             # Split the code into sections
             code_sections = extract_by_phase(message)
-
-            fh_out.write("\n### Code\n")
-
-            # Build the code for servicex
-            hint_phase_code_sx = load_hint_files(
-                config.hint_files["phase_code_sx"], CacheType.hints in ignore_cache
+            good_run = all(
+                p in code_sections.keys() for p in ["ServiceX", "Awkward", "Histogram"]
             )
+            if not good_run:
+                fh_out.write("\n**Failed Phase Generation**\n")
 
-            called_code = """
-r = load_data_from_sx()
-print("ServiceX Data Type Structure: " + str(r.type))
-        """
+            if good_run:
+                fh_out.write("\n### Code\n")
 
-            with IndentedDetailsBlock(fh_out, "ServiceX Code"):
-                sx_code_result, sx_code = code_it_up(
-                    fh_out,
-                    all_models[model_name],
-                    config.prompts["phase_code_sx"],
-                    config.prompts["phase_code_sx_fix"],
-                    4,
-                    called_code,
-                    prompt_args={
-                        "question": question,
-                        "hints": "\n".join(hint_phase_code_sx),
-                        "sx_code": code_sections["ServiceX"],
-                    },
-                    ignore_llm_cache=CacheType.llm_plan in ignore_cache,
-                    ignore_code_cache=CacheType.llm_code in ignore_cache,
-                    llm_usage_callback=lambda n, u: llm_usage.append(
-                        (f"ServiceX Code {n}", u)
-                    ),
-                    docker_usage_callback=lambda n, u: code_run_usage.append(
-                        (f"ServiceX Code {n}", u)
-                    ),
+                # Build the code for servicex
+                hint_phase_code_sx = load_hint_files(
+                    config.hint_files["phase_code_sx"], CacheType.hints in ignore_cache
                 )
 
-            # Build the code for awkward
-            hint_phase_code_awkward = load_hint_files(
-                config.hint_files["phase_code_awkward"], CacheType.hints in ignore_cache
-            )
-            data_format = extract_struct_line(sx_code_result.stdout)
+                called_code = """
+r = load_data_from_sx()
+print("ServiceX Data Type Structure: " + str(r.type))
+            """
 
-            called_code = f"""
+                with IndentedDetailsBlock(fh_out, "ServiceX Code"):
+                    sx_code_result, sx_code = code_it_up(
+                        fh_out,
+                        all_models[model_name],
+                        config.prompts["phase_code_sx"],
+                        config.prompts["phase_code_sx_fix"],
+                        n_iter,
+                        called_code,
+                        prompt_args={
+                            "question": question,
+                            "hints": "\n".join(hint_phase_code_sx),
+                            "sx_code": code_sections["ServiceX"],
+                        },
+                        ignore_llm_cache=CacheType.llm_plan in ignore_cache,
+                        ignore_code_cache=CacheType.llm_code in ignore_cache,
+                        llm_usage_callback=lambda n, u: llm_usage.append(
+                            (f"ServiceX Code {n}", u)
+                        ),
+                        docker_usage_callback=lambda n, u: code_run_usage.append(
+                            (f"ServiceX Code {n}", u)
+                        ),
+                    )
+
+                good_run = "**Success**" in sx_code_result.stdout
+                if not good_run:
+                    fh_out.write("\n**Failed ServiceX Code Generation**\n")
+
+            # Build the code for awkward
+            if good_run:
+                hint_phase_code_awkward = load_hint_files(
+                    config.hint_files["phase_code_awkward"],
+                    CacheType.hints in ignore_cache,
+                )
+                data_format = extract_struct_line(sx_code_result.stdout)
+
+                called_code = f"""
 {sx_code}
 data = load_data_from_sx()
 r = generate_histogram_data(data)
 print(r.type)
         """
 
-            with IndentedDetailsBlock(fh_out, "Awkward Code"):
-                _, awk_code = code_it_up(
-                    fh_out,
-                    all_models[model_name],
-                    config.prompts["phase_code_awkward"],
-                    config.prompts["phase_code_awkward_fix"],
-                    4,
-                    called_code,
-                    prompt_args={
-                        "question": question,
-                        "hints": "\n".join(hint_phase_code_awkward),
-                        "awkward_code": code_sections["Awkward"],
-                        "data_format": data_format,
-                    },
-                    ignore_llm_cache=CacheType.llm_plan in ignore_cache,
-                    ignore_code_cache=CacheType.llm_code in ignore_cache,
-                    llm_usage_callback=lambda n, u: llm_usage.append(
-                        (f"Awkward Code {n}", u)
-                    ),
-                    docker_usage_callback=lambda n, u: code_run_usage.append(
-                        (f"Awkward Code {n}", u)
-                    ),
+                with IndentedDetailsBlock(fh_out, "Awkward Code"):
+                    awk_code_result, awk_code = code_it_up(
+                        fh_out,
+                        all_models[model_name],
+                        config.prompts["phase_code_awkward"],
+                        config.prompts["phase_code_awkward_fix"],
+                        n_iter,
+                        called_code,
+                        prompt_args={
+                            "question": question,
+                            "hints": "\n".join(hint_phase_code_awkward),
+                            "awkward_code": code_sections["Awkward"],
+                            "data_format": data_format,
+                        },
+                        ignore_llm_cache=CacheType.llm_plan in ignore_cache,
+                        ignore_code_cache=CacheType.llm_code in ignore_cache,
+                        llm_usage_callback=lambda n, u: llm_usage.append(
+                            (f"Awkward Code {n}", u)
+                        ),
+                        docker_usage_callback=lambda n, u: code_run_usage.append(
+                            (f"Awkward Code {n}", u)
+                        ),
+                    )
+
+                good_run = "**Success**" in awk_code_result.stdout
+                if not good_run:
+                    fh_out.write("\n**Failed Awkward Code Generation**\n")
+
+            if good_run:
+                # Build the code for histogram
+                hint_phase_code_hist = load_hint_files(
+                    config.hint_files["phase_code_hist"],
+                    CacheType.hints in ignore_cache,
                 )
 
-            # Build the code for histogram
-            hint_phase_code_hist = load_hint_files(
-                config.hint_files["phase_code_hist"], CacheType.hints in ignore_cache
-            )
-
-            called_code = f"""
+                called_code = f"""
 {sx_code}
 {awk_code}
 data = load_data_from_sx()
@@ -249,28 +268,35 @@ r = generate_histogram_data(data)
 plot_hist(r)
         """
 
-            with IndentedDetailsBlock(fh_out, "Hist Code"):
-                hist_result, _ = code_it_up(
-                    fh_out,
-                    all_models[model_name],
-                    config.prompts["phase_code_hist"],
-                    config.prompts["phase_code_hist_fix"],
-                    1,
-                    called_code,
-                    prompt_args={
-                        "question": question,
-                        "hints": "\n".join(hint_phase_code_hist),
-                        "hist_code": code_sections["Histogram"],
-                    },
-                    ignore_llm_cache=CacheType.llm_plan in ignore_cache,
-                    ignore_code_cache=CacheType.llm_code in ignore_cache,
-                    llm_usage_callback=lambda n, u: llm_usage.append(
-                        (f"Histogram Code {n}", u)
-                    ),
-                    docker_usage_callback=lambda n, u: code_run_usage.append(
-                        (f"Histogram Code {n}", u)
-                    ),
+                with IndentedDetailsBlock(fh_out, "Hist Code"):
+                    hist_result, _ = code_it_up(
+                        fh_out,
+                        all_models[model_name],
+                        config.prompts["phase_code_hist"],
+                        config.prompts["phase_code_hist_fix"],
+                        n_iter,
+                        called_code,
+                        prompt_args={
+                            "question": question,
+                            "hints": "\n".join(hint_phase_code_hist),
+                            "hist_code": code_sections["Histogram"],
+                        },
+                        ignore_llm_cache=CacheType.llm_plan in ignore_cache,
+                        ignore_code_cache=CacheType.llm_code in ignore_cache,
+                        llm_usage_callback=lambda n, u: llm_usage.append(
+                            (f"Histogram Code {n}", u)
+                        ),
+                        docker_usage_callback=lambda n, u: code_run_usage.append(
+                            (f"Histogram Code {n}", u)
+                        ),
+                    )
+
+                good_run = (
+                    "**Success**" not in hist_result.stdout
+                    or len(hist_result.png_files) == 0
                 )
+                if not good_run:
+                    fh_out.write("\n**Failed Histogram Code Generation**\n")
 
             # Print out usage info for this in a markdown table.
             fh_out.write("\n\n### Usage\n\n")
@@ -281,10 +307,10 @@ plot_hist(r)
                     fh_out, code_run_usage
                 )
 
-            model_usage[model_name] = (total_llm_usage, total_seconds)
+            model_usage[model_name] = (total_llm_usage, total_seconds, good_run)
 
             # If there are png files, then save them!
-            if len(hist_result.png_files) > 0:
+            if good_run:
                 fh_out.write("\n\n### Plots\n\n")
                 for f_name, data in hist_result.png_files:
                     # Sanitize model_name for filesystem
@@ -299,13 +325,14 @@ plot_hist(r)
         if model_usage:
             fh_out.write("\n\n## Model Usage\n\n")
             fh_out.write(
-                "| Model | LLM Time (secs) | Docker Time (secs) "
+                "| Model | Success? | LLM Time (secs) | Docker Time (secs) "
                 "| Total Time (secs) | LLM Cost (USD) |\n"
             )
-            fh_out.write("|---" * 5 + "|\n")
-            for model_name, (u_llm, u_docker) in model_usage.items():
+            fh_out.write("|---" * 6 + "|\n")
+            for model_name, (u_llm, u_docker, u_success) in model_usage.items():
                 fh_out.write(
                     f"| {model_name} "
+                    f"| {"Success" if u_success else "Fail"} "
                     f"| {u_llm.elapsed:.2f} "
                     f"| {u_docker:.2f} "
                     f"| {u_llm.elapsed + u_docker:.2f} "
