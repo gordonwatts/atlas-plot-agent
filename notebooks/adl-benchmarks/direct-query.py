@@ -1,96 +1,31 @@
 import hashlib
 import logging
-import os
 import sys
-from typing import Dict, Optional, Tuple
-from urllib.parse import urlparse
+from typing import Optional, Tuple
 
-import openai
 import typer
 import yaml
-from disk_cache import diskcache_decorator
-from dotenv import dotenv_values, find_dotenv
 from hint_files import load_hint_files
-from pydantic import BaseModel
-from query_config import load_config, load_yaml_file
+from models import (
+    load_models,
+    process_model_request,
+    run_llm,
+    ensure_closing_triple_backtick,
+    extract_code_from_response,
+)
+from query_config import load_config
 
 from atlas_plot_agent.run_in_docker import (
     DockerRunResult,
     check_code_policies,
-    run_python_in_docker,
 )
-from atlas_plot_agent.usage_info import UsageInfo, get_usage_info, sum_usage_infos
+from query_code import run_code_in_docker
+from atlas_plot_agent.usage_info import UsageInfo, sum_usage_infos
 
 if hasattr(sys.stdin, "reconfigure"):
     sys.stdin.reconfigure(encoding="utf-8")  # type: ignore
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
-
-
-class ModelInfo(BaseModel):
-    model_name: str
-    input_cost_per_million: float
-    output_cost_per_million: float
-    endpoint: Optional[str] = None  # e.g., OpenAI API endpoint or local server URL
-
-
-def load_models(models_path: str = "models.yaml") -> Dict[str, ModelInfo]:
-    """
-    Load models and their costs from a YAML file, returning a dict of model_name to ModelInfo.
-    """
-    data = load_yaml_file(models_path)
-    raw_models = data["models"]
-    return {name: ModelInfo(**info) for name, info in raw_models.items()}
-
-
-@diskcache_decorator(".openai_response_cache")
-def get_openai_response(prompt: str, model_name: str, endpoint: Optional[str] = None):
-    import time
-
-    if endpoint:
-        client = openai.OpenAI(base_url=endpoint)
-    else:
-        client = openai.OpenAI()
-    start_time = time.time()
-    response = client.chat.completions.create(
-        model=model_name, messages=[{"role": "user", "content": prompt}]
-    )
-    elapsed = time.time() - start_time
-    assert response.choices[0].message.content is not None, "No content in response"
-    # Return both response and timing for caching
-    return {"response": response, "elapsed": elapsed}
-
-
-@diskcache_decorator(".docker_run_cache")
-def cached_run_python_in_docker(code: str, ignore_cache=False):
-    "Caching version"
-    return run_python_in_docker(code)
-
-
-def extract_code_from_response(response) -> Optional[str]:
-    """
-    Extract Python code from an OpenAI response object.
-    Looks for code blocks in the message content and returns the first Python block
-    found.
-    """
-    if not response or not hasattr(response, "choices") or not response.choices:
-        return None
-    message = response.choices[0].message.content if response.choices[0].message else ""
-    message = ensure_closing_triple_backtick(message)
-
-    if not message:
-        return None
-    import re
-
-    # Find all Python code blocks
-    code_blocks = re.findall(r"```python(.*?)```", message, re.DOTALL | re.IGNORECASE)
-    if code_blocks:
-        return code_blocks[-1].strip()
-    # Fallback: any code block
-    code_blocks = re.findall(r"```(.*?)```", message, re.DOTALL)
-    if code_blocks:
-        return code_blocks[0].strip()
-    return None
 
 
 app = typer.Typer(
@@ -111,83 +46,22 @@ def run_model(
         - True/False if the run succeeded
         - DockerRunResult
         - The code
+
+    TODO: Replace with code that is in `code_it_up`.
     """
-    # Set API key based on endpoint hostname, using <node-name>_API_KEY
-    endpoint_host = None
-    if model_info.endpoint:
-        endpoint_host = urlparse(model_info.endpoint).hostname
-    if not endpoint_host:
-        endpoint_host = "api.openai.com"
-    env_var = f"{endpoint_host.replace('.', '_')}_API_KEY"
-    env_path = find_dotenv()
-    env_vars = dotenv_values(env_path)
-    api_key = env_vars.get(env_var)
-    if api_key:
-        os.environ["OPENAI_API_KEY"] = api_key
-        openai.api_key = api_key
-    else:
-        logging.warning(f"API key not found for {env_var}")
-        if "OPENAI_API_KEY" in env_vars:
-            del os.environ["OPENAI_API_KEY"]
-
-    # Do the query
-    llm_result = get_openai_response(
-        prompt,
-        model_info.model_name,
-        model_info.endpoint,
-        ignore_cache=ignore_cache,  # type: ignore
-    )
-    response = llm_result["response"]
-    elapsed = llm_result["elapsed"]
-    message = None
-    if response and response.choices and response.choices[0].message:
-        message = response.choices[0].message.content
-        # Ensure closing triple backtick if opening exists but not closed
-        message = ensure_closing_triple_backtick(message)
-
-    print("\n")
-    if message:
-        cleaned_message = (
-            message.replace(">>start-reply<<", "").replace(">>end-reply<<", "").strip()
-        )
-        sys.stdout.flush()
-        sys.stdout.buffer.write((cleaned_message + "\n").encode("utf-8"))
-        sys.stdout.flush()
-    else:
-        print("No response content returned.")
-
-    usage_info = get_usage_info(response, model_info, elapsed)
+    # Run the LLM and get back the response and usage info
+    usage_info, message = run_llm(prompt, model_info, ignore_cache=ignore_cache)
+    message = ensure_closing_triple_backtick(message)
 
     # Run the code.
     print("#### Code Execution\n")
-    code = extract_code_from_response(response)
+    code = extract_code_from_response(message)
     run_result = False
     result: Optional[DockerRunResult] = None
     if code is not None:
         r = check_code_policies(code)
         if r is True:
-            # Run code in Docker and capture output and files, using cache
-            # If we get timeouts, keep trying...
-            # TODO: We should be using a retry library, not this!
-            max_retries = 3
-            attempt = 0
-            result = None
-            while attempt < max_retries:
-                # For first attempt, use original ignore_cache; for retries,
-                # force ignore_cache=True
-                use_ignore_cache = ignore_cache if attempt == 0 else True
-                result = cached_run_python_in_docker(
-                    code, ignore_cache=use_ignore_cache
-                )
-                # If no ConnectTimeout, break
-                has_timeout = "httpcore.ConnectTimeout" in str(result.stderr)
-                if not has_timeout:
-                    break
-                attempt += 1
-                logging.warning(
-                    "Retrying cached_run_python_in_docker due to httpcore.ConnectTimeout "
-                    f"(attempt {attempt+1}/{max_retries})"
-                )
+            result = run_code_in_docker(code, ignore_cache=ignore_cache)
         else:
             assert isinstance(r, DockerRunResult)
             result = r
@@ -247,22 +121,9 @@ def ask(
 
     # Load models
     all_models = load_models()
-    if models:
-        model_names = [m.strip() for m in models.split(",") if m.strip()]
-        if "all" in model_names:
-            model_names = list(all_models.keys())
-    else:
-        model_names = [config.model_name]
+    valid_model_names = process_model_request(models, all_models, config.model_name)
 
-    # Validate model names
-    valid_model_names = [m for m in model_names if m in all_models]
-    invalid_model_names = [m for m in model_names if m not in all_models]
-    if invalid_model_names:
-        print(
-            f"Error: model(s) not found in models.yaml: {', '.join(invalid_model_names)}"
-        )
-        return
-
+    # Check number of requested iterations is good
     if n_iter < 1:
         logging.error(
             f"Error: command line option `n_iter` must be >= 1 (got {n_iter})"
@@ -407,18 +268,6 @@ def ask(
             f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | "
             f"{total_tokens} | {cost} | {attempts} | {result} |"
         )
-
-
-def ensure_closing_triple_backtick(message: str) -> str:
-    """
-    Ensure that if a message contains an opening triple backtick, it also has a closing one.
-    If the number of triple backticks is odd, append a closing triple backtick.
-    """
-    if "```" in message:
-        backtick_count = message.count("```")
-        if backtick_count % 2 != 0:
-            message = message + "\n```"
-    return message
 
 
 if __name__ == "__main__":

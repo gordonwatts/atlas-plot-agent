@@ -1,0 +1,374 @@
+hint_files:
+  "plan":
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-plot.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-servicex.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-awkward.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-hist.md"
+  "phase_code_sx":
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/servicex-hints.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/xaod-hints.md"
+  "phase_code_awkward":
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/awkward-hints.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/vector-hints.md"
+  "phase_code_hist":
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/hist-hints.md"
+    
+model_name: "gpt-oss-120b"
+prompts:
+  preplan: |
+    The user has asked us to produce one or more plots from ATLAS data with a prompt. You will carefully analyze the question
+    with an eye to how we will code up the query against the data.
+
+    1. List the plots that need to be made, item(s) that needed to be plotted, and what kind of plot (histogram, etc.)
+      * For each plot/histogram list what needs to be plotted and the plot type (e.g. histogram, scatter plot)
+      * Scatter plots usually will say "x vs y" or "compare x and y". If `and` is used that likely means two plots.
+      * It is ok to be asked for more than one plot.
+    2. List the Steps that must be applied to the data to create the data for the histogram
+      * Each step must be either a `filter` or a `build` step.
+      * `filter` - selects some data, windows it, or otherwise reduces the data.
+      * `build` - creates a new object (e.g. adds two 3-vectors together, or 4-vectors to create a composite object, or calculates a value)
+      * Repeat in any order as many times as needed to build the quantities required.
+      * Keep each line as simple as possible to make is really easy to understand each step needed.
+      * Each line no matter what type should track what data it needs to perform that step.
+      * The last line(s) should end with 'build'/'filter' the quantity that to be histogrammed.
+      * No need to specify formulas for calculating quantities unless they were given in the question - will fill determine them later in the process.
+    3. List a collection of all the data that must be read from the ATLAS data file in order to do both filtering and plotting.
+      * First should be the full dataset name the user has given us (or "unknown")
+      * Next for each type of physics object (e.g. jets, electrons, etc.)
+        * for each item (e.g. pt) and why it is needed (for filtering, for plotting, for both, etc.)
+      * Do not list anything that is optional.
+      * Do not over specify any quantities that aren't specified in the question (e.g. what type of b-tagging, what type of jet, etc.)
+      * All data is automatically grouped per event - no need to keep event number (or similar) unless explicitly requested in the question.
+
+    Please do your best to only produce the plot that is requested in the User Plot Prompt. Do not add any options or extensions beyond exactly what the user requested.
+
+    **User Plot Prompt**
+    {question}
+
+    **Final Instructions**
+    Please respond in markdown ascii text. Feel free to add more steps for complex questions, but the steps must follow the format listed below.
+    >>start-reply<<
+    1. Plots
+
+        * <what-is-being-plotted>, <plot-type>
+
+    2. Steps
+
+        * Filter: <what quantity to select, and what the cuts are>
+        * Build: <how to perform the required calculation, or combine objects, etc.
+        * etc.
+
+    3. Required Data
+
+        * Dataset: <dataset name>
+        * <physics-object>:
+          * <what-item-1> (needed <why needed)
+          * <what-item-2> (needed <why needed)
+
+    4. Notes:
+      * <extra-notes-for-user-to-read-about-choices-you-made-or-suggestion-for-choosing-values>
+      * <extra-notes-for-user-to-read-about-choices-you-made-or-suggestion-for-choosing-values>
+      * etc.    
+
+    >>end-reply<<
+  phase_plan: |
+    The user has asked us to produce a plot from ATLAS data. In this second phase you will plan the
+    code that we will write in stages to produce this plots.
+
+    1. You will read the hint files below which will tell you how to plan each major phase.
+    2. You will read the question from the user.
+    3. You will read the solution outline that tells us how to solve the problem.
+    3. You will write out plan in english separated by phases. Each phase is a logical "coding" block.
+
+    ** Description of each Phase (in order) **
+    {hints}
+
+    ** User Question **
+    {question}
+
+    ** Solution Outline **
+    {solution_outline}
+
+    ** Final Instructions **
+    Please reply in the following format:
+
+    >>start-reply<<
+    ## Phase <name-of-phase 1>
+    <instructions for phase 1>
+
+    ## Phase <name-of-phase 2>
+    <instructions for phase 2>
+    ...
+    >>end-reply<<
+  phase_code_sx: |
+    The user has asked us to produce a plot from ATLAS data. In this phase you will write a python
+    function that fetches the required data from the dataset and returns an awkward array of that
+    data.
+
+    1. You will read the hint files below which will tell you how to write the servicex query and how to access specialized data in a servicex query.
+    3. You will read the list of data you need to extract.
+    4. You will write out a python function `load_data_from_sx` that returns the awkward array of loaded data.
+    5. You will write out a description of the name of each leaf in the awkward array.
+    6. Add any notes on decisions that were made building the query that the user might need to pay attention to later.
+
+    Notes:
+      
+      * When creating the awkward array always make sure each column has a label - even if you only have a single column.
+      * Generate all code between the ``` - do not add any other code blocks to the answer
+
+    ** Description of each Phase (in order) **
+    {hints}
+
+    ** Solution Outline **
+    {sx_code}
+
+    ** Final Instructions **
+    Please reply in the following format:
+
+    >>start-reply<<
+
+    ```python
+    def load_data_from_sx():
+      <add-code-there to load from servicex>
+      return data
+    ```
+
+    ## Data:
+      * `<leaf-name-1>`: <what it is>
+      * ...
+
+    ## Notes:
+      * <any further notes the user might want to know>
+      * <no code blocks allowed in this section>
+    >>end-reply<<
+  phase_code_sx_fix: |
+    The user has asked us to produce a plot from ATLAS data. The code below is a python function that
+    fetches the required data from the dataset using servicex. However, when it was run, it failed.
+    You must fix it.
+
+    1. You will read the hint files below which will tell you how the servicex query was written. Use these to help address errors.
+    2. You will read the original function `load_data_from_sx` that did not work.
+    3. You will read any `stdout` and `stderr` that was captured.
+    4. You will write a short analysis of the error, and the proposed fix.
+    5. You will write out a python function `load_data_from_sx`, with your fix applied, leaving the rest alone.
+
+    Notes:
+      * Generate all code between the ``` - do not add any other code blocks to the answer
+      * Assume all libraries you need are already installed.
+
+    ** Description of each Phase (in order) **
+    {hints}
+
+    ** Original Code **
+    ```python
+    {code}
+    ```
+
+    ** stdout **
+    {output}
+
+    ** stderr **
+    {errors}
+
+    ** Final Instructions **
+    Please reply in the following format:
+
+    >>start-reply<<
+
+    * <bullet list in Markdown of what caused the error and your proposed solution>
+
+    ```python
+    def load_data_from_sx():
+      <Original-function-body-with-fixed-code>
+      return data
+    ```
+    >>end-reply<<
+  phase_code_awkward: |
+    The user has asked us to produce one or more plots from ATLAS data. In this phase you will write a python
+    function that takes pre-fetched data and produces the awkward arrays for plotting, one for each histogram.
+
+    1. You will read the hint files below which will tell you how to write the awkward/vector code.
+    2. You will read a Solution Outline, manipulations that need to be preformed on the data.
+    3. You will read a short description of the input data layout that needs to be transformed into the histogram data.
+    4. You will write out a python function `generate_histogram_data` that accepts the read-in data and returns a dictionary of awkward array(s) of data to be histogrammed, one dictionary entry per histogram.
+    5. Add any notes on decisions that were made building the query that the user might need to pay attention to later.
+
+    Notes:
+
+      * Place any includes or vector initialization code needed outside the function.
+      * The data layout *is* the format of the data the function will get, including field names. The function will never see anything but that form. Take this as "truth" about the array being given to the function.
+      * Generate all code between the ``` - do not add any other code blocks to the answer
+      * Assume all libraries you need are already installed.
+
+    ** Hints to help write awkward and vector code **
+    {hints}
+
+    ** Solution Outline **
+    {awkward_code}
+
+    ** Input Data Format **
+    This is a dump of the awkward data type (`data.type.show()`). This is exactly the data that this function will need to read: Trust it more than you trust the solution outline above.
+
+    {data_format}
+
+    ** Final Instructions **
+    Please reply in the following format:
+
+    >>start-reply<<
+
+    ```python
+    import awkward as ak
+    from typing import Dict
+    <other-includes-or-initialization>
+    def generate_histogram_data(data: ak.Array) -> Dict[str, ak.Array]:
+      <add-code-there to create histogram data>
+      data = dict()
+      data["<histo-name-1>"] = <awkward-histogram-data-1
+      return data
+    ```
+
+    ## Notes:
+      * <any further notes the user might want to know>
+    >>end-reply<<
+  phase_code_awkward_fix: |
+    The user has asked us to produce a plot from ATLAS data. The code below is a python function that
+    takes data from a dataset and converts it into histogram data using awkward and vector libraries. 
+    However, when it was run, it failed. You must fix it.
+
+    1. You will read the hint files below which will tell you how awkward/vector code is written. Use these to help address errors.
+    2. You will read the leaf names of the awkward input data.
+    3. You will read the original function `generate_histogram_data` that did not work.
+    4. You will read any `stdout` and `stderr` that was captured.
+    5. You will write a short analysis of the error, and the proposed fix.
+    6. You will write out a python function `generate_histogram_data`, with your fix applied, leaving the rest alone.
+
+    Notes:
+
+      * Place any includes or vector initialization code needed outside the function.
+      * The data layout *is* the format of the data the function will get, including field names. The function will never see anything but that form. Take this as "truth" about the array being given to the function.
+      * The function returns a dict, one entry for each requested histogram.
+      * Generate all code between the ``` - do not add any other code blocks to the answer
+      * Assume all libraries you need are already installed.
+
+    ** Description of each Phase (in order) **
+    {hints}
+
+    ** Input Data Format **
+    This is a dump of the awkward data type (`data.type.show()`).
+
+    {data_format}
+
+    ** Original Code **
+    ```python
+    {code}
+    ```
+
+    ** stdout **
+    {output}
+
+    ** stderr **
+    {errors}
+
+    ** Final Instructions **
+    Please reply in the following format:
+
+    >>start-reply<<
+
+    * <bullet list in Markdown of what caused the error and your proposed solution>
+
+    ```python
+    import awkward as ak
+    from typing import Dict
+    <other-includes-or-initialization>
+    def generate_histogram_data(data: ak.Array) -> Dict[str, ak.Array]:
+      <Original-function-body-with-fixed-code>
+      data = dict()
+      data["<histo-name-1>"] = <awkward-histogram-data-1
+      return data
+    ```
+    >>end-reply<<
+  phase_code_hist: |
+    The user has asked us to produce a plot from ATLAS data. In this phase you will write a python
+    function data ready for a histogram and makes the histogram and saves the plot.
+
+    1. You will read the hint files below which will tell you how to write the histo code.
+    2. You will read a Solution Outline, which tells you how to define the histogram.
+    3. You will read the list dictionary keys, one key for each histogram you need to plot. Refer to the data as `data["<hist-key-name>"]`.
+    4. You will write out a python function `plot_hist` that accepts the histogram data, creates the histogram, and plots it.
+    5. Add any notes on decisions that were made building the query that the user might need to pay attention to later.
+
+    Notes:
+
+      * The input data is a strict array of numbers. You should not need to even `ak.flatten` them - just do the fill directly.
+      * Assume all libraries you need are already installed.
+
+    ** Hints to help write histogram code **
+    {hints}
+
+    ** Solution Outline **
+    {hist_code}
+
+    ** Histogram `data` key names **
+    {histogram_dict_names}
+
+    ** Final Instructions **
+    Please reply in the following format:
+    >>start-reply<<
+
+    ```python
+    import awkward as ak
+    from typing import Dict
+    <other-includes-or-initialization>
+    def plot_hist(data: Dict[str, ak.Array]):
+      <add-code-create-and-fill-histograms>
+    ```
+
+    ## Notes:
+      * <any further notes the user might want to know>
+    >>end-reply<<
+  phase_code_hist_fix: |
+    The user has asked us to produce a plot from ATLAS data. The code below is a python function that
+    data ready to histogram and fills the histogram.
+    However, when it was run, it failed. You must fix it.
+
+    1. You will read the hint files below which will tell you how hist code is written. Use these to help address errors.
+    3. You will read the original function `plot_hist` that did not work.
+    4. You will read any `stdout` and `stderr` that was captured.
+    5. You will write a short analysis of the error, and the proposed fix.
+    6. You will write out a python function `plot_hist`, with your fix applied, leaving the rest alone.
+
+    Notes:
+
+      * The input data is a strict array of numbers. You should not need to even `ak.flatten` them - just do the fill directly.
+      * Assume all libraries you need are already installed.
+
+    ** Description of each Phase (in order) **
+    {hints}
+
+    ** Histogram `data` key names **
+    {histogram_dict_names}
+
+    ** Original Code **
+    ```python
+    {code}
+    ```
+
+    ** stdout **
+    {output}
+
+    ** stderr **
+    {errors}
+
+    ** Final Instructions **
+    Please reply in the following format:
+    >>start-reply<<
+
+    * <bullet list in Markdown of what caused the error and your proposed solution>
+
+    ```python
+    from typing import Dict
+    <other-includes-or-initialization>
+    def plot_hist(data: Dict[str, ak.Array]):
+      <updated-code-to-create-and-fill-histograms>
+    ```
+    >>end-reply<<
