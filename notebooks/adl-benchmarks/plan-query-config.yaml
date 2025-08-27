@@ -19,9 +19,9 @@ prompts:
     The user has asked us to produce one or more plots from ATLAS data with a prompt. You will carefully analyze the question
     with an eye to how we will code up the query against the data.
 
-    1. List the item(s) that needed to be plotted, and what kind of plot (histogram, etc.)
-      * For each list what needs to be plotted and the plot type (e.g. histogram, scatter plot)
-      * Scatter plots usually will say "x vs y" or "compare x and y".
+    1. List the plots that need to be made, item(s) that needed to be plotted, and what kind of plot (histogram, etc.)
+      * For each plot/histogram list what needs to be plotted and the plot type (e.g. histogram, scatter plot)
+      * Scatter plots usually will say "x vs y" or "compare x and y". If `and` is used that likely means two plots.
       * It is ok to be asked for more than one plot.
     2. List the Steps that must be applied to the data to create the data for the histogram
       * Each step must be either a `filter` or a `build` step.
