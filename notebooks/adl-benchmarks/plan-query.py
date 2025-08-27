@@ -248,13 +248,17 @@ plot_hist(r)
                 )
 
             # If there are png files, then save them!
-            for f_name, data in hist_result.png_files:
-                # Sanitize model_name for filesystem
-                safe_model_name = all_models[model_name].model_name.replace("/", "_")
-                local_name = f"{question_hash}_{safe_model_name}_{f_name}"
-                with open(local_name, "wb") as dst:
-                    dst.write(data)
-                fh_out.write(f"![{local_name}]({local_name})")
+            if len(hist_result.png_files) > 0:
+                fh_out.write("\n\n### Plots\n\n")
+                for f_name, data in hist_result.png_files:
+                    # Sanitize model_name for filesystem
+                    safe_model_name = all_models[model_name].model_name.replace(
+                        "/", "_"
+                    )
+                    local_name = f"{question_hash}_{safe_model_name}_{f_name}"
+                    with open(local_name, "wb") as dst:
+                        dst.write(data)
+                    fh_out.write(f"![{local_name}]({local_name})")
 
 
 if __name__ == "__main__":
