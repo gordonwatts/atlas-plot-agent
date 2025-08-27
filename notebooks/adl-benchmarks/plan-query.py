@@ -293,7 +293,7 @@ plot_hist(r)
 
                 good_run = (
                     "**Success**" not in hist_result.stdout
-                    or len(hist_result.png_files) == 0
+                    or len(hist_result.png_files) > 0
                 )
                 if not good_run:
                     reason = (
