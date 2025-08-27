@@ -13,7 +13,7 @@ class IndentedDetailsBlock:
 
     def __enter__(self):
         self.file_handle.write(
-            f'<details><summary>{self.summary}</summary>\n<div style="margin-left: 1em;">\n'
+            f'<details><summary>{self.summary}</summary>\n<div style="margin-left: 1em;">\n\n'
         )
         return self.file_handle
 

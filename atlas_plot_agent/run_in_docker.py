@@ -268,3 +268,22 @@ def check_code_policies(python_code: str) -> bool | DockerRunResult:
             exit_code=1,
         )
     return True
+
+
+def print_md_table_for_phased_usage_docker(
+    fh_out, usage_info: List[Tuple[str, DockerRunResult]]
+) -> float:
+    """
+    Print a markdown table for the usage information of each phase.
+    """
+    fh_out.write("\n### Docker Usage\n")
+    fh_out.write("| Phase | Elapsed Time (seconds) |\n")
+    fh_out.write("|-------|--------------|\n")
+    for phase, info in usage_info:
+        fh_out.write(f"| {phase} | {info.elapsed:.2f} |\n")
+
+    # Totals
+    total_elapsed = sum(info.elapsed for _, info in usage_info)
+    fh_out.write(f"| **Total** | **{total_elapsed:.2f}** |\n")
+
+    return total_elapsed

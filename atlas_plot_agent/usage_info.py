@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from io import TextIOWrapper
+from typing import List, Optional, Tuple
 
 
 @dataclass
@@ -75,3 +76,47 @@ def sum_usage_infos(usages: List[UsageInfo]) -> UsageInfo:
         total_tokens=total_tokens,
         cost=cost,
     )
+
+
+def print_md_table_for_phased_usage(
+    fh_out: TextIOWrapper, llm_usage: List[Tuple[str, UsageInfo]]
+) -> UsageInfo:
+    """
+    Writes a Markdown table summarizing phased LLM usage to the given file handle.
+
+    Args:
+        fh_out (TextIOWrapper): Output file handle to write the Markdown table.
+        llm_usage (List[Tuple[str, UsageInfo]]): List of tuples containing step names and
+                corresponding UsageInfo objects.
+    """
+    # Write header
+    fh_out.write(
+        "| Step "
+        "| Time (sec) "
+        "| Prompt Tokens "
+        "| Completion Tokens "
+        "| Total Tokens "
+        "| Cost (USD) |\n"
+    )
+    fh_out.write("|---" * 6 + "|\n")
+
+    # Write each step.
+    for step_name, usage_info in llm_usage:
+        fh_out.write(
+            f"| {step_name} | {usage_info.elapsed:.2f} | {usage_info.prompt_tokens} "
+            f"| {usage_info.completion_tokens} | {usage_info.total_tokens} "
+            f"| ${usage_info.cost:.2f} |\n"
+        )
+
+    # Write total line
+    totals = sum_usage_infos([u for _, u in llm_usage])
+    fh_out.write(
+        "| **Total** "
+        f"| {totals.elapsed:.2f} "
+        f"| {totals.prompt_tokens} "
+        f"| {totals.completion_tokens} "
+        f"| {totals.total_tokens} "
+        f"| ${totals.cost:.3f} |\n"
+    )
+
+    return totals

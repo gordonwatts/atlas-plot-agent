@@ -2,7 +2,7 @@ import hashlib
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import List
+from typing import Dict, List, Tuple
 
 import typer
 from hint_files import load_hint_files
@@ -11,11 +11,14 @@ from models import (
     process_model_request,
     run_llm,
     extract_by_phase,
+    UsageInfo,
 )
 from query_config import load_plan_config
 from questions import extract_questions
-from query_code import code_it_up
+from query_code import code_it_up, DockerRunResult
 from utils import IndentedDetailsBlock
+from atlas_plot_agent.usage_info import print_md_table_for_phased_usage
+from atlas_plot_agent.run_in_docker import print_md_table_for_phased_usage_docker
 
 
 # Enum for allowed cache types
@@ -106,8 +109,12 @@ def ask(
         question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
 
         # Loop over each model
+        model_usage: Dict[str, Tuple[UsageInfo, float]] = {}
         for model_name in valid_model_names:
             fh_out.write(f"\n## Model {all_models[model_name].model_name}\n")
+
+            llm_usage: List[Tuple[str, UsageInfo]] = []
+            code_run_usage: List[Tuple[str, DockerRunResult]] = []
 
             # Build prompt
             fh_out.write("\n### Problem Analysis & Breakdown\n")
@@ -130,7 +137,7 @@ def ask(
                     ignore_cache=CacheType.llm_plan in ignore_cache,
                 )
                 solution_outline = message
-                print(usage_info)
+                llm_usage.append(("Solution Outline", usage_info))
 
             # Next, do the same for the phase plan
             with IndentedDetailsBlock(fh_out, "Solution Code Phases"):
@@ -152,7 +159,7 @@ def ask(
                     fh_out,
                     ignore_cache=CacheType.llm_plan in ignore_cache,
                 )
-                print(usage_info)
+                llm_usage.append(("Code Phases", usage_info))
 
             # Split the code into sections
             code_sections = extract_by_phase(message)
@@ -184,6 +191,12 @@ print("ServiceX Data Type Structure: " + str(r.type))
                     },
                     ignore_llm_cache=CacheType.llm_plan in ignore_cache,
                     ignore_code_cache=CacheType.llm_code in ignore_cache,
+                    llm_usage_callback=lambda n, u: llm_usage.append(
+                        (f"ServiceX Code {n}", u)
+                    ),
+                    docker_usage_callback=lambda n, u: code_run_usage.append(
+                        (f"ServiceX Code {n}", u)
+                    ),
                 )
 
             # Build the code for awkward
@@ -215,6 +228,12 @@ print(r.type)
                     },
                     ignore_llm_cache=CacheType.llm_plan in ignore_cache,
                     ignore_code_cache=CacheType.llm_code in ignore_cache,
+                    llm_usage_callback=lambda n, u: llm_usage.append(
+                        (f"Awkward Code {n}", u)
+                    ),
+                    docker_usage_callback=lambda n, u: code_run_usage.append(
+                        (f"Awkward Code {n}", u)
+                    ),
                 )
 
             # Build the code for histogram
@@ -245,7 +264,24 @@ plot_hist(r)
                     },
                     ignore_llm_cache=CacheType.llm_plan in ignore_cache,
                     ignore_code_cache=CacheType.llm_code in ignore_cache,
+                    llm_usage_callback=lambda n, u: llm_usage.append(
+                        (f"Histogram Code {n}", u)
+                    ),
+                    docker_usage_callback=lambda n, u: code_run_usage.append(
+                        (f"Histogram Code {n}", u)
+                    ),
                 )
+
+            # Print out usage info for this in a markdown table.
+            fh_out.write("\n\n### Usage\n\n")
+            with IndentedDetailsBlock(fh_out, "LLM Usage"):
+                total_llm_usage = print_md_table_for_phased_usage(fh_out, llm_usage)
+            with IndentedDetailsBlock(fh_out, "Docker Usage"):
+                total_seconds = print_md_table_for_phased_usage_docker(
+                    fh_out, code_run_usage
+                )
+
+            model_usage[model_name] = (total_llm_usage, total_seconds)
 
             # If there are png files, then save them!
             if len(hist_result.png_files) > 0:
@@ -259,6 +295,22 @@ plot_hist(r)
                     with open(local_name, "wb") as dst:
                         dst.write(data)
                     fh_out.write(f"![{local_name}]({local_name})")
+
+        if model_usage:
+            fh_out.write("\n\n## Model Usage\n\n")
+            fh_out.write(
+                "| Model | LLM Time (secs) | Docker Time (secs) "
+                "| Total Time (secs) | LLM Cost (USD) |\n"
+            )
+            fh_out.write("|---" * 5 + "|\n")
+            for model_name, (u_llm, u_docker) in model_usage.items():
+                fh_out.write(
+                    f"| {model_name} "
+                    f"| {u_llm.elapsed:.2f} "
+                    f"| {u_docker:.2f} "
+                    f"| {u_llm.elapsed + u_docker:.2f} "
+                    f"| ${u_llm.cost:.3f} |\n"
+                )
 
 
 if __name__ == "__main__":

@@ -1,12 +1,13 @@
 import logging
 from io import TextIOWrapper
-from typing import Dict, Tuple
+from typing import Callable, Dict, Optional, Tuple
 
 from disk_cache import diskcache_decorator
 from models import ModelInfo, extract_code_from_response, run_llm
 from utils import IndentedDetailsBlock
 
 from atlas_plot_agent.run_in_docker import DockerRunResult, run_python_in_docker
+from atlas_plot_agent.usage_info import UsageInfo
 
 
 @diskcache_decorator(".docker_run_cache")
@@ -54,6 +55,8 @@ def code_it_up(
     prompt_args: Dict[str, str],
     ignore_code_cache: bool = False,
     ignore_llm_cache: bool = False,
+    llm_usage_callback: Optional[Callable[[str, UsageInfo], None]] = None,
+    docker_usage_callback: Optional[Callable[[str, DockerRunResult], None]] = None,
 ) -> Tuple[DockerRunResult, str]:
 
     # Build code with initial prompt
@@ -83,7 +86,8 @@ def code_it_up(
                 fh_out,
                 ignore_cache=ignore_llm_cache,
             )
-            print(usage_info)
+            if llm_usage_callback is not None:
+                llm_usage_callback(f"Run {n_iter+1}", usage_info)
 
             # Now run the code to fetch the data
             code = extract_code_from_response(message)
@@ -92,6 +96,8 @@ def code_it_up(
             code_to_run = code + "\n" + called_code + '\nprint("**Success**")\n'
 
             result = run_code_in_docker(code_to_run, ignore_cache=ignore_code_cache)
+            if docker_usage_callback is not None:
+                docker_usage_callback(f"Run {n_iter+1}", result)
 
             fh_out.write(f"### stdout:\n\n```text\n{result.stdout}\n```\n\n")
             fh_out.write(f"### stderr:\n\n```text\n{result.stderr}\n```\n\n")
