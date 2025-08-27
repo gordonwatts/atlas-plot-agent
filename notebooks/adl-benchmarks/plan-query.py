@@ -28,9 +28,12 @@ class CacheType(str, Enum):
 
 
 def extract_struct_line(stdout: str) -> str:
-    match = re.search(r"^\d+\s*\*\s*\{.*\}$", stdout, re.MULTILINE)
-    assert match, f"Failed to find structured line in {stdout}"
-    return match.group(0)
+    lines = stdout.splitlines()
+    struct_lines = [ln for ln in lines if "ServiceX Data Type Structure" in ln]
+    assert (
+        len(struct_lines) == 1
+    ), f"Failed to find awkward array structured line in '{stdout}'"
+    return struct_lines[0]
 
 
 app = typer.Typer()
@@ -164,7 +167,7 @@ def ask(
 
             called_code = """
 r = load_data_from_sx()
-print(r.type)
+print("ServiceX Data Type Structure: " + str(r.type))
         """
 
             with IndentedDetailsBlock(fh_out, "ServiceX Code"):
