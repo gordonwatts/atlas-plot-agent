@@ -29,9 +29,11 @@ class CacheType(str, Enum):
     hints = "hints"
 
 
-def extract_struct_line(stdout: str) -> str:
+def extract_struct_line(
+    stdout: str, search_string: str = "ServiceX Data Type Structure"
+) -> str:
     lines = stdout.splitlines()
-    struct_lines = [ln for ln in lines if "ServiceX Data Type Structure" in ln]
+    struct_lines = [ln for ln in lines if search_string in ln]
     assert (
         len(struct_lines) == 1
     ), f"Failed to find awkward array structured line in '{stdout}'"
@@ -222,7 +224,7 @@ print("ServiceX Data Type Structure: " + str(r.type))
 {sx_code}
 data = load_data_from_sx()
 r = generate_histogram_data(data)
-print(r.type)
+print ("Histogram Data: " + str(r.keys()))
         """
 
                 with IndentedDetailsBlock(fh_out, "Awkward Code"):
@@ -254,6 +256,10 @@ print(r.type)
                     fh_out.write("\n**Failed Awkward Code Generation**\n")
 
             if good_run:
+                histogram_dict_names = extract_struct_line(
+                    awk_code_result.stdout, "Histogram Data: "
+                )
+
                 # Build the code for histogram
                 hint_phase_code_hist = load_hint_files(
                     config.hint_files["phase_code_hist"],
@@ -280,6 +286,7 @@ plot_hist(r)
                             "question": question,
                             "hints": "\n".join(hint_phase_code_hist),
                             "hist_code": code_sections["Histogram"],
+                            "histogram_dict_names": histogram_dict_names,
                         },
                         ignore_llm_cache=CacheType.llm_code in ignore_cache,
                         ignore_code_cache=CacheType.code in ignore_cache,
