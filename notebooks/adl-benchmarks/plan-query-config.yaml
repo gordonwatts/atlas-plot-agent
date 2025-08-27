@@ -154,6 +154,7 @@ prompts:
 
     Notes:
       * Generate all code between the ``` - do not add any other code blocks to the answer
+      * Assume all libraries you need are already installed.
 
     ** Description of each Phase (in order) **
     {hints}
@@ -197,6 +198,7 @@ prompts:
       * Place any includes or vector initialization code needed outside the function.
       * The data layout *is* the format of the data the function will get, including field names. The function will never see anything but that form. Take this as "truth" about the array being given to the function.
       * Generate all code between the ``` - do not add any other code blocks to the answer
+      * Assume all libraries you need are already installed.
 
     ** Hints to help write awkward and vector code **
     {hints}
@@ -205,7 +207,7 @@ prompts:
     {awkward_code}
 
     ** Input Data Format **
-    This is a dump of the awkward data type (`data.type.show()`).
+    This is a dump of the awkward data type (`data.type.show()`). This is exactly the data that this function will need to read: Trust it more than you trust the solution outline above.
 
     {data_format}
 
@@ -246,6 +248,7 @@ prompts:
       * The data layout *is* the format of the data the function will get, including field names. The function will never see anything but that form. Take this as "truth" about the array being given to the function.
       * The function returns a dict, one entry for each requested histogram.
       * Generate all code between the ``` - do not add any other code blocks to the answer
+      * Assume all libraries you need are already installed.
 
     ** Description of each Phase (in order) **
     {hints}
@@ -294,7 +297,10 @@ prompts:
     4. You will write out a python function `plot_hist` that accepts the histogram data, creates the histogram, and plots it.
     5. Add any notes on decisions that were made building the query that the user might need to pay attention to later.
 
-    The input data is a strict array of numbers. You should not need to even `ak.flatten` them - just do the fill directly.
+    Notes:
+
+      * The input data is a strict array of numbers. You should not need to even `ak.flatten` them - just do the fill directly.
+      * Assume all libraries you need are already installed.
 
     ** Hints to help write histogram code **
     {hints}
@@ -330,6 +336,11 @@ prompts:
     4. You will read any `stdout` and `stderr` that was captured.
     5. You will write a short analysis of the error, and the proposed fix.
     6. You will write out a python function `plot_hist`, with your fix applied, leaving the rest alone.
+
+    Notes:
+
+      * The input data is a strict array of numbers. You should not need to even `ak.flatten` them - just do the fill directly.
+      * Assume all libraries you need are already installed.
 
     ** Description of each Phase (in order) **
     {hints}
