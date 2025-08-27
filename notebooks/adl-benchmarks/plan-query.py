@@ -196,8 +196,8 @@ print("ServiceX Data Type Structure: " + str(r.type))
                             "hints": "\n".join(hint_phase_code_sx),
                             "sx_code": code_sections["ServiceX"],
                         },
-                        ignore_llm_cache=CacheType.llm_plan in ignore_cache,
-                        ignore_code_cache=CacheType.llm_code in ignore_cache,
+                        ignore_llm_cache=CacheType.llm_code in ignore_cache,
+                        ignore_code_cache=CacheType.code in ignore_cache,
                         llm_usage_callback=lambda n, u: llm_usage.append(
                             (f"ServiceX Code {n}", u)
                         ),
@@ -239,8 +239,8 @@ print(r.type)
                             "awkward_code": code_sections["Awkward"],
                             "data_format": data_format,
                         },
-                        ignore_llm_cache=CacheType.llm_plan in ignore_cache,
-                        ignore_code_cache=CacheType.llm_code in ignore_cache,
+                        ignore_llm_cache=CacheType.llm_code in ignore_cache,
+                        ignore_code_cache=CacheType.code in ignore_cache,
                         llm_usage_callback=lambda n, u: llm_usage.append(
                             (f"Awkward Code {n}", u)
                         ),
@@ -281,8 +281,8 @@ plot_hist(r)
                             "hints": "\n".join(hint_phase_code_hist),
                             "hist_code": code_sections["Histogram"],
                         },
-                        ignore_llm_cache=CacheType.llm_plan in ignore_cache,
-                        ignore_code_cache=CacheType.llm_code in ignore_cache,
+                        ignore_llm_cache=CacheType.llm_code in ignore_cache,
+                        ignore_code_cache=CacheType.code in ignore_cache,
                         llm_usage_callback=lambda n, u: llm_usage.append(
                             (f"Histogram Code {n}", u)
                         ),
