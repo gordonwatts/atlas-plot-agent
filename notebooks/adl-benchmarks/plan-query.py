@@ -16,6 +16,7 @@ from models import (
 from query_config import load_plan_config
 from questions import extract_questions
 from query_code import code_it_up
+from utils import IndentedDetailsBlock
 
 
 # Enum for allowed cache types
@@ -107,47 +108,54 @@ def ask(
             fh_out.write(f"\n## Model {all_models[model_name].model_name}\n")
 
             # Build prompt
-            fh_out.write("\n### Solution Outline\n")
-            base_prompt = config.prompts["preplan"]
-            prompt = base_prompt.format(
-                question=question,
-                hints="\n".join(plan_hint_contents),
-            )
-            logging.debug(f"Built prompt for planning: {prompt}")
+            fh_out.write("\n### Problem Analysis & Breakdown\n")
+            with IndentedDetailsBlock(fh_out, "Solution Outline"):
+                base_prompt = config.prompts["preplan"]
+                prompt = base_prompt.format(
+                    question=question,
+                    hints="\n".join(plan_hint_contents),
+                )
+                logging.debug(f"Built prompt for planning: {prompt}")
 
-            # Run against model
-            logging.debug(f"Running against model {all_models[model_name].model_name}")
-            usage_info, message = run_llm(
-                prompt,
-                all_models[model_name],
-                fh_out,
-                ignore_cache=CacheType.llm_plan in ignore_cache,
-            )
-            solution_outline = message
-            print(usage_info)
+                # Run against model
+                logging.debug(
+                    f"Running against model {all_models[model_name].model_name}"
+                )
+                usage_info, message = run_llm(
+                    prompt,
+                    all_models[model_name],
+                    fh_out,
+                    ignore_cache=CacheType.llm_plan in ignore_cache,
+                )
+                solution_outline = message
+                print(usage_info)
 
             # Next, do the same for the phase plan
-            fh_out.write("\n### Solution Code Phases\n")
-            base_prompt = config.prompts["phase_plan"]
-            prompt = base_prompt.format(
-                question=question,
-                hints="\n".join(plan_hint_contents),
-                solution_outline=solution_outline,
-            )
-            logging.debug(f"Built prompt code phases: {prompt}")
+            with IndentedDetailsBlock(fh_out, "Solution Code Phases"):
+                base_prompt = config.prompts["phase_plan"]
+                prompt = base_prompt.format(
+                    question=question,
+                    hints="\n".join(plan_hint_contents),
+                    solution_outline=solution_outline,
+                )
+                logging.debug(f"Built prompt code phases: {prompt}")
 
-            # Run against model
-            logging.debug(f"Running against model {all_models[model_name].model_name}")
-            usage_info, message = run_llm(
-                prompt,
-                all_models[model_name],
-                fh_out,
-                ignore_cache=CacheType.llm_plan in ignore_cache,
-            )
-            print(usage_info)
+                # Run against model
+                logging.debug(
+                    f"Running against model {all_models[model_name].model_name}"
+                )
+                usage_info, message = run_llm(
+                    prompt,
+                    all_models[model_name],
+                    fh_out,
+                    ignore_cache=CacheType.llm_plan in ignore_cache,
+                )
+                print(usage_info)
 
             # Split the code into sections
             code_sections = extract_by_phase(message)
+
+            fh_out.write("\n### Code\n")
 
             # Build the code for servicex
             hint_phase_code_sx = load_hint_files(
@@ -159,21 +167,22 @@ r = load_data_from_sx()
 print(r.type)
         """
 
-            sx_code_result, sx_code = code_it_up(
-                fh_out,
-                all_models[model_name],
-                config.prompts["phase_code_sx"],
-                config.prompts["phase_code_sx_fix"],
-                4,
-                called_code,
-                prompt_args={
-                    "question": question,
-                    "hints": "\n".join(hint_phase_code_sx),
-                    "sx_code": code_sections["ServiceX"],
-                },
-                ignore_llm_cache=CacheType.llm_plan in ignore_cache,
-                ignore_code_cache=CacheType.llm_code in ignore_cache,
-            )
+            with IndentedDetailsBlock(fh_out, "ServiceX Code"):
+                sx_code_result, sx_code = code_it_up(
+                    fh_out,
+                    all_models[model_name],
+                    config.prompts["phase_code_sx"],
+                    config.prompts["phase_code_sx_fix"],
+                    4,
+                    called_code,
+                    prompt_args={
+                        "question": question,
+                        "hints": "\n".join(hint_phase_code_sx),
+                        "sx_code": code_sections["ServiceX"],
+                    },
+                    ignore_llm_cache=CacheType.llm_plan in ignore_cache,
+                    ignore_code_cache=CacheType.llm_code in ignore_cache,
+                )
 
             # Build the code for awkward
             hint_phase_code_awkward = load_hint_files(
@@ -188,22 +197,23 @@ r = generate_histogram_data(data)
 print(r.type)
         """
 
-            _, awk_code = code_it_up(
-                fh_out,
-                all_models[model_name],
-                config.prompts["phase_code_awkward"],
-                config.prompts["phase_code_awkward_fix"],
-                4,
-                called_code,
-                prompt_args={
-                    "question": question,
-                    "hints": "\n".join(hint_phase_code_awkward),
-                    "awkward_code": code_sections["Awkward"],
-                    "data_format": data_format,
-                },
-                ignore_llm_cache=CacheType.llm_plan in ignore_cache,
-                ignore_code_cache=CacheType.llm_code in ignore_cache,
-            )
+            with IndentedDetailsBlock(fh_out, "Awkward Code"):
+                _, awk_code = code_it_up(
+                    fh_out,
+                    all_models[model_name],
+                    config.prompts["phase_code_awkward"],
+                    config.prompts["phase_code_awkward_fix"],
+                    4,
+                    called_code,
+                    prompt_args={
+                        "question": question,
+                        "hints": "\n".join(hint_phase_code_awkward),
+                        "awkward_code": code_sections["Awkward"],
+                        "data_format": data_format,
+                    },
+                    ignore_llm_cache=CacheType.llm_plan in ignore_cache,
+                    ignore_code_cache=CacheType.llm_code in ignore_cache,
+                )
 
             # Build the code for histogram
             hint_phase_code_hist = load_hint_files(
@@ -218,21 +228,22 @@ r = generate_histogram_data(data)
 plot_hist(r)
         """
 
-            hist_result, _ = code_it_up(
-                fh_out,
-                all_models[model_name],
-                config.prompts["phase_code_hist"],
-                config.prompts["phase_code_hist_fix"],
-                1,
-                called_code,
-                prompt_args={
-                    "question": question,
-                    "hints": "\n".join(hint_phase_code_hist),
-                    "hist_code": code_sections["Histogram"],
-                },
-                ignore_llm_cache=CacheType.llm_plan in ignore_cache,
-                ignore_code_cache=CacheType.llm_code in ignore_cache,
-            )
+            with IndentedDetailsBlock(fh_out, "Hist Code"):
+                hist_result, _ = code_it_up(
+                    fh_out,
+                    all_models[model_name],
+                    config.prompts["phase_code_hist"],
+                    config.prompts["phase_code_hist_fix"],
+                    1,
+                    called_code,
+                    prompt_args={
+                        "question": question,
+                        "hints": "\n".join(hint_phase_code_hist),
+                        "hist_code": code_sections["Histogram"],
+                    },
+                    ignore_llm_cache=CacheType.llm_plan in ignore_cache,
+                    ignore_code_cache=CacheType.llm_code in ignore_cache,
+                )
 
             # If there are png files, then save them!
             for f_name, data in hist_result.png_files:

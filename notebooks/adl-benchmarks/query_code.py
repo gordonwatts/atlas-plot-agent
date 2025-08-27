@@ -3,7 +3,8 @@ from io import TextIOWrapper
 from typing import Dict, Tuple
 
 from disk_cache import diskcache_decorator
-from models import extract_code_from_response, run_llm, ModelInfo
+from models import ModelInfo, extract_code_from_response, run_llm
+from utils import IndentedDetailsBlock
 
 from atlas_plot_agent.run_in_docker import DockerRunResult, run_python_in_docker
 
@@ -56,7 +57,6 @@ def code_it_up(
 ) -> Tuple[DockerRunResult, str]:
 
     # Build code with initial prompt
-    fh_out.write("\n### Phase SX Code\n")
     base_prompt = prompt_write_code
 
     error_text = ""
@@ -75,28 +75,29 @@ def code_it_up(
         logging.debug(f"Built prompt to generate code: {prompt}")
 
         # Run against model
-        logging.debug(f"Running against model {model.model_name}")
-        usage_info, message = run_llm(
-            prompt,
-            model,
-            fh_out,
-            ignore_cache=ignore_llm_cache,
-        )
-        print(usage_info)
+        with IndentedDetailsBlock(fh_out, f"Run {n_iter+1}"):
+            logging.debug(f"Running against model {model.model_name}")
+            usage_info, message = run_llm(
+                prompt,
+                model,
+                fh_out,
+                ignore_cache=ignore_llm_cache,
+            )
+            print(usage_info)
 
-        # Now run the code to fetch the data
-        code = extract_code_from_response(message)
-        assert code is not None, "Can't work with null code for now"
+            # Now run the code to fetch the data
+            code = extract_code_from_response(message)
+            assert code is not None, "Can't work with null code for now"
 
-        code_to_run = code + "\n" + called_code + '\nprint("**Success**")\n'
+            code_to_run = code + "\n" + called_code + '\nprint("**Success**")\n'
 
-        result = run_code_in_docker(code_to_run, ignore_cache=ignore_code_cache)
+            result = run_code_in_docker(code_to_run, ignore_cache=ignore_code_cache)
 
-        fh_out.write(f"### stdout:\n\n```text\n{result.stdout}\n```\n\n")
-        fh_out.write(f"### stderr:\n\n```text\n{result.stderr}\n```\n\n")
+            fh_out.write(f"### stdout:\n\n```text\n{result.stdout}\n```\n\n")
+            fh_out.write(f"### stderr:\n\n```text\n{result.stderr}\n```\n\n")
 
-        # To test for success, look for "**Success**" in the output.
-        good_run = "**Success**" in result.stdout
+            # To test for success, look for "**Success**" in the output.
+            good_run = "**Success**" in result.stdout
 
         if good_run:
             break
