@@ -8,6 +8,8 @@ from hint_files import load_hint_files
 from models import load_models, process_model_request
 from query_code import code_it_up
 from query_config import load_config
+from questions import extract_questions
+from utils import IndentedDetailsBlock
 
 from atlas_plot_agent.run_in_docker import (
     DockerRunResult,
@@ -20,7 +22,6 @@ from atlas_plot_agent.usage_info import (
     print_md_table_for_phased_usage,
     sum_usage_infos,
 )
-from questions import extract_questions
 
 app = typer.Typer(
     help=(
@@ -28,60 +29,6 @@ app = typer.Typer(
         "generate code in response"
     )
 )
-
-
-# def run_model(
-#     prompt: str, model_info, png_prefix: str, ignore_cache=False
-# ) -> Tuple[UsageInfo, bool, Optional[DockerRunResult], Optional[str]]:
-#     """
-#     Run the model, print heading and result, and return info for the table.
-#     Runs the code once and returns:
-#         - UsageInfo for the run
-#         - True/False if the run succeeded
-#         - DockerRunResult
-#         - The code
-
-#     TODO: Replace with code that is in `code_it_up`.
-#     """
-#     # Run the LLM and get back the response and usage info
-#     usage_info, message = run_llm(prompt, model_info, ignore_cache=ignore_cache)
-#     message = ensure_closing_triple_backtick(message)
-
-#     # Run the code.
-#     print("#### Code Execution\n")
-#     code = extract_code_from_response(message)
-#     run_result = False
-#     result: Optional[DockerRunResult] = None
-#     if code is not None:
-#         r = check_code_policies(code)
-#         if r is True:
-#             result = run_code_in_docker(code, ignore_cache=ignore_cache)
-#         else:
-#             assert isinstance(r, DockerRunResult)
-#             result = r
-
-#         assert isinstance(result, DockerRunResult)
-#         print(f"*Output:*\n```\n{result.stdout}\n```")
-#         print(f"*Error:*\n```\n{result.stderr}\n```")
-
-#         # Did we run without an error?
-#         run_result = result.exit_code == 0 and len(result.png_files) > 0
-
-#         # Save PNG files locally, prefixed with model name
-#         if run_result:
-#             print("</details>\n")
-#         for f_name, data in result.png_files:
-#             # Sanitize model_name for filesystem
-#             safe_model_name = model_info.model_name.replace("/", "_")
-#             local_name = f"{png_prefix}_{safe_model_name}_{f_name}"
-#             with open(local_name, "wb") as dst:
-#                 dst.write(data)
-#             print(f"![{local_name}]({local_name})")  # Markdown image include
-
-#     else:
-#         print("No code found to run.")
-
-#     return usage_info, run_result, result, code
 
 
 @app.command()
@@ -142,15 +89,15 @@ def ask(
         fh_out.write(f"# {question}\n\n")
         question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
 
-        llm_usage: List[Tuple[str, UsageInfo]] = []
-        code_usage: List[Tuple[str, DockerRunResult]] = []
-
         table_rows = []
 
         for model_name in valid_model_names:
             fh_out.write(f"## Model {all_models[model_name].model_name}\n\n")
 
-            result, code = code_it_up(
+            llm_usage: List[Tuple[str, UsageInfo]] = []
+            code_usage: List[Tuple[str, DockerRunResult]] = []
+
+            result, code, good_run = code_it_up(
                 fh_out,
                 all_models[model_name],
                 config.prompt,
@@ -165,8 +112,13 @@ def ask(
                 lambda s, doc_usg: code_usage.append((s, doc_usg)),
             )
 
+            if not good_run:
+                fh_out.write("\n**Failed**\n\n")
+
+            fh_out.write("\n\n")
+
             # Write out the png files
-            if result is not None:
+            if good_run and result is not None:
                 for f_name, data in result.png_files:
                     # Sanitize model_name for filesystem
                     safe_model_name = model_name.replace("/", "_")
@@ -189,8 +141,11 @@ def ask(
             #         yaml.dump(e_info, f)
 
             # Write out summary tables with details of what we "did".
-            print_md_table_for_phased_usage(fh_out, llm_usage)
-            print_md_table_for_phased_usage_docker(fh_out, code_usage)
+            with IndentedDetailsBlock(fh_out, "Usage"):
+                print_md_table_for_phased_usage(fh_out, llm_usage)
+                print_md_table_for_phased_usage_docker(fh_out, code_usage)
+
+            fh_out.write("\n\n")
 
             total_llm_usage = sum_usage_infos([l for _, l in llm_usage])
             table_rows.append(
@@ -203,11 +158,12 @@ def ask(
                     "cost": total_llm_usage.cost,
                     "attempts": len(llm_usage),
                     "code_time": sum([c.elapsed for _, c in code_usage]),
+                    "result": good_run,
                 }
             )
 
         # Write out final totals CSV and tabular data
-        fh_out.write("## CSV\n")
+        fh_out.write("## CSV\n\n")
         # Write CSV header
         csv_header = [
             "Model",
@@ -218,6 +174,7 @@ def ask(
             "Estimated Cost",
             "Attempts",
             "Code Time",
+            "Result",
         ]
         fh_out.write(",".join([s.replace(" ", "") for s in csv_header]) + "\n")
 
@@ -236,6 +193,7 @@ def ask(
                 f"{row['cost']:.3f}" if row["cost"] is not None else "-",
                 str(row["attempts"]),
                 f"{row['code_time']:.2f}",
+                "Success" if row["result"] else "Failure",
             ]
             fh_out.write(",".join(csv_row) + "\n")
 
@@ -251,9 +209,10 @@ def ask(
                 f"| {row['prompt_tokens']} "
                 f"| {row['completion_tokens']} "
                 f"| {row['total_tokens']} "
-                f"| {row['cost']:.3f} "
+                f"| ${row['cost']:.3f} "
                 f"| {row['attempts']} "
-                f"| {row['code_time']:.2f} |\n"
+                f"| {row['code_time']:.2f} "
+                f"| {'Success' if row['result'] else 'Fail'} |\n"
             )
 
 

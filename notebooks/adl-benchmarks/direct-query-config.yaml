@@ -44,12 +44,13 @@ modify_prompt: |
 
   ** Previous Code **
   ```python
-  {old_code}
+  {code}
   ```
 
   ** Error Message **
   Ignore errors that are warnings or connected with ioctl.
-  {error}
+  {errors}
+  {output}
 
   ** Final Instructions **
   Reply in the following format:
