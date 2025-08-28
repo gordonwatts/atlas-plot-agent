@@ -42,7 +42,7 @@ class DirectQueryConfig(BaseModel):
 
 
 def load_config(
-    config_path: str = "plan-query-config.yaml",
+    config_path: str = "direct-query-config.yaml",
 ) -> DirectQueryConfig:
     """
     Load configuration from a YAML file and return a DirectQueryConfig instance.
