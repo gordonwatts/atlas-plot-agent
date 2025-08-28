@@ -119,13 +119,15 @@ def ask(
 
             # Write out the png files
             if good_run and result is not None:
+                output_directory = output.parent / "img"
+                output_directory.mkdir(exist_ok=True)
                 for f_name, data in result.png_files:
                     # Sanitize model_name for filesystem
                     safe_model_name = model_name.replace("/", "_")
                     local_name = f"{question_hash}_{safe_model_name}_{f_name}"
-                    with open(local_name, "wb") as dst:
+                    with (output_directory / local_name).open("wb") as dst:
                         dst.write(data)
-                    fh_out.write(f"![{local_name}]({local_name})\n")
+                    fh_out.write(f"![{local_name}](img/{local_name})\n")
 
             # # If we are writing out the error info, we should do that here
             # if error_info and result is not None:
