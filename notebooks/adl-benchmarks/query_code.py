@@ -120,7 +120,7 @@ def llm_execute_loop(
 
             base_prompt, policies = next(prompt_iter, (base_prompt, policies))
 
-    return prompt_args_extra["code"]
+    return prompt_args_extra["code"], good_run
 
 
 def check_policy(
@@ -148,7 +148,7 @@ def code_it_up(
     ignore_llm_cache: bool = False,
     llm_usage_callback: Optional[Callable[[str, UsageInfo], None]] = None,
     docker_usage_callback: Optional[Callable[[str, DockerRunResult], None]] = None,
-) -> Tuple[Optional[DockerRunResult], str]:
+) -> Tuple[Optional[DockerRunResult], str, bool]:
 
     def prompt_and_policy() -> Generator[tuple[str, List[Policy]], Any, None]:
         yield prompt_write_code, code_policies
@@ -192,7 +192,7 @@ def code_it_up(
             "output": result.stdout,
         }
 
-    code = llm_execute_loop(
+    code, final_status = llm_execute_loop(
         fh_out,
         prompt_and_policy(),
         max_iter,
@@ -203,7 +203,7 @@ def code_it_up(
         lambda msg, pols: check_policy(fh_out, msg, pols),
     )
 
-    return final_result, code
+    return final_result, code, final_status
 
 
 def run_llm_loop_simple(
@@ -214,7 +214,7 @@ def run_llm_loop_simple(
     model: ModelInfo,
     ignore_llm_cache: bool,
     llm_usage_callback: Optional[Callable[[str, UsageInfo], None]],
-) -> str:
+) -> Tuple[str, bool]:
     def prompt_and_policy():
         yield prompt, []
 
@@ -230,7 +230,7 @@ def run_llm_loop_simple(
             llm_usage_callback(f"Run {n_iter+1}", usage_info)
         return message
 
-    message = llm_execute_loop(
+    message, final_status = llm_execute_loop(
         fh_out,
         prompt_and_policy(),
         n_iter,
@@ -241,4 +241,4 @@ def run_llm_loop_simple(
         lambda msg, pols: check_policy(fh_out, msg, pols),
     )
 
-    return message
+    return message, final_status

@@ -192,7 +192,7 @@ def ask(
                     ) -> Tuple[bool, Dict[str, str]]:
                         return True, {}
 
-                    message = llm_execute_loop(
+                    message, good_run = llm_execute_loop(
                         fh_out,
                         prompt_and_policy(),
                         n_iter,
@@ -204,7 +204,6 @@ def ask(
                     )
 
                 # Split the code into sections
-                good_run = len(message) > 0
                 if not good_run:
                     fh_out.write("\n**Failed Phase Generation**\n")
 
@@ -224,7 +223,7 @@ print("ServiceX Data Type Structure: " + str(r.type))
                 code_sections = extract_by_phase(message)
 
                 with IndentedDetailsBlock(fh_out, "ServiceX Code"):
-                    sx_code_result, sx_code = code_it_up(
+                    sx_code_result, sx_code, good_run = code_it_up(
                         fh_out,
                         all_models[model_name],
                         config.prompts["phase_code_sx"],
@@ -247,10 +246,6 @@ print("ServiceX Data Type Structure: " + str(r.type))
                         ),
                     )
 
-                good_run = (
-                    sx_code_result is not None
-                    and "**Success**" in sx_code_result.stdout
-                )
                 if not good_run:
                     fh_out.write("\n**Failed ServiceX Code Generation**\n")
 
@@ -271,7 +266,7 @@ print ("Histogram Data: " + str(r.keys()))
         """
 
                 with IndentedDetailsBlock(fh_out, "Awkward Code"):
-                    awk_code_result, awk_code = code_it_up(
+                    awk_code_result, awk_code, good_run = code_it_up(
                         fh_out,
                         all_models[model_name],
                         config.prompts["phase_code_awkward"],
@@ -295,10 +290,6 @@ print ("Histogram Data: " + str(r.keys()))
                         ),
                     )
 
-                good_run = (
-                    awk_code_result is not None
-                    and "**Success**" in awk_code_result.stdout
-                )
                 if not good_run:
                     fh_out.write("\n**Failed Awkward Code Generation**\n")
 
@@ -323,7 +314,7 @@ plot_hist(r)
         """
 
                 with IndentedDetailsBlock(fh_out, "Hist Code"):
-                    hist_result, _ = code_it_up(
+                    hist_result, _, good_run = code_it_up(
                         fh_out,
                         all_models[model_name],
                         config.prompts["phase_code_hist"],
@@ -347,7 +338,6 @@ plot_hist(r)
                         ),
                     )
 
-                good_run = hist_result is not None and len(hist_result.png_files) > 0
                 if not good_run:
                     reason = "Crash" if hist_result is None else "No PNG files found"
                     fh_out.write(f"\n**Failed Histogram Code Generation ({reason})**\n")

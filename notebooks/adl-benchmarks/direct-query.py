@@ -1,32 +1,27 @@
 import hashlib
 import logging
-import sys
-from typing import Optional, Tuple
+from pathlib import Path
+from typing import List, Tuple
 
 import typer
-import yaml
 from hint_files import load_hint_files
-from models import (
-    load_models,
-    process_model_request,
-    run_llm,
-    ensure_closing_triple_backtick,
-    extract_code_from_response,
-)
+from models import load_models, process_model_request
+from query_code import code_it_up
 from query_config import load_config
+from questions import extract_questions
+from utils import IndentedDetailsBlock
 
 from atlas_plot_agent.run_in_docker import (
     DockerRunResult,
-    check_code_policies,
+    NFilesPolicy,
+    PltSavefigPolicy,
+    print_md_table_for_phased_usage_docker,
 )
-from query_code import run_code_in_docker
-from atlas_plot_agent.usage_info import UsageInfo, sum_usage_infos
-
-if hasattr(sys.stdin, "reconfigure"):
-    sys.stdin.reconfigure(encoding="utf-8")  # type: ignore
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
-
+from atlas_plot_agent.usage_info import (
+    UsageInfo,
+    print_md_table_for_phased_usage,
+    sum_usage_infos,
+)
 
 app = typer.Typer(
     help=(
@@ -36,63 +31,13 @@ app = typer.Typer(
 )
 
 
-def run_model(
-    prompt: str, model_info, png_prefix: str, ignore_cache=False
-) -> Tuple[UsageInfo, bool, Optional[DockerRunResult], Optional[str]]:
-    """
-    Run the model, print heading and result, and return info for the table.
-    Runs the code once and returns:
-        - UsageInfo for the run
-        - True/False if the run succeeded
-        - DockerRunResult
-        - The code
-
-    TODO: Replace with code that is in `code_it_up`.
-    """
-    # Run the LLM and get back the response and usage info
-    usage_info, message = run_llm(prompt, model_info, ignore_cache=ignore_cache)
-    message = ensure_closing_triple_backtick(message)
-
-    # Run the code.
-    print("#### Code Execution\n")
-    code = extract_code_from_response(message)
-    run_result = False
-    result: Optional[DockerRunResult] = None
-    if code is not None:
-        r = check_code_policies(code)
-        if r is True:
-            result = run_code_in_docker(code, ignore_cache=ignore_cache)
-        else:
-            assert isinstance(r, DockerRunResult)
-            result = r
-
-        assert isinstance(result, DockerRunResult)
-        print(f"*Output:*\n```\n{result.stdout}\n```")
-        print(f"*Error:*\n```\n{result.stderr}\n```")
-
-        # Did we run without an error?
-        run_result = result.exit_code == 0 and len(result.png_files) > 0
-
-        # Save PNG files locally, prefixed with model name
-        if run_result:
-            print("</details>\n")
-        for f_name, data in result.png_files:
-            # Sanitize model_name for filesystem
-            safe_model_name = model_info.model_name.replace("/", "_")
-            local_name = f"{png_prefix}_{safe_model_name}_{f_name}"
-            with open(local_name, "wb") as dst:
-                dst.write(data)
-            print(f"![{local_name}]({local_name})")  # Markdown image include
-
-    else:
-        print("No code found to run.")
-
-    return usage_info, run_result, result, code
-
-
 @app.command()
 def ask(
-    question: str = typer.Argument(..., help="The question to ask the API"),
+    question: str = typer.Argument(
+        ...,
+        help="The question to ask the API, or an index into the README questions (1 based index)",
+    ),
+    output: Path = typer.Argument(..., help="Output file for markdown"),
     models: str = typer.Option(
         None,
         help="Comma-separated list of model names to run (default: pulled from config). "
@@ -130,144 +75,149 @@ def ask(
         )
         return
 
-    print(f"# {question}\n")
-    table_rows = []
-    question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
-    code = None
-    errors = None
-    for model_name in valid_model_names:
-        print(f"\n## Model {all_models[model_name].model_name}")
-        run_info = []
-        for iter in range(n_iter):
-            print(
-                f"<details><summary>Run {iter+1} Details</summary>\n\n### Run {iter+1}"
+    # If the question is an integer, use it to fetch the proper question.
+    if str.isnumeric(question):
+        questions = extract_questions()
+        if int(question) >= len(questions):
+            raise ValueError(
+                f"Invalid question index: {question}. Max is {len(questions)}."
             )
-            # Build the prompt
-            base_prompt = config.prompt if iter == 0 else config.modify_prompt
-            prompt = base_prompt.format(
-                question=question,
-                hints="\n".join(hint_contents),
-                error=errors,
-                old_code=code,
+        question = questions[int(question) - 1]
+
+    # Process everything!
+    with output.open("wt", encoding="utf-8") as fh_out:
+        fh_out.write(f"# {question}\n\n")
+        question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
+
+        table_rows = []
+
+        for model_name in valid_model_names:
+            fh_out.write(f"## Model {all_models[model_name].model_name}\n\n")
+
+            llm_usage: List[Tuple[str, UsageInfo]] = []
+            code_usage: List[Tuple[str, DockerRunResult]] = []
+
+            result, code, good_run = code_it_up(
+                fh_out,
+                all_models[model_name],
+                config.prompt,
+                config.modify_prompt,
+                [NFilesPolicy(), PltSavefigPolicy()],
+                n_iter,
+                "",
+                {"question": question, "hints": "\n".join(hint_contents)},
+                ignore_cache,
+                ignore_cache,
+                lambda s, usg: llm_usage.append((s, usg)),
+                lambda s, doc_usg: code_usage.append((s, doc_usg)),
             )
-            logging.info(f"Built prompt for iteration {iter}: {prompt}")
 
-            model_info = all_models[model_name]
-            row = run_model(
-                prompt, model_info, question_hash, ignore_cache=ignore_cache
-            )
-            run_info.append(row[0:2])
+            if not good_run:
+                fh_out.write("\n**Failed**\n\n")
 
-            # If things worked, then we don't need to go again!
-            if row[1]:
-                break
-            print("</details>")
+            fh_out.write("\n\n")
 
-            # It is also possible there was a catastrophic failure, and we shouldn't
-            # even try again.
-            if row[2] is None or row[3] is None:
-                break
+            # Write out the png files
+            if good_run and result is not None:
+                for f_name, data in result.png_files:
+                    # Sanitize model_name for filesystem
+                    safe_model_name = model_name.replace("/", "_")
+                    local_name = f"{question_hash}_{safe_model_name}_{f_name}"
+                    with open(local_name, "wb") as dst:
+                        dst.write(data)
+                    fh_out.write(f"![{local_name}]({local_name})\n")
 
-            # If we are writing out the error info, we should do that here
-            code = row[3]
-            if error_info:
-                e_info = {
-                    "code": code,
-                    "question": question,
-                    "stdout": row[2].stdout,
-                    "stderr": row[2].stderr,
+            # # If we are writing out the error info, we should do that here
+            # if error_info and result is not None:
+            #     e_info = {
+            #         "code": code,
+            #         "question": question,
+            #         "stdout": result.stdout,
+            #         "stderr": result.stderr,
+            #         "model": model_name,
+            #     }
+            #     output_file = f"z_fail_{question_hash}_{model_name}.yaml"
+            #     with open(output_file, "w") as f:
+            #         yaml.dump(e_info, f)
+
+            # Write out summary tables with details of what we "did".
+            with IndentedDetailsBlock(fh_out, "Usage"):
+                print_md_table_for_phased_usage(fh_out, llm_usage)
+                print_md_table_for_phased_usage_docker(fh_out, code_usage)
+
+            fh_out.write("\n\n")
+
+            total_llm_usage = sum_usage_infos([l for _, l in llm_usage])
+            table_rows.append(
+                {
                     "model": model_name,
-                    "iteration": iter + 1,
+                    "llm_time": total_llm_usage.elapsed,
+                    "prompt_tokens": total_llm_usage.prompt_tokens,
+                    "completion_tokens": total_llm_usage.completion_tokens,
+                    "total_tokens": total_llm_usage.total_tokens,
+                    "cost": total_llm_usage.cost,
+                    "attempts": len(llm_usage),
+                    "code_time": sum([c.elapsed for _, c in code_usage]),
+                    "result": good_run,
                 }
-                output_file = f"z_fail_{question_hash}_{model_name}_{iter+1}.yaml"
-                with open(output_file, "w") as f:
-                    yaml.dump(e_info, f)
+            )
 
-            # Build up prompt info for next time.
-            errors = "\n".join([row[2].stdout, row[2].stderr])
-
-        total_usage = sum_usage_infos([u for u, _ in run_info])
-        attempt_results = [r for _, r in run_info]
-        table_rows.append([total_usage, attempt_results])
-
-    # CSV section
-    print("\n## CSV\n")
-    # CSV header
-    # Determine max number of python run attempts
-    csv_header = [
-        "Model",
-        "Time",
-        "PromptTokens",
-        "CompletionTokens",
-        "TotalTokens",
-        "EstimatedCost",
-        "Attempts",
-        "Result",
-    ]
-    print(",".join(csv_header))
-    for row in table_rows:
-        usage_info, run_result = row
-        model = usage_info.model
-        elapsed = f"{usage_info.elapsed:.2f}"
-        prompt_tokens = (
-            usage_info.prompt_tokens if usage_info.prompt_tokens is not None else "-"
-        )
-        completion_tokens = (
-            usage_info.completion_tokens
-            if usage_info.completion_tokens is not None
-            else "-"
-        )
-        total_tokens = (
-            usage_info.total_tokens if usage_info.total_tokens is not None else "-"
-        )
-        cost = f"{usage_info.cost:.3f}" if usage_info.cost is not None else "-"
-        attempts = len(run_result)
-        result = "Success" if any(run_result) else "Fail"
-        csv_row = [
-            str(model),
-            str(elapsed),
-            str(prompt_tokens),
-            str(completion_tokens),
-            str(total_tokens),
-            str(cost),
-            str(attempts),
-            result,
+        # Write out final totals CSV and tabular data
+        fh_out.write("## CSV\n\n")
+        # Write CSV header
+        csv_header = [
+            "Model",
+            "Time",
+            "Prompt Tokens",
+            "Completion Tokens",
+            "Total Tokens",
+            "Estimated Cost",
+            "Attempts",
+            "Code Time",
+            "Result",
         ]
-        print(",".join(csv_row))
+        fh_out.write(",".join([s.replace(" ", "") for s in csv_header]) + "\n")
 
-    # Markdown summary section
-    print("\n## Summary\n")
-    # Build header
-    print(
-        "| Model(s) | Time (s) | Prompt Tokens | Completion Tokens | Total Tokens | "
-        "Estimated Cost ($) | Attempts | Result |"
-    )
-    print(
-        "|-------|----------|--------------|------------------|--------------|"
-        "--------------------|----------|--------|"
-    )
-    for row in table_rows:
-        usage_info, run_result = row
-        model = usage_info.model
-        elapsed = f"{usage_info.elapsed:.2f}"
-        prompt_tokens = (
-            usage_info.prompt_tokens if usage_info.prompt_tokens is not None else "-"
-        )
-        completion_tokens = (
-            usage_info.completion_tokens
-            if usage_info.completion_tokens is not None
-            else "-"
-        )
-        total_tokens = (
-            usage_info.total_tokens if usage_info.total_tokens is not None else "-"
-        )
-        cost = f"${usage_info.cost:.3f}" if usage_info.cost is not None else "-"
-        attempts = len(run_result)
-        result = "Success" if any(run_result) else "Fail"
-        print(
-            f"| {model} | {elapsed} | {prompt_tokens} | {completion_tokens} | "
-            f"{total_tokens} | {cost} | {attempts} | {result} |"
-        )
+        # Write each row
+        for row in table_rows:
+            csv_row = [
+                str(row["model"]),
+                f"{row['llm_time']:.2f}",
+                str(row["prompt_tokens"]) if row["prompt_tokens"] is not None else "-",
+                (
+                    str(row["completion_tokens"])
+                    if row["completion_tokens"] is not None
+                    else "-"
+                ),
+                str(row["total_tokens"]) if row["total_tokens"] is not None else "-",
+                f"{row['cost']:.3f}" if row["cost"] is not None else "-",
+                str(row["attempts"]),
+                f"{row['code_time']:.2f}",
+                "Success" if row["result"] else "Failure",
+            ]
+            fh_out.write(",".join(csv_row) + "\n")
+
+        fh_out.write("## Summary\n")
+        # Write markdown table header
+        fh_out.write("| " + " | ".join(csv_header) + " |\n")
+        fh_out.write("|" + "|".join(["-" * len(h) for h in csv_header]) + "|\n")
+        # Write each row as markdown table
+        for row in table_rows:
+            fh_out.write(
+                f"| {row['model']} "
+                f"| {row['llm_time']:.2f} "
+                f"| {row['prompt_tokens']} "
+                f"| {row['completion_tokens']} "
+                f"| {row['total_tokens']} "
+                f"| ${row['cost']:.3f} "
+                f"| {row['attempts']} "
+                f"| {row['code_time']:.2f} "
+                f"| {'Success' if row['result'] else 'Fail'} |\n"
+            )
+
+
+if __name__ == "__main__":
+    app()
 
 
 if __name__ == "__main__":

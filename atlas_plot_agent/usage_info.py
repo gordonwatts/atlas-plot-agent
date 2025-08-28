@@ -90,6 +90,7 @@ def print_md_table_for_phased_usage(
                 corresponding UsageInfo objects.
     """
     # Write header
+    fh_out.write("\n### LLM Usage\n")
     fh_out.write(
         "| Step "
         "| Time (sec) "
