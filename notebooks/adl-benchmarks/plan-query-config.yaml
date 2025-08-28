@@ -4,6 +4,7 @@ hint_files:
     - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-servicex.md"
     - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-awkward.md"
     - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/plan-hist.md"
+    - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/hist-limits-advice.md"
   "phase_code_sx":
     - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/servicex-hints.md"
     - "https://github.com/gordonwatts/hep-programming-hints/raw/refs/heads/main/xaod-hints.md"
