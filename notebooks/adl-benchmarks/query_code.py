@@ -15,6 +15,17 @@ from atlas_plot_agent.run_in_docker import (
 from atlas_plot_agent.usage_info import UsageInfo
 
 
+class CodeExtractablePolicy(Policy):
+
+    def check(self, code: str) -> Optional[str]:
+        try:
+            extract_code_from_response(code)
+            return None
+        except Exception as e:
+            return f"Extracting code from response failed: {str(e)}"
+        return True
+
+
 @diskcache_decorator(".docker_run_cache")
 def cached_run_python_in_docker(code: str, ignore_cache=False):
     "Caching version"
@@ -117,6 +128,7 @@ def code_it_up(
     model: ModelInfo,
     prompt_write_code: str,
     prompt_fix_code: str,
+    code_policies: List[Policy],
     max_iter: int,
     called_code: str,
     prompt_args: Dict[str, str],
@@ -127,8 +139,8 @@ def code_it_up(
 ) -> Tuple[Optional[DockerRunResult], str]:
 
     def prompt_and_policy() -> Generator[tuple[str, List[Policy]], Any, None]:
-        yield prompt_write_code, []
-        yield prompt_fix_code, []
+        yield prompt_write_code, code_policies
+        yield prompt_fix_code, code_policies
 
     def llm_dispatcher(prompt: str, n_iter: int) -> str:
         logging.debug(f"Running against model {model.model_name}")
