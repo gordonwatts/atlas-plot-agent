@@ -59,7 +59,6 @@ models:
     output_cost_per_million: 0.88
     endpoint: https://openrouter.ai/api/v1
   llama-3.1-8b:
-    # Can't run because context is only 8K
     model_name: meta-llama/llama-3.1-8b-instruct
     input_cost_per_million: 0.015
     output_cost_per_million: 0.02
