@@ -5,7 +5,7 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List, Tuple
+from typing import List, Optional, Tuple
 
 import yaml
 
@@ -60,7 +60,7 @@ class NFilesPolicy(Policy):
 
 
 # Global list of policies
-POLICIES: list[Any] = [NFilesPolicy(), PltSavefigPolicy()]
+POLICIES: List[Policy] = [NFilesPolicy(), PltSavefigPolicy()]
 
 
 def copy_servicex_yaml_if_exists(target_dir: str):
@@ -246,14 +246,26 @@ def remove_comments_and_strings(python_code: str) -> str:
     return "\n".join(final_lines)
 
 
-def check_code_policies(python_code: str) -> bool | DockerRunResult:
+def check_code_policies(
+    python_code: str, policies: Optional[List[Policy]] = None
+) -> bool | DockerRunResult:
     """
-    Check all policies in the global POLICIES list.
-    Returns True if all pass, otherwise returns a DockerRunResult
-    with a markdown list of violations.
+    Checks the provided Python code against a list of policy objects.
+
+    Args:
+        python_code: The Python source code to check.
+        policies: Optional list of Policy objects to use for checking. If None, uses the default
+            POLICIES.
+
+    Returns:
+        True if no policy violations are found.
+        DockerRunResult with details of violations if any are found.
     """
+    if policies is None:
+        policies = POLICIES
+
     violations = []
-    for policy in POLICIES:
+    for policy in policies:
         violation = policy.check(python_code)
         if violation:
             violations.append(violation)

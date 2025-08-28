@@ -2,7 +2,7 @@ import hashlib
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 import typer
 from hint_files import load_hint_files
@@ -15,10 +15,22 @@ from models import (
 )
 from query_config import load_plan_config
 from questions import extract_questions
-from query_code import code_it_up, DockerRunResult
+from query_code import (
+    code_it_up,
+    DockerRunResult,
+    CodeExtractablePolicy,
+    llm_execute_loop,
+    check_policy,
+    Policy,
+    run_llm_loop_simple,
+)
 from utils import IndentedDetailsBlock
 from atlas_plot_agent.usage_info import print_md_table_for_phased_usage
-from atlas_plot_agent.run_in_docker import print_md_table_for_phased_usage_docker
+from atlas_plot_agent.run_in_docker import (
+    print_md_table_for_phased_usage_docker,
+    NFilesPolicy,
+    PltSavefigPolicy,
+)
 
 
 # Enum for allowed cache types
@@ -122,55 +134,79 @@ def ask(
             # Build prompt
             fh_out.write("\n### Problem Analysis & Breakdown\n")
             with IndentedDetailsBlock(fh_out, "Solution Outline"):
-                base_prompt = config.prompts["preplan"]
-                prompt = base_prompt.format(
-                    question=question,
-                    hints="\n".join(plan_hint_contents),
-                )
-                logging.debug(f"Built prompt for planning: {prompt}")
 
-                # Run against model
-                logging.debug(
-                    f"Running against model {all_models[model_name].model_name}"
-                )
-                usage_info, message = run_llm(
-                    prompt,
-                    all_models[model_name],
+                solution_outline = run_llm_loop_simple(
                     fh_out,
-                    ignore_cache=CacheType.llm_plan in ignore_cache,
+                    config.prompts["preplan"],
+                    {"question": question, "hints": "\n".join(plan_hint_contents)},
+                    n_iter,
+                    all_models[model_name],
+                    CacheType.llm_plan in ignore_cache,
+                    lambda n, u: llm_usage.append((f"Solution Outline {n}", u)),
                 )
-                solution_outline = message
-                llm_usage.append(("Solution Outline", usage_info))
+
+            good_run = len(solution_outline) > 0
 
             # Next, do the same for the phase plan
-            with IndentedDetailsBlock(fh_out, "Solution Code Phases"):
-                base_prompt = config.prompts["phase_plan"]
-                prompt = base_prompt.format(
-                    question=question,
-                    hints="\n".join(plan_hint_contents),
-                    solution_outline=solution_outline,
-                )
-                logging.debug(f"Built prompt code phases: {prompt}")
+            if good_run:
+                with IndentedDetailsBlock(fh_out, "Solution Code Phases"):
 
-                # Run against model
-                logging.debug(
-                    f"Running against model {all_models[model_name].model_name}"
-                )
-                usage_info, message = run_llm(
-                    prompt,
-                    all_models[model_name],
-                    fh_out,
-                    ignore_cache=CacheType.llm_plan in ignore_cache,
-                )
-                llm_usage.append(("Code Phases", usage_info))
+                    class CodePhasePolicy(Policy):
+                        def check(self, m: str) -> Optional[str]:
+                            code_sections = extract_by_phase(m)
+                            good_run = all(
+                                p in code_sections.keys()
+                                for p in ["ServiceX", "Awkward", "Histogram"]
+                            )
+                            if not good_run:
+                                return (
+                                    "You must have a `ServiceX`, `Awkward`, and `Histogram` "
+                                    "section as in required format instructions."
+                                )
+                            return None
 
-            # Split the code into sections
-            code_sections = extract_by_phase(message)
-            good_run = all(
-                p in code_sections.keys() for p in ["ServiceX", "Awkward", "Histogram"]
-            )
-            if not good_run:
-                fh_out.write("\n**Failed Phase Generation**\n")
+                    def prompt_and_policy() -> (
+                        Generator[tuple[str, List[Policy]], Any, None]
+                    ):
+                        yield config.prompts["phase_plan"], [CodePhasePolicy()]
+                        yield config.prompts["phase_plan_fix"], [CodePhasePolicy()]
+
+                    def llm_dispatcher(prompt: str, n_iter: int):
+                        usage_info, message = run_llm(
+                            prompt,
+                            all_models[model_name],
+                            fh_out,
+                            ignore_cache=CacheType.llm_plan in ignore_cache,
+                        )
+                        llm_usage.append(("Code Phases", usage_info))
+                        return message
+
+                    hints = {
+                        "question": question,
+                        "hints": "\n".join(plan_hint_contents),
+                        "solution_outline": solution_outline,
+                    }
+
+                    def execute_code_null(
+                        code: str, n_iter: int
+                    ) -> Tuple[bool, Dict[str, str]]:
+                        return True, {}
+
+                    message = llm_execute_loop(
+                        fh_out,
+                        prompt_and_policy(),
+                        n_iter,
+                        hints,
+                        llm_dispatcher,
+                        lambda s: s,
+                        execute_code_null,
+                        lambda msg, pols: check_policy(fh_out, msg, pols),
+                    )
+
+                # Split the code into sections
+                good_run = len(message) > 0
+                if not good_run:
+                    fh_out.write("\n**Failed Phase Generation**\n")
 
             if good_run:
                 fh_out.write("\n### Code\n")
@@ -185,12 +221,15 @@ r = load_data_from_sx()
 print("ServiceX Data Type Structure: " + str(r.type))
             """
 
+                code_sections = extract_by_phase(message)
+
                 with IndentedDetailsBlock(fh_out, "ServiceX Code"):
                     sx_code_result, sx_code = code_it_up(
                         fh_out,
                         all_models[model_name],
                         config.prompts["phase_code_sx"],
                         config.prompts["phase_code_sx_fix"],
+                        [NFilesPolicy(), CodeExtractablePolicy()],
                         n_iter,
                         called_code,
                         prompt_args={
@@ -208,7 +247,10 @@ print("ServiceX Data Type Structure: " + str(r.type))
                         ),
                     )
 
-                good_run = "**Success**" in sx_code_result.stdout
+                good_run = (
+                    sx_code_result is not None
+                    and "**Success**" in sx_code_result.stdout
+                )
                 if not good_run:
                     fh_out.write("\n**Failed ServiceX Code Generation**\n")
 
@@ -218,6 +260,7 @@ print("ServiceX Data Type Structure: " + str(r.type))
                     config.hint_files["phase_code_awkward"],
                     CacheType.hints in ignore_cache,
                 )
+                assert sx_code_result is not None
                 data_format = extract_struct_line(sx_code_result.stdout)
 
                 called_code = f"""
@@ -233,6 +276,7 @@ print ("Histogram Data: " + str(r.keys()))
                         all_models[model_name],
                         config.prompts["phase_code_awkward"],
                         config.prompts["phase_code_awkward_fix"],
+                        [CodeExtractablePolicy()],
                         n_iter,
                         called_code,
                         prompt_args={
@@ -251,11 +295,15 @@ print ("Histogram Data: " + str(r.keys()))
                         ),
                     )
 
-                good_run = "**Success**" in awk_code_result.stdout
+                good_run = (
+                    awk_code_result is not None
+                    and "**Success**" in awk_code_result.stdout
+                )
                 if not good_run:
                     fh_out.write("\n**Failed Awkward Code Generation**\n")
 
             if good_run:
+                assert awk_code_result is not None
                 histogram_dict_names = extract_struct_line(
                     awk_code_result.stdout, "Histogram Data: "
                 )
@@ -280,6 +328,7 @@ plot_hist(r)
                         all_models[model_name],
                         config.prompts["phase_code_hist"],
                         config.prompts["phase_code_hist_fix"],
+                        [PltSavefigPolicy(), CodeExtractablePolicy()],
                         n_iter,
                         called_code,
                         prompt_args={
@@ -298,16 +347,9 @@ plot_hist(r)
                         ),
                     )
 
-                good_run = (
-                    "**Success**" not in hist_result.stdout
-                    or len(hist_result.png_files) > 0
-                )
+                good_run = hist_result is not None and len(hist_result.png_files) > 0
                 if not good_run:
-                    reason = (
-                        "Crash"
-                        if "**Success**" not in hist_result.stdout
-                        else "No PNG files found"
-                    )
+                    reason = "Crash" if hist_result is None else "No PNG files found"
                     fh_out.write(f"\n**Failed Histogram Code Generation ({reason})**\n")
 
             # Print out usage info for this in a markdown table.
@@ -324,6 +366,7 @@ plot_hist(r)
             # If there are png files, then save them!
             if good_run:
                 fh_out.write("\n\n### Plots\n\n")
+                assert hist_result is not None
                 for f_name, data in hist_result.png_files:
                     # Sanitize model_name for filesystem
                     safe_model_name = all_models[model_name].model_name.replace(
