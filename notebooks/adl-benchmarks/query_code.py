@@ -123,6 +123,18 @@ def llm_execute_loop(
     return prompt_args_extra["code"]
 
 
+def check_policy(
+    output: TextIOWrapper, message: str, policies: List[Policy]
+) -> Tuple[bool, Dict[str, str]]:
+    r = check_code_policies(message, policies)
+
+    if isinstance(r, DockerRunResult):
+        output.write(f"Policy failure: {r.stderr}\n")
+        return False, {"errors": r.stderr, "output": r.stdout}
+
+    return True, {}
+
+
 def code_it_up(
     fh_out: TextIOWrapper,
     model: ModelInfo,
@@ -156,16 +168,6 @@ def code_it_up(
 
     final_result: Optional[DockerRunResult] = None
 
-    def check_policy(
-        message: str, policies: List[Policy]
-    ) -> Tuple[bool, Dict[str, str]]:
-        r = check_code_policies(message, policies)
-
-        if isinstance(r, DockerRunResult):
-            return False, {"errors": r.stderr, "output": r.stdout}
-
-        return True, {}
-
     def extract_code(message: str) -> str:
         code = extract_code_from_response(message)
         assert code is not None, "Internal error - should always return code"
@@ -198,7 +200,7 @@ def code_it_up(
         llm_dispatcher,
         extract_code,
         execute_code_in_docker,
-        check_policy,
+        lambda msg, pols: check_policy(fh_out, msg, pols),
     )
 
     return final_result, code

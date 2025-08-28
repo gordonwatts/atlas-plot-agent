@@ -100,6 +100,44 @@ prompts:
     <instructions for phase 2>
     ...
     >>end-reply<<
+  phase_plan_fix: |
+    The user has asked us to produce a plot from ATLAS data. You've already written a plan, but
+    something went wrong.
+
+    1. You will read the hint files below which will tell you how to plan each major phase.
+    2. You will read the question from the user.
+    3. You will read the solution outline that tells us how to solve the problem.
+    3. You will write out plan in english separated by phases. Each phase is a logical "coding" block.
+
+    ** Description of each Phase (in order) **
+    {hints}
+
+    ** User Question **
+    {question}
+
+    ** Solution Outline **
+    {solution_outline}
+
+    ** Problems with previous plan **
+    ```
+    {output}
+    {errors}
+    ````
+
+    ** Your previous plan **
+    {code}
+
+    ** Final Instructions **
+    Please reply with updates in the following format:
+
+    >>start-reply<<
+    ## Phase <name-of-phase 1>
+    <instructions for phase 1>
+
+    ## Phase <name-of-phase 2>
+    <instructions for phase 2>
+    ...
+    >>end-reply<<
   phase_code_sx: |
     The user has asked us to produce a plot from ATLAS data. In this phase you will write a python
     function that fetches the required data from the dataset and returns an awkward array of that
