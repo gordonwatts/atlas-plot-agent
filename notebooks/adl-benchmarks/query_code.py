@@ -204,3 +204,41 @@ def code_it_up(
     )
 
     return final_result, code
+
+
+def run_llm_loop_simple(
+    fh_out: TextIOWrapper,
+    prompt: str,
+    prompt_args: Dict[str, str],
+    n_iter: int,
+    model: ModelInfo,
+    ignore_llm_cache: bool,
+    llm_usage_callback: Optional[Callable[[str, UsageInfo], None]],
+) -> str:
+    def prompt_and_policy():
+        yield prompt, []
+
+    def llm_dispatcher(prompt: str, n_iter: int) -> str:
+        logging.debug(f"Running against model {model.model_name}")
+        usage_info, message = run_llm(
+            prompt,
+            model,
+            fh_out,
+            ignore_cache=ignore_llm_cache,
+        )
+        if llm_usage_callback is not None:
+            llm_usage_callback(f"Run {n_iter+1}", usage_info)
+        return message
+
+    message = llm_execute_loop(
+        fh_out,
+        prompt_and_policy(),
+        n_iter,
+        prompt_args,
+        llm_dispatcher,
+        lambda s: s,
+        lambda c, i: (True, {}),
+        lambda msg, pols: check_policy(fh_out, msg, pols),
+    )
+
+    return message

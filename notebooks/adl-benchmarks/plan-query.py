@@ -22,6 +22,7 @@ from query_code import (
     llm_execute_loop,
     check_policy,
     Policy,
+    run_llm_loop_simple,
 )
 from utils import IndentedDetailsBlock
 from atlas_plot_agent.usage_info import print_md_table_for_phased_usage
@@ -133,85 +134,79 @@ def ask(
             # Build prompt
             fh_out.write("\n### Problem Analysis & Breakdown\n")
             with IndentedDetailsBlock(fh_out, "Solution Outline"):
-                base_prompt = config.prompts["preplan"]
-                prompt = base_prompt.format(
-                    question=question,
-                    hints="\n".join(plan_hint_contents),
-                )
-                logging.debug(f"Built prompt for planning: {prompt}")
 
-                # Run against model
-                logging.debug(
-                    f"Running against model {all_models[model_name].model_name}"
-                )
-                usage_info, message = run_llm(
-                    prompt,
-                    all_models[model_name],
+                solution_outline = run_llm_loop_simple(
                     fh_out,
-                    ignore_cache=CacheType.llm_plan in ignore_cache,
+                    config.prompts["preplan"],
+                    {"question": question, "hints": "\n".join(plan_hint_contents)},
+                    n_iter,
+                    all_models[model_name],
+                    CacheType.llm_plan in ignore_cache,
+                    lambda n, u: llm_usage.append((f"Solution Outline {n}", u)),
                 )
-                solution_outline = message
-                llm_usage.append(("Solution Outline", usage_info))
+
+            good_run = len(solution_outline) > 0
 
             # Next, do the same for the phase plan
-            with IndentedDetailsBlock(fh_out, "Solution Code Phases"):
+            if good_run:
+                with IndentedDetailsBlock(fh_out, "Solution Code Phases"):
 
-                class CodePhasePolicy(Policy):
-                    def check(self, m: str) -> Optional[str]:
-                        code_sections = extract_by_phase(m)
-                        good_run = all(
-                            p in code_sections.keys()
-                            for p in ["ServiceX", "Awkward", "Histogram"]
-                        )
-                        if not good_run:
-                            return (
-                                "You must have a `ServiceX`, `Awkward`, and `Histogram` "
-                                "section as in required format instructions."
+                    class CodePhasePolicy(Policy):
+                        def check(self, m: str) -> Optional[str]:
+                            code_sections = extract_by_phase(m)
+                            good_run = all(
+                                p in code_sections.keys()
+                                for p in ["ServiceX", "Awkward", "Histogram"]
                             )
-                        return None
+                            if not good_run:
+                                return (
+                                    "You must have a `ServiceX`, `Awkward`, and `Histogram` "
+                                    "section as in required format instructions."
+                                )
+                            return None
 
-                def prompt_and_policy() -> (
-                    Generator[tuple[str, List[Policy]], Any, None]
-                ):
-                    yield config.prompts["phase_plan"], [CodePhasePolicy()]
-                    yield config.prompts["phase_plan_fix"], [CodePhasePolicy()]
+                    def prompt_and_policy() -> (
+                        Generator[tuple[str, List[Policy]], Any, None]
+                    ):
+                        yield config.prompts["phase_plan"], [CodePhasePolicy()]
+                        yield config.prompts["phase_plan_fix"], [CodePhasePolicy()]
 
-                def llm_dispatcher(prompt: str, n_iter: int):
-                    usage_info, message = run_llm(
-                        prompt,
-                        all_models[model_name],
+                    def llm_dispatcher(prompt: str, n_iter: int):
+                        usage_info, message = run_llm(
+                            prompt,
+                            all_models[model_name],
+                            fh_out,
+                            ignore_cache=CacheType.llm_plan in ignore_cache,
+                        )
+                        llm_usage.append(("Code Phases", usage_info))
+                        return message
+
+                    hints = {
+                        "question": question,
+                        "hints": "\n".join(plan_hint_contents),
+                        "solution_outline": solution_outline,
+                    }
+
+                    def execute_code_null(
+                        code: str, n_iter: int
+                    ) -> Tuple[bool, Dict[str, str]]:
+                        return True, {}
+
+                    message = llm_execute_loop(
                         fh_out,
-                        ignore_cache=CacheType.llm_plan in ignore_cache,
+                        prompt_and_policy(),
+                        n_iter,
+                        hints,
+                        llm_dispatcher,
+                        lambda s: s,
+                        execute_code_null,
+                        lambda msg, pols: check_policy(fh_out, msg, pols),
                     )
-                    llm_usage.append(("Code Phases", usage_info))
-                    return message
 
-                hints = {
-                    "question": question,
-                    "hints": "\n".join(plan_hint_contents),
-                    "solution_outline": solution_outline,
-                }
-
-                def execute_code_null(
-                    code: str, n_iter: int
-                ) -> Tuple[bool, Dict[str, str]]:
-                    return True, {}
-
-                message = llm_execute_loop(
-                    fh_out,
-                    prompt_and_policy(),
-                    n_iter,
-                    hints,
-                    llm_dispatcher,
-                    lambda s: s,
-                    execute_code_null,
-                    lambda msg, pols: check_policy(fh_out, msg, pols),
-                )
-
-            # Split the code into sections
-            good_run = len(message) > 0
-            if not good_run:
-                fh_out.write("\n**Failed Phase Generation**\n")
+                # Split the code into sections
+                good_run = len(message) > 0
+                if not good_run:
+                    fh_out.write("\n**Failed Phase Generation**\n")
 
             if good_run:
                 fh_out.write("\n### Code\n")
