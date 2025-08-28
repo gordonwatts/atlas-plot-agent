@@ -357,15 +357,17 @@ plot_hist(r)
             if good_run:
                 fh_out.write("\n\n### Plots\n\n")
                 assert hist_result is not None
+                output_directory = output.parent / "img"
+                output_directory.mkdir(exist_ok=True)
                 for f_name, data in hist_result.png_files:
                     # Sanitize model_name for filesystem
                     safe_model_name = all_models[model_name].model_name.replace(
                         "/", "_"
                     )
-                    local_name = f"{question_hash}_{safe_model_name}_{f_name}"
-                    with open(local_name, "wb") as dst:
+                    local_name = f"{question_hash}_plan_{safe_model_name}_{f_name}"
+                    with (output_directory / local_name).open("wb") as dst:
                         dst.write(data)
-                    fh_out.write(f"![{local_name}]({local_name})")
+                    fh_out.write(f"![{local_name}](img/{local_name})")
 
         if model_usage:
             fh_out.write("\n\n## Model Usage\n\n")
