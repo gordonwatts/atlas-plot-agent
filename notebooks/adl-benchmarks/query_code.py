@@ -106,8 +106,9 @@ def llm_execute_loop(
                 prompt_args_extra.update(updates)
 
             # Just get the code we really want to get here
-            code = filter_code(response)
-            prompt_args_extra["code"] = code
+            if not good_run:
+                code = filter_code(response)
+                prompt_args_extra["code"] = code
 
             # Execute any final step
             if good_run:
