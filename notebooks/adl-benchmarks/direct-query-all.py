@@ -24,9 +24,7 @@ def main():
                 "3",
                 "--write-error-info",
             ],
-            capture_output=True,
             text=True,
-            encoding="utf-8",
         )
         print(f"Saved output to {output_file}")
 

@@ -6,7 +6,7 @@ from typing import List, Tuple
 import typer
 from hint_files import load_hint_files
 from models import load_models, process_model_request
-from query_code import code_it_up
+from query_code import CodeExtractablePolicy, code_it_up
 from query_config import load_config
 from questions import extract_questions
 from utils import IndentedDetailsBlock
@@ -102,7 +102,7 @@ def ask(
                 all_models[model_name],
                 config.prompt,
                 config.modify_prompt,
-                [NFilesPolicy(), PltSavefigPolicy()],
+                [NFilesPolicy(), PltSavefigPolicy(), CodeExtractablePolicy()],
                 n_iter,
                 "",
                 {"question": question, "hints": "\n".join(hint_contents)},

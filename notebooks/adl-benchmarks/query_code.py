@@ -23,7 +23,6 @@ class CodeExtractablePolicy(Policy):
             return None
         except Exception as e:
             return f"Extracting code from response failed: {str(e)}"
-        return True
 
 
 @diskcache_decorator(".docker_run_cache")

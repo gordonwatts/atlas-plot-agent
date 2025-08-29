@@ -167,9 +167,8 @@ def extract_code_from_response(message: str) -> Optional[str]:
     # Find all Python code blocks
     code_blocks = re.findall(r"```python(.*?)```", message, re.DOTALL | re.IGNORECASE)
     if code_blocks:
-        assert (
-            len(code_blocks) == 1
-        ), "Can't properly deal with more than one code block right now!"
+        if len(code_blocks) != 1:
+            raise ValueError("Expected exactly one code block")
         return code_blocks[-1].strip()
     # Fallback: any code block
     code_blocks = re.findall(r"```(.*?)```", message, re.DOTALL)
