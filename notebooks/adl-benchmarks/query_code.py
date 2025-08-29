@@ -19,7 +19,9 @@ class CodeExtractablePolicy(Policy):
 
     def check(self, code: str) -> Optional[str]:
         try:
-            extract_code_from_response(code)
+            found_code = extract_code_from_response(code)
+            if found_code is None or len(found_code) == 0:
+                return "No code found in message"
             return None
         except Exception as e:
             return f"Extracting code from response failed: {str(e)}"
