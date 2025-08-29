@@ -23,6 +23,7 @@
         "nfiles",
         "NNPDF",
         "numpy",
+        "papermill",
         "PHYSLITE",
         "qwen",
         "Rucio",
