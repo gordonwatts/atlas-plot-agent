@@ -131,7 +131,7 @@ def check_policy(
     r = check_code_policies(message, policies)
 
     if isinstance(r, DockerRunResult):
-        output.write(f"Policy failure: {r.stderr}\n")
+        output.write(f"```text\n{r.stderr}\n```\n")
         return False, {"errors": r.stderr, "output": r.stdout}
 
     return True, {}

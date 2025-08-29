@@ -382,7 +382,7 @@ plot_hist(r)
                     fh_out.write(f"![{local_name}](img/{local_name})")
 
         # Write out final totals CSV and tabular data
-        fh_out.write("## CSV\n\n")
+        fh_out.write("\n## CSV\n\n")
         # Write CSV header
         csv_header = [
             "Model",
