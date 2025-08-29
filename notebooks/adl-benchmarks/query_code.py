@@ -107,10 +107,10 @@ def llm_execute_loop(
 
             # Just get the code we really want to get here
             if not good_run:
+                code = response
+            else:
                 code = filter_code(response)
                 prompt_args_extra["code"] = code
-            else:
-                code = response
 
             # Execute any final step
             if good_run:
