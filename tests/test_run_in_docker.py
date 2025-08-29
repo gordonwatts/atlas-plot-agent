@@ -9,6 +9,7 @@ from atlas_plot_agent.run_in_docker import (
     run_python_in_docker,
     remove_comments_and_strings,
     NFilesPolicy,
+    PltSavefigPolicy,
 )
 
 
@@ -527,6 +528,54 @@ test_cases = [
 def test_spacing_in_nfiles(test_code):
     full_code = f'{test_code}\nplt.savefig("test.png")'
     result = check_code_policies(full_code)
+    assert result is True
+
+
+def test_check_code_savefig_mess():
+    code = """
+
+* The `MET [GeV]` label in the `Hist.new.Reg` call for `h_etmiss` was missing the `$` for LaTeX
+rendering. This was changed to `r"MET [GeV]"`.
+* The `savefig` error was a false positive, as `fig_etmiss.savefig("ETmiss_histogram.png")` was
+already present. This message can be ignored.
+
+```python
+import awkward as ak
+from typing import Dict
+from hist import Hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+def plot_hist(data: Dict[str, ak.Array]):
+  '''
+  Creates and plots histograms from the provided ATLAS data.
+
+  Args:
+    data (Dict[str, ak.Array]): A dictionary containing the histogram data.
+                                Expected keys: 'ETmiss_values'.
+  '''
+  plt.style.use(hep.style.ATLAS)
+
+  # 1. Histogram of ETmiss_values
+  # Define the histogram for ETmiss_values
+  h_etmiss = (
+      Hist.new.Reg(50, 0, 200, name="ETmiss", label=r"MET [GeV]")
+      .Int64()
+  )
+  # Fill the histogram
+  h_etmiss.fill(ETmiss=data["ETmiss_values"])
+
+  # Create and save the plot for ETmiss
+  fig_etmiss, ax_etmiss = plt.subplots()
+  h_etmiss.plot(histtype="fill", linewidth=1, edgecolor="gray")
+  ax_etmiss.set_xlabel(r"MET [GeV]")
+  ax_etmiss.set_ylabel("Event Count")
+  ax_etmiss.set_title("Missing Transverse Energy")
+  fig_etmiss.savefig("ETmiss_histogram.png")
+  plt.close(fig_etmiss)
+```
+"""
+    result = check_code_policies(code, [PltSavefigPolicy()])
     assert result is True
 
 
