@@ -175,6 +175,11 @@ def remove_comments_and_strings(python_code: str) -> str:
     """
     import re
 
+    # First, search for any "```python" and only keep the text between those if we find those.
+    code_blocks = re.findall(r"```python(.*?)```", python_code, re.DOTALL)
+    if code_blocks:
+        python_code = "\n".join(code_blocks)
+
     # Process line by line to handle comments and strings properly
     result_lines = []
 
