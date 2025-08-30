@@ -19,6 +19,7 @@ notebook = [
     "diskcache",
     "tqdm",
     "papermill",
+    "tenacity",
 ]
 
 dev = ["pytest", "pytest-asyncio", "pytest-coverage", "black", "flake8"]
