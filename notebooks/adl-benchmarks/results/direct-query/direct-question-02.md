@@ -2267,6 +2267,48 @@ No response content returned.
 
 No response content returned.
 </div></details>
+<details><summary>Run 4</summary>
+<div style="margin-left: 1em;">
+
+
+No response content returned.
+</div></details>
+<details><summary>Run 5</summary>
+<div style="margin-left: 1em;">
+
+
+No response content returned.
+</div></details>
+<details><summary>Run 6</summary>
+<div style="margin-left: 1em;">
+
+
+No response content returned.
+</div></details>
+<details><summary>Run 7</summary>
+<div style="margin-left: 1em;">
+
+
+No response content returned.
+</div></details>
+<details><summary>Run 8</summary>
+<div style="margin-left: 1em;">
+
+
+No response content returned.
+</div></details>
+<details><summary>Run 9</summary>
+<div style="margin-left: 1em;">
+
+
+No response content returned.
+</div></details>
+<details><summary>Run 10</summary>
+<div style="margin-left: 1em;">
+
+
+No response content returned.
+</div></details>
 
 **Failed**
 
@@ -2282,7 +2324,14 @@ No response content returned.
 | Run 1 | 12.55 | 13485 | 614 | 14099 | $0.00 |
 | Run 2 | 1.01 | 13980 | 0 | 13980 | $0.00 |
 | Run 3 | 1.01 | 13980 | 0 | 13980 | $0.00 |
-| **Total** | 14.58 | 41445 | 614 | 42059 | $0.001 |
+| Run 4 | 1.01 | 13980 | 0 | 13980 | $0.00 |
+| Run 5 | 1.01 | 13980 | 0 | 13980 | $0.00 |
+| Run 6 | 1.01 | 13980 | 0 | 13980 | $0.00 |
+| Run 7 | 1.01 | 13980 | 0 | 13980 | $0.00 |
+| Run 8 | 1.01 | 13980 | 0 | 13980 | $0.00 |
+| Run 9 | 1.01 | 13980 | 0 | 13980 | $0.00 |
+| Run 10 | 1.01 | 13980 | 0 | 13980 | $0.00 |
+| **Total** | 21.67 | 139305 | 614 | 139919 | $0.002 |
 
 ### Docker Usage
 | Phase | Elapsed Time (seconds) |
@@ -16306,6 +16355,598 @@ SyntaxError: '(' was never closed
 
 
 </div></details>
+<details><summary>Run 4</summary>
+<div style="margin-left: 1em;">
+
+
+* The error message indicates a `SyntaxError` due to a missing closing parenthesis in the line where `all_jet_pts` is assigned. The line is not closed properly.
+* The `to_awk` function is not defined in the given code snippet. It seems like it should be replaced with the actual function to convert data to an Awkward array, which is not provided. However, based on the ServiceX example, it should be `to_awk` replaced with direct usage of `deliver` result since `deliver` returns an Awkward array directly.
+* The histogram filling and plotting sections seem mostly correct but could benefit from better error handling and checks.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+from hist import Hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+plt.style.use(hep.style.ATLAS)
+
+# Query construction
+base_query = FuncADLQueryPHYSLITE()
+
+# Query: get all jet pT
+jet_pts_query = (base_query
+    .SelectMany(lambda evt: evt.Jets())
+    .Select(lambda jet: {
+        "jet_pt": jet.pt() / 1000.0,
+    })
+)
+
+# Do the fetch
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697")
+
+all_jet_pts = deliver(
+    ServiceXSpec(
+        Sample=[
+            Sample(
+                Name="jet_pt_fetch",
+                Dataset=dataset.Rucio(ds_name),
+                NFiles=1,
+                Query=jet_pts_query,
+            )
+        ]
+    ),
+)
+
+# Get histogram
+h = Hist.new.Reg(25, 0, 300, name="jet_pt", label="Jet $p_T$ [GeV]")
+
+# Fill histogram
+h.fill(jet_pt=all_jet_pts["jet_pt_fetch"].jet_pt)
+
+## Create and save a plot
+fig, ax = plt.subplots()
+h.plot(histtype="fill", linewidth=1, edgecolor="gray")
+ax.set_xlabel("$p_T$ [GeV]")
+ax.set_ylabel("Entries")
+ax.set_title("Jet $p_T$")
+fig.savefig("jet_pts.png")
+plt.close(fig)
+```
+### stdout:
+
+```text
+
+
+```
+
+### stderr:
+
+```text
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 41, in <module>
+    h.fill(jet_pt=all_jet_pts["jet_pt_fetch"].jet_pt)
+    ^^^^^^
+AttributeError: 'ConstructProxy' object has no attribute 'fill'
+
+```
+
+
+</div></details>
+<details><summary>Run 5</summary>
+<div style="margin-left: 1em;">
+
+
+* The error message indicates that there is an issue with the way the histogram is being filled. The `AttributeError: 'ConstructProxy' object has no attribute 'fill'` suggests that the `h` object is not a histogram, but rather a `ConstructProxy` object.
+* The issue arises from the way the histogram is being created. The `Hist.new.Reg` method returns a `ConstructProxy` object, which needs to be materialized into a histogram using the `Construct` method.
+* To fix the error, we need to materialize the histogram using the `Construct` method and then fill it with data.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+from hist import Hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+plt.style.use(hep.style.ATLAS)
+
+# Query construction
+base_query = FuncADLQueryPHYSLITE()
+
+# Query: get all jet pT
+jet_pts_query = (base_query
+    .SelectMany(lambda evt: evt.Jets())
+    .Select(lambda jet: {
+        "jet_pt": jet.pt() / 1000.0,
+    })
+)
+
+# Do the fetch
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697")
+
+all_jet_pts = deliver(
+    ServiceXSpec(
+        Sample=[
+            Sample(
+                Name="jet_pt_fetch",
+                Dataset=dataset.Rucio(ds_name),
+                NFiles=1,
+                Query=jet_pts_query,
+            )
+        ]
+    ),
+)
+
+# Get histogram
+h = Hist.new.Reg(25, 0, 300, name="jet_pt", label="Jet $p_T$ [GeV]").Construct()
+
+# Fill histogram
+h.fill(jet_pt=all_jet_pts["jet_pt_fetch"].jet_pt)
+
+## Create and save a plot
+fig, ax = plt.subplots()
+h.plot(histtype="fill", linewidth=1, edgecolor="gray")
+ax.set_xlabel("$p_T$ [GeV]")
+ax.set_ylabel("Entries")
+ax.set_title("Jet $p_T$")
+fig.savefig("jet_pts.png")
+plt.close(fig)
+```
+### stdout:
+
+```text
+
+
+```
+
+### stderr:
+
+```text
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 38, in <module>
+    h = Hist.new.Reg(25, 0, 300, name="jet_pt", label="Jet $p_T$ [GeV]").Construct()
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ConstructProxy' object has no attribute 'Construct'
+
+```
+
+
+</div></details>
+<details><summary>Run 6</summary>
+<div style="margin-left: 1em;">
+
+
+* The error message indicates that there is an issue with the `Construct()` method call on the `Hist.new.Reg` object. The correct method to create a histogram is simply to call the `Hist.new.Reg` object without the `Construct()` method.
+* The `jet_pt` field in the `all_jet_pts` awkward array is accessed incorrectly. It should be accessed using the `ak.Array` object directly.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+from hist import Hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+plt.style.use(hep.style.ATLAS)
+
+# Query construction
+base_query = FuncADLQueryPHYSLITE()
+
+# Query: get all jet pT
+jet_pts_query = (base_query
+    .SelectMany(lambda evt: evt.Jets())
+    .Select(lambda jet: {
+        "jet_pt": jet.pt() / 1000.0,
+    })
+)
+
+# Do the fetch
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697")
+
+all_jet_pts = deliver(
+    ServiceXSpec(
+        Sample=[
+            Sample(
+                Name="jet_pt_fetch",
+                Dataset=dataset.Rucio(ds_name),
+                NFiles=1,
+                Query=jet_pts_query,
+            )
+        ]
+    ),
+)
+
+# Get histogram
+h = Hist.new.Reg(50, 0, 300, name="jet_pt", label="Jet $p_T$ [GeV]")
+
+# Fill histogram
+h.fill(jet_pt=ak.to_list(all_jet_pts["jet_pt_fetch"].jet_pt))
+
+## Create and save a plot
+fig, ax = plt.subplots()
+h.plot(histtype="fill", linewidth=1, edgecolor="gray")
+ax.set_xlabel("$p_T$ [GeV]")
+ax.set_ylabel("Entries")
+ax.set_title("Jet $p_T$")
+fig.savefig("jet_pts.png")
+plt.close(fig)
+```
+### stdout:
+
+```text
+
+
+```
+
+### stderr:
+
+```text
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 41, in <module>
+    h.fill(jet_pt=ak.to_list(all_jet_pts["jet_pt_fetch"].jet_pt))
+    ^^^^^^
+AttributeError: 'ConstructProxy' object has no attribute 'fill'
+
+```
+
+
+</div></details>
+<details><summary>Run 7</summary>
+<div style="margin-left: 1em;">
+
+
+* The error message indicates that there is an issue with the `h.fill` method call. The `AttributeError: 'ConstructProxy' object has no attribute 'fill'` suggests that the `h` object is not properly initialized or is a proxy object that doesn't support filling.
+* The `SyntaxWarning: invalid escape sequence '\D'` is related to a potential issue in the `func_adl_servicex_xaodr25` package, but it's not directly causing the main error.
+* The provided code seems mostly correct, but there might be an issue with how the histogram `h` is being created or used.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+from hist import Hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+plt.style.use(hep.style.ATLAS)
+
+# Query construction
+base_query = FuncADLQueryPHYSLITE()
+
+# Query: get all jet pT
+jet_pts_query = (base_query
+    .SelectMany(lambda evt: evt.Jets())
+    .Select(lambda jet: {
+        "jet_pt": jet.pt() / 1000.0,
+    })
+)
+
+# Do the fetch
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697")
+
+all_jet_pts = deliver(
+    ServiceXSpec(
+        Sample=[
+            Sample(
+                Name="jet_pt_fetch",
+                Dataset=dataset.Rucio(ds_name),
+                NFiles=1,
+                Query=jet_pts_query,
+            )
+        ]
+    ),
+)
+
+# Get histogram
+h = Hist.new.Reg(50, 0, 300, name="jet_pt", label="Jet $p_T$ [GeV]")
+
+# Fill histogram
+h.fill(**{"jet_pt": ak.to_list(all_jet_pts["jet_pt_fetch"].jet_pt)})
+
+## Create and save a plot
+fig, ax = plt.subplots()
+h.plot(histtype="fill", linewidth=1, edgecolor="gray")
+ax.set_xlabel("$p_T$ [GeV]")
+ax.set_ylabel("Entries")
+ax.set_title("Jet $p_T$")
+fig.savefig("jet_pts.png")
+plt.close(fig)
+```
+### stdout:
+
+```text
+
+
+```
+
+### stderr:
+
+```text
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 41, in <module>
+    h.fill(**{"jet_pt": ak.to_list(all_jet_pts["jet_pt_fetch"].jet_pt)})
+    ^^^^^^
+AttributeError: 'ConstructProxy' object has no attribute 'fill'
+
+```
+
+
+</div></details>
+<details><summary>Run 8</summary>
+<div style="margin-left: 1em;">
+
+
+* The error message indicates that there is an issue with the way the histogram is being filled and plotted.
+* The `AttributeError: 'ConstructProxy' object has no attribute 'fill'` suggests that the `h` object is not a histogram object, but rather a `ConstructProxy` object.
+* The `SyntaxWarning: invalid escape sequence '\D'` is a warning about an invalid escape sequence in a string.
+
+To fix the error, we need to update the code to correctly create and fill the histogram.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+from hist import Hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+import numpy as np
+plt.style.use(hep.style.ATLAS)
+
+# Query construction
+base_query = FuncADLQueryPHYSLITE()
+
+# Query: get all jet pT
+jet_pts_query = (base_query
+    .SelectMany(lambda evt: evt.Jets())
+    .Select(lambda jet: {
+        "jet_pt": jet.pt() / 1000.0,
+    })
+)
+
+# Do the fetch
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697")
+
+all_jet_pts = deliver(
+    ServiceXSpec(
+        Sample=[
+            Sample(
+                Name="jet_pt_fetch",
+                Dataset=dataset.Rucio(ds_name),
+                NFiles=1,
+                Query=jet_pts_query,
+            )
+        ]
+    ),
+)
+
+# Get histogram
+h = Hist.new.Reg(50, 0, 300, name="jet_pt", label="Jet $p_T$ [GeV]")
+
+# Fill histogram
+h.fill(jet_pt=ak.to_list(all_jet_pts["jet_pt_fetch"].jet_pt))
+
+## Create and save a plot
+fig, ax = plt.subplots()
+h.plot(histtype="fill", linewidth=1, edgecolor="gray")
+ax.set_xlabel("$p_T$ [GeV]")
+ax.set_ylabel("Entries")
+ax.set_title("Jet $p_T$")
+fig.savefig("jet_pts.png")
+plt.close(fig)
+```
+### stdout:
+
+```text
+
+
+```
+
+### stderr:
+
+```text
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 42, in <module>
+    h.fill(jet_pt=ak.to_list(all_jet_pts["jet_pt_fetch"].jet_pt))
+    ^^^^^^
+AttributeError: 'ConstructProxy' object has no attribute 'fill'
+
+```
+
+
+</div></details>
+<details><summary>Run 9</summary>
+<div style="margin-left: 1em;">
+
+
+* The error message indicates that there is an issue with the `h.fill` method call. The `AttributeError: 'ConstructProxy' object has no attribute 'fill'` suggests that the `h` object is not a histogram object, but rather a `ConstructProxy` object.
+* The `Hist.new.Reg` method returns a `ConstructProxy` object, which is used to construct a histogram. To create a histogram, you need to use the `Construct` method.
+* The `ak.to_list` function is not necessary to fill the histogram. You can directly pass the awkward array to the `fill` method.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+from hist import Hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+import numpy as np
+plt.style.use(hep.style.ATLAS)
+
+# Query construction
+base_query = FuncADLQueryPHYSLITE()
+
+# Query: get all jet pT
+jet_pts_query = (base_query
+    .SelectMany(lambda evt: evt.Jets())
+    .Select(lambda jet: {
+        "jet_pt": jet.pt() / 1000.0,
+    })
+)
+
+# Do the fetch
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697")
+
+all_jet_pts = deliver(
+    ServiceXSpec(
+        Sample=[
+            Sample(
+                Name="jet_pt_fetch",
+                Dataset=dataset.Rucio(ds_name),
+                NFiles=1,
+                Query=jet_pts_query,
+            )
+        ]
+    ),
+)
+
+# Get histogram
+h = Hist.new.Reg(50, 0, 300, name="jet_pt", label="Jet $p_T$ [GeV]").Construct()
+
+# Fill histogram
+h.fill(jet_pt=all_jet_pts["jet_pt_fetch"].jet_pt)
+
+## Create and save a plot
+fig, ax = plt.subplots()
+h.plot(histtype="fill", linewidth=1, edgecolor="gray")
+ax.set_xlabel("$p_T$ [GeV]")
+ax.set_ylabel("Entries")
+ax.set_title("Jet $p_T$")
+fig.savefig("jet_pts.png")
+plt.close(fig)
+```
+### stdout:
+
+```text
+
+
+```
+
+### stderr:
+
+```text
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 39, in <module>
+    h = Hist.new.Reg(50, 0, 300, name="jet_pt", label="Jet $p_T$ [GeV]").Construct()
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ConstructProxy' object has no attribute 'Construct'
+
+```
+
+
+</div></details>
+<details><summary>Run 10</summary>
+<div style="margin-left: 1em;">
+
+
+* The error message indicates that there is an issue with the `Construct()` method. It seems that the correct method to use is `()`, not `Construct()`.
+* The `SyntaxWarning` about the invalid escape sequence is due to the backslash in the string label. It can be fixed by using a raw string or escaping the backslash.
+* The plot title and axis labels can be improved for better readability.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+from hist import Hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+import numpy as np
+plt.style.use(hep.style.ATLAS)
+
+# Query construction
+base_query = FuncADLQueryPHYSLITE()
+
+# Query: get all jet pT
+jet_pts_query = (base_query
+    .SelectMany(lambda evt: evt.Jets())
+    .Select(lambda jet: {
+        "jet_pt": jet.pt() / 1000.0,
+    })
+)
+
+# Do the fetch
+# Define the dataset
+ds_name = ("mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697")
+
+all_jet_pts = deliver(
+    ServiceXSpec(
+        Sample=[
+            Sample(
+                Name="jet_pt_fetch",
+                Dataset=dataset.Rucio(ds_name),
+                NFiles=1,
+                Query=jet_pts_query,
+            )
+        ]
+    ),
+)
+
+# Get histogram
+h = Hist.new.Reg(50, 0, 300, name="jet_pt", label="Jet $p_T$ [GeV]")
+
+# Fill histogram
+h.fill(jet_pt=all_jet_pts["jet_pt_fetch"].jet_pt)
+
+## Create and save a plot
+fig, ax = plt.subplots()
+h.plot(histtype="fill", linewidth=1, edgecolor="gray")
+ax.set_xlabel("$p_T$ [GeV]")
+ax.set_ylabel("Entries")
+ax.set_title("Jet $p_T$")
+fig.savefig("jet_pts.png")
+plt.close(fig)
+```
+### stdout:
+
+```text
+
+
+```
+
+### stderr:
+
+```text
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 42, in <module>
+    h.fill(jet_pt=all_jet_pts["jet_pt_fetch"].jet_pt)
+    ^^^^^^
+AttributeError: 'ConstructProxy' object has no attribute 'fill'
+
+```
+
+
+</div></details>
 
 **Failed**
 
@@ -16321,14 +16962,28 @@ SyntaxError: '(' was never closed
 | Run 1 | 3.40 | 12769 | 511 | 13280 | $0.00 |
 | Run 2 | 318.24 | 13758 | 16384 | 30142 | $0.01 |
 | Run 3 | 2.76 | 29120 | 590 | 29710 | $0.00 |
-| **Total** | 324.40 | 55647 | 17485 | 73132 | $0.010 |
+| Run 4 | 11.11 | 13757 | 545 | 14302 | $0.00 |
+| Run 5 | 7.51 | 13788 | 533 | 14321 | $0.00 |
+| Run 6 | 10.32 | 13811 | 495 | 14306 | $0.00 |
+| Run 7 | 8.85 | 13796 | 538 | 14334 | $0.00 |
+| Run 8 | 6.24 | 13800 | 518 | 14318 | $0.00 |
+| Run 9 | 7.18 | 13801 | 538 | 14339 | $0.00 |
+| Run 10 | 7.40 | 13817 | 496 | 14313 | $0.00 |
+| **Total** | 383.00 | 152217 | 21148 | 173365 | $0.019 |
 
 ### Docker Usage
 | Phase | Elapsed Time (seconds) |
 |-------|--------------|
 | Run 1 | 9.44 |
 | Run 3 | 1.87 |
-| **Total** | **11.30** |
+| Run 4 | 12.31 |
+| Run 5 | 9.13 |
+| Run 6 | 11.56 |
+| Run 7 | 10.26 |
+| Run 8 | 10.11 |
+| Run 9 | 9.50 |
+| Run 10 | 9.51 |
+| **Total** | **83.68** |
 
 </div></details>
 
@@ -16349,10 +17004,10 @@ coder-large,15.93,28529,1197,29726,0.015,2,18.95,Success
 claude-sonnet-4,16.71,15574,768,16342,0.058,1,9.61,Success
 gemini-2.5-flash,7.63,30773,1608,32381,0.013,2,18.90,Success
 deepseek-chat-v3-0324,29.50,13846,563,14409,0.004,1,9.87,Success
-llama-3.1-8b,14.58,41445,614,42059,0.001,3,0.90,Failure
+llama-3.1-8b,21.67,139305,614,139919,0.002,10,0.90,Failure
 llama-3.3-70b,24.26,27404,939,28343,0.001,2,17.83,Success
 llama-4-maverick-400B,15.88,27581,1302,28883,0.005,2,74.70,Success
-llama-4-scout-109B,324.40,55647,17485,73132,0.010,3,11.30,Failure
+llama-4-scout-109B,383.00,152217,21148,173365,0.019,10,83.68,Failure
 ## Summary
 | Model | Time | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost | Attempts | Code Time | Result |
 |-----|----|-------------|-----------------|------------|--------------|--------|---------|------|
@@ -16369,7 +17024,7 @@ llama-4-scout-109B,324.40,55647,17485,73132,0.010,3,11.30,Failure
 | claude-sonnet-4 | 16.71 | 15574 | 768 | 16342 | $0.058 | 1 | 9.61 | Success |
 | gemini-2.5-flash | 7.63 | 30773 | 1608 | 32381 | $0.013 | 2 | 18.90 | Success |
 | deepseek-chat-v3-0324 | 29.50 | 13846 | 563 | 14409 | $0.004 | 1 | 9.87 | Success |
-| llama-3.1-8b | 14.58 | 41445 | 614 | 42059 | $0.001 | 3 | 0.90 | Fail |
+| llama-3.1-8b | 21.67 | 139305 | 614 | 139919 | $0.002 | 10 | 0.90 | Fail |
 | llama-3.3-70b | 24.26 | 27404 | 939 | 28343 | $0.001 | 2 | 17.83 | Success |
 | llama-4-maverick-400B | 15.88 | 27581 | 1302 | 28883 | $0.005 | 2 | 74.70 | Success |
-| llama-4-scout-109B | 324.40 | 55647 | 17485 | 73132 | $0.010 | 3 | 11.30 | Fail |
+| llama-4-scout-109B | 383.00 | 152217 | 21148 | 173365 | $0.019 | 10 | 83.68 | Fail |

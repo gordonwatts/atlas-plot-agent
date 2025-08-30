@@ -2052,6 +2052,48 @@ AttributeError: 'RucioDatasetIdentifier' object has no attribute 'fetch'
 
 No response content returned.
 </div></details>
+<details><summary>Run 4</summary>
+<div style="margin-left: 1em;">
+
+
+No response content returned.
+</div></details>
+<details><summary>Run 5</summary>
+<div style="margin-left: 1em;">
+
+
+No response content returned.
+</div></details>
+<details><summary>Run 6</summary>
+<div style="margin-left: 1em;">
+
+
+No response content returned.
+</div></details>
+<details><summary>Run 7</summary>
+<div style="margin-left: 1em;">
+
+
+No response content returned.
+</div></details>
+<details><summary>Run 8</summary>
+<div style="margin-left: 1em;">
+
+
+No response content returned.
+</div></details>
+<details><summary>Run 9</summary>
+<div style="margin-left: 1em;">
+
+
+No response content returned.
+</div></details>
+<details><summary>Run 10</summary>
+<div style="margin-left: 1em;">
+
+
+No response content returned.
+</div></details>
 
 **Failed**
 
@@ -2067,7 +2109,14 @@ No response content returned.
 | Run 1 | 19.32 | 13498 | 611 | 14109 | $0.00 |
 | Run 2 | 7.40 | 14003 | 560 | 14563 | $0.00 |
 | Run 3 | 1.12 | 13955 | 0 | 13955 | $0.00 |
-| **Total** | 27.84 | 41456 | 1171 | 42627 | $0.001 |
+| Run 4 | 1.12 | 13955 | 0 | 13955 | $0.00 |
+| Run 5 | 1.12 | 13955 | 0 | 13955 | $0.00 |
+| Run 6 | 1.12 | 13955 | 0 | 13955 | $0.00 |
+| Run 7 | 1.12 | 13955 | 0 | 13955 | $0.00 |
+| Run 8 | 1.12 | 13955 | 0 | 13955 | $0.00 |
+| Run 9 | 1.12 | 13955 | 0 | 13955 | $0.00 |
+| Run 10 | 1.12 | 13955 | 0 | 13955 | $0.00 |
+| **Total** | 35.71 | 139141 | 1171 | 140312 | $0.002 |
 
 ### Docker Usage
 | Phase | Elapsed Time (seconds) |
@@ -2594,11 +2643,191 @@ AttributeError: 'Hist' object has no attribute 'Construct'
 
 
 </div></details>
+<details><summary>Run 4</summary>
+<div style="margin-left: 1em;">
 
-**Failed**
+
+* The error message indicates several issues with the provided code:
+  * The `Hist` object creation is incorrect. The `.Construct()` method does not exist for `Hist.new`. 
+  * There is a syntax warning due to an invalid escape sequence in the axis label.
+  * The plot title also contains an invalid escape sequence.
+
+* To fix these issues, we need to correct the histogram creation and remove the invalid escape sequences.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+from hist import Hist
+import numpy as np
+import matplotlib.pyplot as plt
+import mplhep as hep
+import vector
+vector.register_awkward()
+
+# Query: get events with at least 2 jets with pt > 40 GeV, then get MET
+query = (FuncADLQueryPHYSLITE()
+    .Where(lambda e: 
+        e.Jets()
+        .Where(lambda j: j.pt() / 1000.0 > 40.0)
+        .Count() >= 2)
+    .Select(lambda e: {
+        'met': e.MissingET().First().met() / 1000.0
+    })
+)
+
+# Do the fetch
+all_met = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="met_fetch",
+                    Dataset=dataset.Rucio("mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697"),
+                    NFiles=1,
+                    Query=query,
+                )
+            ]
+        ),
+    )
+)
+
+# Create histogram of MET
+h = (
+    Hist.new.Reg(50, 0, 200, name="ETmiss", label="$E_T^{miss}$ [GeV]")
+    .Int64()
+)
+
+h.fill(met=all_met["met_fetch"].met)
+
+# Plot histogram
+fig, ax = plt.subplots()
+h.plot(histtype="fill", linewidth=1, edgecolor="gray")
+ax.set_xlabel("$E_T^{miss}$ [GeV]")
+ax.set_title("$E_T^{miss}$ of Events with $\geq 2$ Jets $p_T > 40$ GeV")
+fig.savefig("ETmiss_plot.png")
+plt.close(fig)
+```
+### stdout:
+
+```text
 
 
+```
 
+### stderr:
+
+```text
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/app/script.py:51: SyntaxWarning: invalid escape sequence '\g'
+  ax.set_title("$E_T^{miss}$ of Events with $\geq 2$ Jets $p_T > 40$ GeV")
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+Traceback (most recent call last):
+  File "/app/script.py", line 45, in <module>
+    h.fill(met=all_met["met_fetch"].met)
+    ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/.venv/lib/python3.13/site-packages/hist/basehist.py", line 254, in fill
+    self._name_to_index(k) if isinstance(k, str) else k: v  # type: ignore[redundant-expr]
+    ~~~~~~~~~~~~~~~~~~~^^^
+  File "/work/.venv/lib/python3.13/site-packages/hist/basehist.py", line 186, in _name_to_index
+    raise ValueError(f"The axis name {name} could not be found")
+ValueError: The axis name met could not be found
+
+```
+
+
+</div></details>
+<details><summary>Run 5</summary>
+<div style="margin-left: 1em;">
+
+
+* The error message indicates that there is a `ValueError` exception raised when trying to fill the histogram `h` with the data from `all_met["met_fetch"].met`. The error message specifically states that "The axis name met could not be found".
+* This error occurs because the histogram `h` is created with an axis named "ETmiss", but the data being filled is from an axis named "met".
+* To fix this error, we need to ensure that the axis name in the histogram matches the axis name in the data.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
+from servicex_analysis_utils import to_awk
+from servicex import deliver, ServiceXSpec, Sample, dataset
+import awkward as ak
+from hist import Hist
+import numpy as np
+import matplotlib.pyplot as plt
+import mplhep as hep
+import vector
+vector.register_awkward()
+
+# Query: get events with at least 2 jets with pt > 40 GeV, then get MET
+query = (FuncADLQueryPHYSLITE()
+    .Where(lambda e: 
+        e.Jets()
+        .Where(lambda j: j.pt() / 1000.0 > 40.0)
+        .Count() >= 2)
+    .Select(lambda e: {
+        'met': e.MissingET().First().met() / 1000.0
+    })
+)
+
+# Do the fetch
+all_met = to_awk(
+    deliver(
+        ServiceXSpec(
+            Sample=[
+                Sample(
+                    Name="met_fetch",
+                    Dataset=dataset.Rucio("mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697"),
+                    NFiles=1,
+                    Query=query,
+                )
+            ]
+        ),
+    )
+)
+
+# Create histogram of MET
+h = (
+    Hist.new.Reg(50, 0, 200, name="met", label="$E_T^{miss}$ [GeV]")
+    .Int64()
+)
+
+h.fill(met=all_met["met_fetch"].met)
+
+# Plot histogram
+fig, ax = plt.subplots()
+h.plot(histtype="fill", linewidth=1, edgecolor="gray")
+ax.set_xlabel("$E_T^{miss}$ [GeV]")
+ax.set_title("$E_T^{miss}$ of Events with $\geq 2$ Jets $p_T > 40$ GeV")
+fig.savefig("ETmiss_plot.png")
+plt.close(fig)
+```
+### stdout:
+
+```text
+
+**Success**
+
+```
+
+### stderr:
+
+```text
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+/app/script.py:51: SyntaxWarning: invalid escape sequence '\g'
+  ax.set_title("$E_T^{miss}$ of Events with $\geq 2$ Jets $p_T > 40$ GeV")
+/work/.venv/lib/python3.13/site-packages/func_adl_servicex_xaodr25/trigger.py:127: SyntaxWarning: invalid escape sequence '\D'
+  object. Close match is done as a function of $\Delta R < `dr`$.
+
+```
+
+
+</div></details>
+
+
+![6a6e57e2_llama-4-scout-109B_ETmiss_plot.png](img/6a6e57e2_llama-4-scout-109B_ETmiss_plot.png)
 <details><summary>Usage</summary>
 <div style="margin-left: 1em;">
 
@@ -2609,7 +2838,9 @@ AttributeError: 'Hist' object has no attribute 'Construct'
 | Run 1 | 13.73 | 13345 | 627 | 13972 | $0.00 |
 | Run 2 | 18.32 | 14228 | 598 | 14826 | $0.00 |
 | Run 3 | 6.40 | 13883 | 597 | 14480 | $0.00 |
-| **Total** | 38.44 | 41456 | 1822 | 43278 | $0.004 |
+| Run 4 | 8.68 | 13884 | 549 | 14433 | $0.00 |
+| Run 5 | 6.65 | 13994 | 572 | 14566 | $0.00 |
+| **Total** | 53.77 | 69334 | 2943 | 72277 | $0.006 |
 
 ### Docker Usage
 | Phase | Elapsed Time (seconds) |
@@ -2617,7 +2848,9 @@ AttributeError: 'Hist' object has no attribute 'Construct'
 | Run 1 | 11.35 |
 | Run 2 | 9.50 |
 | Run 3 | 9.60 |
-| **Total** | **30.45** |
+| Run 4 | 9.94 |
+| Run 5 | 10.33 |
+| **Total** | **50.72** |
 
 </div></details>
 
@@ -2638,10 +2871,10 @@ coder-large,8.09,13800,627,14427,0.007,1,9.55,Success
 claude-sonnet-4,18.20,15589,881,16470,0.060,1,36.82,Success
 gemini-2.5-flash,3.87,14746,848,15594,0.007,1,9.27,Success
 deepseek-chat-v3-0324,47.65,13858,589,14447,0.004,1,9.27,Success
-llama-3.1-8b,27.84,41456,1171,42627,0.001,3,12.77,Failure
+llama-3.1-8b,35.71,139141,1171,140312,0.002,10,12.77,Failure
 llama-3.3-70b,19.19,13499,570,14069,0.001,1,9.11,Success
 llama-4-maverick-400B,26.36,13347,583,13930,0.002,1,10.08,Success
-llama-4-scout-109B,38.44,41456,1822,43278,0.004,3,30.45,Failure
+llama-4-scout-109B,53.77,69334,2943,72277,0.006,5,50.72,Success
 ## Summary
 | Model | Time | Prompt Tokens | Completion Tokens | Total Tokens | Estimated Cost | Attempts | Code Time | Result |
 |-----|----|-------------|-----------------|------------|--------------|--------|---------|------|
@@ -2658,7 +2891,7 @@ llama-4-scout-109B,38.44,41456,1822,43278,0.004,3,30.45,Failure
 | claude-sonnet-4 | 18.20 | 15589 | 881 | 16470 | $0.060 | 1 | 36.82 | Success |
 | gemini-2.5-flash | 3.87 | 14746 | 848 | 15594 | $0.007 | 1 | 9.27 | Success |
 | deepseek-chat-v3-0324 | 47.65 | 13858 | 589 | 14447 | $0.004 | 1 | 9.27 | Success |
-| llama-3.1-8b | 27.84 | 41456 | 1171 | 42627 | $0.001 | 3 | 12.77 | Fail |
+| llama-3.1-8b | 35.71 | 139141 | 1171 | 140312 | $0.002 | 10 | 12.77 | Fail |
 | llama-3.3-70b | 19.19 | 13499 | 570 | 14069 | $0.001 | 1 | 9.11 | Success |
 | llama-4-maverick-400B | 26.36 | 13347 | 583 | 13930 | $0.002 | 1 | 10.08 | Success |
-| llama-4-scout-109B | 38.44 | 41456 | 1822 | 43278 | $0.004 | 3 | 30.45 | Fail |
+| llama-4-scout-109B | 53.77 | 69334 | 2943 | 72277 | $0.006 | 5 | 50.72 | Success |
