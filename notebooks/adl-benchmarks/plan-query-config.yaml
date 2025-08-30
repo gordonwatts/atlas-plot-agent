@@ -173,12 +173,13 @@ prompts:
     ```
 
     ## Data:
-      * `<leaf-name-1>`: <what it is>
+      * `<leaf-name-1>`: <what it is and its units>
       * ...
 
     ## Notes:
       * <any further notes the user might want to know>
       * <no code blocks allowed in this section>
+
     >>end-reply<<
   phase_code_sx_fix: |
     The user has asked us to produce a plot from ATLAS data. The code below is a python function that
@@ -213,14 +214,20 @@ prompts:
     Please reply in the following format:
 
     >>start-reply<<
-
-    * <bullet list in Markdown of what caused the error and your proposed solution>
-
     ```python
     def load_data_from_sx():
-      <Original-function-body-with-fixed-code>
+      <add-code-there to load from servicex>
       return data
     ```
+
+    ## Data:
+      * `<leaf-name-1>`: <what it is and its units>
+      * ...
+
+    ## Notes:
+      * <any further notes the user might want to know>
+      * <no code blocks allowed in this section>
+
     >>end-reply<<
   phase_code_awkward: |
     The user has asked us to produce one or more plots from ATLAS data. In this phase you will write a python
