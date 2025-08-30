@@ -21,7 +21,7 @@ def main():
                 "--models",
                 "all",
                 "-n",
-                "3",
+                "10",
                 "--write-error-info",
             ],
             text=True,
