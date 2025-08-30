@@ -1,7 +1,9 @@
 import logging
 import os
 import re
+import time
 from io import TextIOWrapper
+from json import JSONDecodeError
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
@@ -10,6 +12,13 @@ from disk_cache import diskcache_decorator
 from dotenv import dotenv_values, find_dotenv
 from pydantic import BaseModel
 from query_config import load_yaml_file
+from tenacity import (
+    before_sleep_log,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_fixed,
+)
 
 from atlas_plot_agent.usage_info import UsageInfo, get_usage_info
 
@@ -68,20 +77,27 @@ def process_model_request(
 
 @diskcache_decorator(".openai_response_cache")
 def _get_openai_response(prompt: str, model_name: str, endpoint: Optional[str] = None):
-    import time
-
     if endpoint:
         client = openai.OpenAI(base_url=endpoint)
     else:
         client = openai.OpenAI()
-    start_time = time.time()
-    response = client.chat.completions.create(
-        model=model_name, messages=[{"role": "user", "content": prompt}]
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_fixed(0.5),
+        retry=retry_if_exception_type(JSONDecodeError),
+        before_sleep=before_sleep_log(logging.getLogger(__name__), logging.WARNING),
     )
-    elapsed = time.time() - start_time
-    assert response.choices[0].message.content is not None, "No content in response"
-    # Return both response and timing for caching
-    return {"response": response, "elapsed": elapsed}
+    def do_request():
+        start_time = time.time()
+        response = client.chat.completions.create(
+            model=model_name, messages=[{"role": "user", "content": prompt}]
+        )
+        elapsed = time.time() - start_time
+        assert response.choices[0].message.content is not None, "No content in response"
+        return {"response": response, "elapsed": elapsed}
+
+    return do_request()
 
 
 def run_llm(
