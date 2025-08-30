@@ -80,7 +80,8 @@ prompts:
     1. You will read the hint files below which will tell you how to plan each major phase.
     2. You will read the question from the user.
     3. You will read the solution outline that tells us how to solve the problem.
-    3. You will write out plan in english separated by phases. Each phase is a logical "coding" block.
+    4. You will write out plan in english separated by phases. Each phase is a logical "coding" block.
+    5. In each phase on the plan, when you use variables from a previous part of the plan or pass them on to the next phase, specify the units of the variables.
 
     ** Description of each Phase (in order) **
     {hints}
@@ -196,6 +197,7 @@ prompts:
     Notes:
       * Generate all code between the ``` - do not add any other code blocks to the answer
       * Assume all libraries you need are already installed.
+      * *ONLY* fix the error the code generated. Do not try to improve other parts of the code. Just copy the previous code into the output.
 
     ** Description of each Phase (in order) **
     {hints}
@@ -296,6 +298,7 @@ prompts:
       * The function returns a dict, one entry for each requested histogram.
       * Generate all code between the ``` - do not add any other code blocks to the answer
       * Assume all libraries you need are already installed.
+      * *ONLY* fix the error the code generated. Do not try to improve other parts of the code. Just copy the previous code into the output.
 
     ** Description of each Phase (in order) **
     {hints}
@@ -388,6 +391,7 @@ prompts:
 
       * The input data is a strict array of numbers. You should not need to even `ak.flatten` them - just do the fill directly.
       * Assume all libraries you need are already installed.
+      * *ONLY* fix the error the code generated. Do not try to improve other parts of the code. Just copy the previous code into the output.
 
     ** Description of each Phase (in order) **
     {hints}
