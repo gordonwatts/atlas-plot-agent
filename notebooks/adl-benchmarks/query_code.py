@@ -19,11 +19,12 @@ class CodeExtractablePolicy(Policy):
 
     def check(self, code: str) -> Optional[str]:
         try:
-            extract_code_from_response(code)
+            found_code = extract_code_from_response(code)
+            if found_code is None or len(found_code) == 0:
+                return "No code found in message"
             return None
         except Exception as e:
             return f"Extracting code from response failed: {str(e)}"
-        return True
 
 
 @diskcache_decorator(".docker_run_cache")
@@ -107,8 +108,11 @@ def llm_execute_loop(
                 prompt_args_extra.update(updates)
 
             # Just get the code we really want to get here
-            code = filter_code(response)
-            prompt_args_extra["code"] = code
+            if not good_run:
+                code = response
+            else:
+                code = filter_code(response)
+                prompt_args_extra["code"] = code
 
             # Execute any final step
             if good_run:
@@ -129,7 +133,7 @@ def check_policy(
     r = check_code_policies(message, policies)
 
     if isinstance(r, DockerRunResult):
-        output.write(f"Policy failure: {r.stderr}\n")
+        output.write(f"```text\n{r.stderr}\n```\n")
         return False, {"errors": r.stderr, "output": r.stdout}
 
     return True, {}

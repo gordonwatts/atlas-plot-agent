@@ -12,25 +12,20 @@ def main():
         print(f"Running question {i:02d}...")
 
         # Run direct-query.py with the question and --models all
-        result = subprocess.run(
+        subprocess.run(
             [
                 sys.executable,
                 str(script_path),
                 q,
+                str(output_file),
                 "--models",
                 "all",
                 "-n",
-                "3",
+                "10",
                 "--write-error-info",
             ],
-            capture_output=True,
             text=True,
-            encoding="utf-8",
         )
-        # Save output to file
-        with open(output_file, "w", encoding="utf-8", errors="replace") as f:
-            if result.stdout is not None:
-                f.write(result.stdout)
         print(f"Saved output to {output_file}")
 
 

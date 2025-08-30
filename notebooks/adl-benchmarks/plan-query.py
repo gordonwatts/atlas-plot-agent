@@ -123,7 +123,7 @@ def ask(
         question_hash = hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
 
         # Loop over each model
-        model_usage: Dict[str, Tuple[UsageInfo, float, bool]] = {}
+        table_rows: List[Dict[str, Any]] = []
         good_run = True
         for model_name in valid_model_names:
             fh_out.write(f"\n## Model {all_models[model_name].model_name}\n")
@@ -351,7 +351,19 @@ plot_hist(r)
                     fh_out, code_run_usage
                 )
 
-            model_usage[model_name] = (total_llm_usage, total_seconds, good_run)
+            table_rows.append(
+                {
+                    "model": model_name,
+                    "llm_time": total_llm_usage.elapsed,
+                    "prompt_tokens": total_llm_usage.prompt_tokens,
+                    "completion_tokens": total_llm_usage.completion_tokens,
+                    "total_tokens": total_llm_usage.total_tokens,
+                    "cost": total_llm_usage.cost,
+                    "attempts": len(llm_usage),
+                    "code_time": total_seconds,
+                    "result": good_run,
+                }
+            )
 
             # If there are png files, then save them!
             if good_run:
@@ -369,22 +381,58 @@ plot_hist(r)
                         dst.write(data)
                     fh_out.write(f"![{local_name}](img/{local_name})")
 
-        if model_usage:
-            fh_out.write("\n\n## Model Usage\n\n")
+        # Write out final totals CSV and tabular data
+        fh_out.write("\n## CSV\n\n")
+        # Write CSV header
+        csv_header = [
+            "Model",
+            "Time",
+            "Prompt Tokens",
+            "Completion Tokens",
+            "Total Tokens",
+            "Estimated Cost",
+            "Attempts",
+            "Code Time",
+            "Result",
+        ]
+        fh_out.write(",".join([s.replace(" ", "") for s in csv_header]) + "\n")
+
+        # Write each row
+        for row in table_rows:
+            csv_row = [
+                str(row["model"]),
+                f"{row['llm_time']:.2f}",
+                str(row["prompt_tokens"]) if row["prompt_tokens"] is not None else "-",
+                (
+                    str(row["completion_tokens"])
+                    if row["completion_tokens"] is not None
+                    else "-"
+                ),
+                str(row["total_tokens"]) if row["total_tokens"] is not None else "-",
+                f"{row['cost']:.3f}" if row["cost"] is not None else "-",
+                str(row["attempts"]),
+                f"{row['code_time']:.2f}",
+                "Success" if row["result"] else "Failure",
+            ]
+            fh_out.write(",".join(csv_row) + "\n")
+
+        fh_out.write("## Summary\n")
+        # Write markdown table header
+        fh_out.write("| " + " | ".join(csv_header) + " |\n")
+        fh_out.write("|" + "|".join(["-" * len(h) for h in csv_header]) + "|\n")
+        # Write each row as markdown table
+        for row in table_rows:
             fh_out.write(
-                "| Model | Success? | LLM Time (secs) | Docker Time (secs) "
-                "| Total Time (secs) | LLM Cost (USD) |\n"
+                f"| {row['model']} "
+                f"| {row['llm_time']:.2f} "
+                f"| {row['prompt_tokens']} "
+                f"| {row['completion_tokens']} "
+                f"| {row['total_tokens']} "
+                f"| ${row['cost']:.3f} "
+                f"| {row['attempts']} "
+                f"| {row['code_time']:.2f} "
+                f"| {'Success' if row['result'] else 'Fail'} |\n"
             )
-            fh_out.write("|---" * 6 + "|\n")
-            for model_name, (u_llm, u_docker, u_success) in model_usage.items():
-                fh_out.write(
-                    f"| {model_name} "
-                    f"| {"Success" if u_success else "Fail"} "
-                    f"| {u_llm.elapsed:.2f} "
-                    f"| {u_docker:.2f} "
-                    f"| {u_llm.elapsed + u_docker:.2f} "
-                    f"| ${u_llm.cost:.3f} |\n"
-                )
 
 
 if __name__ == "__main__":

@@ -30,10 +30,7 @@ class PltSavefigPolicy(Policy):
 
     def check(self, python_code: str) -> str | None:
         code_no_comments_no_strings = remove_comments_and_strings(python_code)
-        if (
-            "plt.savefig" not in code_no_comments_no_strings
-            and "fig.savefig" not in code_no_comments_no_strings
-        ):
+        if ".savefig" not in code_no_comments_no_strings:
             return (
                 "No savefig call found in source code - "
                 "save your plot to a file using plt.savefig() or fig.savefig()."
@@ -174,6 +171,11 @@ def remove_comments_and_strings(python_code: str) -> str:
         The code with comments and strings removed
     """
     import re
+
+    # First, search for any "```python" and only keep the text between those if we find those.
+    code_blocks = re.findall(r"```python(.*?)```", python_code, re.DOTALL)
+    if code_blocks:
+        python_code = "\n".join(code_blocks)
 
     # Process line by line to handle comments and strings properly
     result_lines = []
