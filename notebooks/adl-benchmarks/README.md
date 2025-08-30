@@ -52,6 +52,7 @@ You can re-generate reports with the following commands:
 ```bash
 cd notebooks/adl-benchmarks
 papermill query-analysis.ipynb results/direct-query/analysis.ipynb -p results_dir direct-query
+papermill query-analysis.ipynb results/direct-query/analysis.ipynb -p results_dir plan-query
 ```
 
 **Models**: It is hard to tell where they work and don't - there is just too much!
