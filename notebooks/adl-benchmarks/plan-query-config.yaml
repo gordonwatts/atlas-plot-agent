@@ -155,7 +155,8 @@ prompts:
     Notes:
       
       * When creating the awkward array always make sure each column has a label - even if you only have a single column.
-      * Generate all code between the ``` - do not add any other code blocks to the answer
+      * Generate all code between the ``` - do not add any other code blocks to the answer.
+      * Carefully copy the name of the dataset from the `Solution Outline` into the code - if it isn't done exactly, then SX will fail in a very odd way.
 
     ** Description of each Phase (in order) **
     {hints}
