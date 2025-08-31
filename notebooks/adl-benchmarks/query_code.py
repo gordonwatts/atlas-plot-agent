@@ -124,6 +124,7 @@ def llm_execute_loop(
 
             base_prompt, policies = next(prompt_iter, (base_prompt, policies))
 
+    fh_out.flush()
     return prompt_args_extra["code"], good_run
 
 

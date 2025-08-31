@@ -24,20 +24,21 @@ prompts:
       * For each plot/histogram list what needs to be plotted and the plot type (e.g. histogram, scatter plot)
       * Scatter plots usually will say "x vs y" or "compare x and y". If `and` is used that likely means two plots.
       * It is ok to be asked for more than one plot.
-    2. List the Steps that must be applied to the data to create the data for the histogram
+    2. List the Steps that must be applied to the data to create the data for the histogram.
       * Each step must be either a `filter` or a `build` step.
-      * `filter` - selects some data, windows it, or otherwise reduces the data.
-      * `build` - creates a new object (e.g. adds two 3-vectors together, or 4-vectors to create a composite object, or calculates a value)
-      * Repeat in any order as many times as needed to build the quantities required.
+        * `filter` - selects some data, windows it, or otherwise reduces the data.
+        * `build` - creates a new object (e.g. adds two 3-vectors together, or 4-vectors to create a composite object, or calculates a value)
+      * Repeat in any order as many times as needed to build the quantities required for the eventual histogram.
       * Keep each line as simple as possible to make is really easy to understand each step needed.
       * Each line no matter what type should track what data it needs to perform that step.
       * The last line(s) should end with 'build'/'filter' the quantity that to be histogrammed.
       * No need to specify formulas for calculating quantities unless they were given in the question - will fill determine them later in the process.
+      * Assume base level quantities are available - for example electron pt, or missing et magnitude - these will be in the dataset. A dataset expert will refine eactly what is needed.
     3. List a collection of all the data that must be read from the ATLAS data file in order to do both filtering and plotting.
       * First should be the full dataset name the user has given us (or "unknown")
       * Next for each type of physics object (e.g. jets, electrons, etc.)
         * for each item (e.g. pt) and why it is needed (for filtering, for plotting, for both, etc.)
-      * Do not list anything that is optional.
+      * Do not list anything that is optional - only items you are sure we need (e.g. no "if needed").
       * Do not over specify any quantities that aren't specified in the question (e.g. what type of b-tagging, what type of jet, etc.)
       * All data is automatically grouped per event - no need to keep event number (or similar) unless explicitly requested in the question.
 
@@ -79,7 +80,8 @@ prompts:
     1. You will read the hint files below which will tell you how to plan each major phase.
     2. You will read the question from the user.
     3. You will read the solution outline that tells us how to solve the problem.
-    3. You will write out plan in english separated by phases. Each phase is a logical "coding" block.
+    4. You will write out plan in english separated by phases. Each phase is a logical "coding" block.
+    5. In each phase on the plan, when you use variables from a previous part of the plan or pass them on to the next phase, specify the units of the variables.
 
     ** Description of each Phase (in order) **
     {hints}
@@ -153,7 +155,8 @@ prompts:
     Notes:
       
       * When creating the awkward array always make sure each column has a label - even if you only have a single column.
-      * Generate all code between the ``` - do not add any other code blocks to the answer
+      * Generate all code between the ``` - do not add any other code blocks to the answer.
+      * Carefully copy the name of the dataset from the `Solution Outline` into the code - if it isn't done exactly, then SX will fail in a very odd way.
 
     ** Description of each Phase (in order) **
     {hints}
@@ -173,12 +176,13 @@ prompts:
     ```
 
     ## Data:
-      * `<leaf-name-1>`: <what it is>
+      * `<leaf-name-1>`: <what it is and its units>
       * ...
 
     ## Notes:
       * <any further notes the user might want to know>
       * <no code blocks allowed in this section>
+
     >>end-reply<<
   phase_code_sx_fix: |
     The user has asked us to produce a plot from ATLAS data. The code below is a python function that
@@ -194,6 +198,7 @@ prompts:
     Notes:
       * Generate all code between the ``` - do not add any other code blocks to the answer
       * Assume all libraries you need are already installed.
+      * *ONLY* fix the error the code generated. Do not try to improve other parts of the code. Just copy the previous code into the output.
 
     ** Description of each Phase (in order) **
     {hints}
@@ -213,14 +218,20 @@ prompts:
     Please reply in the following format:
 
     >>start-reply<<
-
-    * <bullet list in Markdown of what caused the error and your proposed solution>
-
     ```python
     def load_data_from_sx():
-      <Original-function-body-with-fixed-code>
+      <add-code-there to load from servicex>
       return data
     ```
+
+    ## Data:
+      * `<leaf-name-1>`: <what it is and its units>
+      * ...
+
+    ## Notes:
+      * <any further notes the user might want to know>
+      * <no code blocks allowed in this section>
+
     >>end-reply<<
   phase_code_awkward: |
     The user has asked us to produce one or more plots from ATLAS data. In this phase you will write a python
@@ -288,6 +299,7 @@ prompts:
       * The function returns a dict, one entry for each requested histogram.
       * Generate all code between the ``` - do not add any other code blocks to the answer
       * Assume all libraries you need are already installed.
+      * *ONLY* fix the error the code generated. Do not try to improve other parts of the code. Just copy the previous code into the output.
 
     ** Description of each Phase (in order) **
     {hints}
@@ -380,6 +392,7 @@ prompts:
 
       * The input data is a strict array of numbers. You should not need to even `ak.flatten` them - just do the fill directly.
       * Assume all libraries you need are already installed.
+      * *ONLY* fix the error the code generated. Do not try to improve other parts of the code. Just copy the previous code into the output.
 
     ** Description of each Phase (in order) **
     {hints}
