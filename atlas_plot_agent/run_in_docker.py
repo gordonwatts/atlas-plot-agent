@@ -92,7 +92,9 @@ class DockerRunResult:
     exit_code: int
 
 
-def run_python_in_docker(python_code: str) -> DockerRunResult:
+def run_python_in_docker(
+    python_code: str, docker_image: str = "atlasplotagent:latest"
+) -> DockerRunResult:
     """
     Runs the given python_code in a Docker container, captures stdout/stderr, elapsed time,
     and PNG outputs.
@@ -108,7 +110,6 @@ def run_python_in_docker(python_code: str) -> DockerRunResult:
         copy_servicex_yaml_if_exists(temp_dir)
 
         # Run the docker container
-        docker_image = "atlasplotagent:latest"
         container_dir = "/app"
         # Mount a docker volume at /cache
         cache_volume = "atlasplotagent_servicex_cache"

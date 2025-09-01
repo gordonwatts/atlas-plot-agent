@@ -106,6 +106,7 @@ def ask(
                 n_iter,
                 "",
                 {"question": question, "hints": "\n".join(hint_contents)},
+                config.docker_image,
                 ignore_cache,
                 ignore_cache,
                 lambda s, usg: llm_usage.append((s, usg)),

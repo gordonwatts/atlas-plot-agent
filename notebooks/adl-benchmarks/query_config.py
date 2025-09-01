@@ -39,6 +39,7 @@ class DirectQueryConfig(BaseModel):
     prompt: str
     modify_prompt: str
     model_name: str = "gpt-4-1106-preview"
+    docker_image: str = ""
 
 
 def load_config(
