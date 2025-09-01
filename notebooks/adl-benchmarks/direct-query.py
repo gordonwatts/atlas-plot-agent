@@ -54,6 +54,11 @@ def ask(
     n_iter: int = typer.Option(
         1, "--n-iter", "-n", min=1, help="Number of iterations to run (must be >= 1)."
     ),
+    docker_image: str = typer.Option(
+        None,
+        "--docker-image",
+        help="Override the docker image name (default: use value from config)",
+    ),
 ):
     """
     Command to ask a question using the default configuration.
@@ -106,6 +111,7 @@ def ask(
                 n_iter,
                 "",
                 {"question": question, "hints": "\n".join(hint_contents)},
+                docker_image if docker_image is not None else config.docker_image,
                 ignore_cache,
                 ignore_cache,
                 lambda s, usg: llm_usage.append((s, usg)),

@@ -28,13 +28,16 @@ class CodeExtractablePolicy(Policy):
 
 
 @diskcache_decorator(".docker_run_cache")
-def cached_run_python_in_docker(code: str, ignore_cache=False):
+def cached_run_python_in_docker(
+    code: str, docker_image: str = "atlasplotagent:latest", ignore_cache=False
+):
     "Caching version"
-    return run_python_in_docker(code)
+    return run_python_in_docker(code, docker_image=docker_image)
 
 
-def run_code_in_docker(code: str, ignore_cache: bool = False) -> DockerRunResult:
-
+def run_code_in_docker(
+    code: str, docker_image: str = "atlasplotagent:latest", ignore_cache: bool = False
+) -> DockerRunResult:
     # Run code in Docker and capture output and files, using cache
     # If we get timeouts, keep trying...
     # TODO: We should be using a retry library, not this!
@@ -47,7 +50,9 @@ def run_code_in_docker(code: str, ignore_cache: bool = False) -> DockerRunResult
         # For first attempt, use original ignore_cache; for retries,
         # force ignore_cache=True
         use_ignore_cache = ignore_cache if attempt == 0 else True
-        result = cached_run_python_in_docker(code, ignore_cache=use_ignore_cache)
+        result = cached_run_python_in_docker(
+            code, docker_image=docker_image, ignore_cache=use_ignore_cache
+        )
         # If no ConnectTimeout, break
         has_timeout = "httpcore.ConnectTimeout" in str(result.stderr)
         if not has_timeout:
@@ -149,6 +154,7 @@ def code_it_up(
     max_iter: int,
     called_code: str,
     prompt_args: Dict[str, str],
+    docker_image: str = "atlasplotagent:latest",
     ignore_code_cache: bool = False,
     ignore_llm_cache: bool = False,
     llm_usage_callback: Optional[Callable[[str, UsageInfo], None]] = None,
@@ -182,7 +188,9 @@ def code_it_up(
         # Extract the code from the data.
         code_to_run = code + "\n" + called_code + '\nprint("**Success**")\n'
 
-        result = run_code_in_docker(code_to_run, ignore_cache=ignore_code_cache)
+        result = run_code_in_docker(
+            code_to_run, docker_image=docker_image, ignore_cache=ignore_code_cache
+        )
         if docker_usage_callback is not None:
             docker_usage_callback(f"Run {n_iter+1}", result)
 

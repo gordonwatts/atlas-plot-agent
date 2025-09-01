@@ -65,10 +65,16 @@ def copy_servicex_yaml_if_exists(target_dir: str):
     Copies servicex.yaml from the user's home directory to target_dir if it exists.
     """
 
+    cwd_servicex = os.path.join(os.getcwd(), "servicex.yaml")
     home_servicex = os.path.expanduser("~/servicex.yaml")
     target_servicex = os.path.join(target_dir, "servicex.yaml")
-    if os.path.exists(home_servicex):
-        with open(home_servicex, "r", encoding="utf-8") as f:
+    source_servicex = None
+    if os.path.exists(cwd_servicex):
+        source_servicex = cwd_servicex
+    elif os.path.exists(home_servicex):
+        source_servicex = home_servicex
+    if source_servicex:
+        with open(source_servicex, "r", encoding="utf-8") as f:
             loaded = yaml.safe_load(f)
         # If loaded is not a dict, make it a dict
         if not isinstance(loaded, dict):
@@ -92,7 +98,9 @@ class DockerRunResult:
     exit_code: int
 
 
-def run_python_in_docker(python_code: str) -> DockerRunResult:
+def run_python_in_docker(
+    python_code: str, docker_image: str = "atlasplotagent:latest"
+) -> DockerRunResult:
     """
     Runs the given python_code in a Docker container, captures stdout/stderr, elapsed time,
     and PNG outputs.
@@ -108,7 +116,6 @@ def run_python_in_docker(python_code: str) -> DockerRunResult:
         copy_servicex_yaml_if_exists(temp_dir)
 
         # Run the docker container
-        docker_image = "atlasplotagent:latest"
         container_dir = "/app"
         # Mount a docker volume at /cache
         cache_volume = "atlasplotagent_servicex_cache"

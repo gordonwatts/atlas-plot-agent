@@ -1,0 +1,63 @@
+name: Re-run All Plots
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-and-publish:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - question: "Plot the ETmiss of all events in the rucio dataset mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2.deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697."
+            nick-name: "pt-plot"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install -e .[notebook]
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Create servicex.yaml
+        run: |
+          echo "api_endpoints:" > servicex.yaml
+          echo "  - name: servicex" >> servicex.yaml
+          echo "    endpoint: https://servicex.af.uchicago.edu/" >> servicex.yaml
+          echo "    token: ${{ secrets.SERVICEX_TOKEN }}" >> servicex.yaml
+          echo "default_endpoint: servicex" >> servicex.yaml
+
+      - name: Run direct-query.py
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          python notebooks/adl-benchmarks/direct-query.py "${{ matrix.question }}" ${{ matrix.nick-name }}.md --models gpt-5 -n 3 --docker-image gordonwatts/atlasplotagent:1.0.0
+
+      - name: Clone output repo
+        run: |
+          git clone https://github.com/gordonwatts/MAPbP-Big-Or-Smart.git output-repo
+
+      - name: Copy output files
+        run: |
+          cp ${{ matrix.nick-name }}.md output-repo/
+          if [ -d img ]; then cp -r img output-repo/; fi
+
+      - name: Commit and push to output repo
+        run: |
+          cd output-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ${{ matrix.nick-name }}.md
+          if [ -d img ]; then git add img; fi
+          git commit -m "Update ${{ matrix.nick-name }} and images from CI"
+          git push https://x-access-token:${{ secrets.MAPBP_PUSH_TOKEN }}@github.com/gordonwatts/MAPbP-Big-Or-Smart.git HEAD:main
