@@ -44,8 +44,8 @@ In all cases, the LLM is guided to do the following:
 
 You can find results for two types of steered queries:
 
-1. [Direct Query](direct-query.py): The query contains everything and the LLM is asked to produce the code start-to-finish in one go ([config-info](direct-query-config.yaml)). Results can be found in [this notebook](results/direct-query/analysis.ipynb), and [this directory](results/direct-query/) contains a markdown file for each question with entries for every model, including LLM response, code, and results of running the code. If the code fails to run, the LLM has a chance to update it.
-1. [Plan Query](plan-query.py): The plotting is broken down into steps: planning, implementing the data fetch, data manipulation, and plotting ([config-info](plan-query-config.yaml)). Results can be found in [this notebook](results/plan-query/analysis.ipynb), and [this directory](results/plan-query/) contains a markdown file for each question with entries for every model, including LLM response, code, and results of running the code. If the code fails to run, the LLM has a chance to update it.
+1. [Direct Query](direct-query.py): The query contains everything and the LLM is asked to produce the code start-to-finish in one go ([config-info](direct-query-config.yaml)). **Results** can be found in [this notebook](results/direct-query/analysis.ipynb), and [this directory](results/direct-query/) contains a markdown file for each question with entries for every model, including LLM response, code, and results of running the code. If the code fails to run, the LLM has a chance to update it.
+1. [Plan Query](plan-query.py): The plotting is broken down into steps: planning, implementing the data fetch, data manipulation, and plotting ([config-info](plan-query-config.yaml)). **Results** can be found in [this notebook](results/plan-query/analysis.ipynb), and [this directory](results/plan-query/) contains a markdown file for each question with entries for every model, including LLM response, code, and results of running the code. If the code fails to run, the LLM has a chance to update it.
 
 Notes:
 
