@@ -1,14 +1,6 @@
 # ADL Benchmarks
 
-The files in this folder contain examples of using various AI systems to generate code for the [ADL benchmarks](https://github.com/iris-hep/adl-benchmarks-index).
-
-## Process
-
-1. The AI is asked a slightly modified question (see below).
-1. The result is pasted into the notebook
-1. The example is updated until it runs, with a log kept of what changes had to be made.
-
-The top of each file discusses configuration of each of the tools.
+The files in this folder contain examples of using various AI systems to generate code for the [ADL benchmarks](https://github.com/iris-hep/adl-benchmarks-index) along with 6 extra questions proposed by @rrutaa and David Lange.
 
 ## Questions
 
@@ -33,27 +25,42 @@ Note: these DID's had files in them when the tests were run! Sample deletion com
 
 Note: The above questions are parsed by code. Keep the format the same (each question is on one line, starts with a `1.`.)
 
-## Comments
+## Process
 
-### Codespaces
+Two experiments are cataloged here: a steered query and a cut-and-paste query.
 
-**Models:** Used a variety of models (`o4-mini`, `gpt-4.1`, `Claude Sonnet 4`). The best was probably `Claude Sonnet 4`. Questions 1-5 were simple enough that `4.1` could handle the task. After that `o4-mini` or `Claude`. That said, no one could do 6-8 in a single shot. All required modifications in order to make them run. Errors ranged from simple `ak.stack` rather than `np.stack`, so more subtle masking errors. Errors were often ones I'd have made as a person writing this code. Another interesting fact - if a model generated an answer I didn't like, I could re-run it with the same prompt and it would generate a different answer.
+1. Steered Query - a python script interacts with a LLM API and a local docker container to try to produce the plots.
+1. Cut-And-Paste Query - use a web-based LLM, paste the questions (and hint files), take answer and run it in a local notebook, making modifications until it works.
 
-**Hints:** Often had to update hint files after catching the model's mistakes. The updates were in two forms: fixes where the hint files were incorrect, and trying to emphasize taking one approach or the other. Most models were good at following the hints, despite how big the hint files have gotten. That said, there are some things (like `ak.stack`) that seem to be totally baked into the model's training and nothing I can do will dissuade them. Might be one place where fine tuning our own models would be an advantage.
+The _Steered Query_ is much more developed. The `Cut-And-Paste` query was a by-hand experiment.
 
-**General Comments & Future Directions:**
+In all cases, the LLM is guided to do the following:
 
-- Writing some of this code to manipulate arrays is subtle! And some of it is not obvious why you need to do it, even after you've written it (at least to me).
-- Complex queries will need a planning step.
-- The approach taken for ServiceX will affect things downstream. So probably best to split the task in two, tackle the ServiceX step, and then go back and revisit the downstream method.
-- Some of the awkward code will need to be run in order to sort out what went wrong.
-- Running on many files will require a different strategy than running on one file. But it might be worth getting the 1 file run working and then translating to a many file run. Much like how we as humans do it.
+1. Use [`ServiceX`](https://servicex-frontend.readthedocs.io/en/stable/) to fetch the data from the dataset on the GRID
+1. Use [`Awkward`](https://awkward-array.org/doc/main/index.html) and [`vector`](https://vector.readthedocs.io/en/latest/index.html) to process the data (filter, combine, 4-vector math, etc.)
+1. Use [`hist`](https://hist.readthedocs.io/en/latest/) to build the histogram and then plot it.
 
-### Direct Query
+### Steered Query
+
+You can find results for two types of steered queries:
+
+1. [Direct Query](direct-query.py): The query contains everything and the LLM is asked to produce the code start-to-finish in one go ([config-info](direct-query-config.yaml)). **Results** can be found in [this notebook](results/direct-query/analysis.ipynb), and [this directory](results/direct-query/) contains a markdown file for each question with entries for every model, including LLM response, code, and results of running the code. If the code fails to run, the LLM has a chance to update it.
+1. [Plan Query](plan-query.py): The plotting is broken down into steps: planning, implementing the data fetch, data manipulation, and plotting ([config-info](plan-query-config.yaml)). **Results** can be found in [this notebook](results/plan-query/analysis.ipynb), and [this directory](results/plan-query/) contains a markdown file for each question with entries for every model, including LLM response, code, and results of running the code. If the code fails to run, the LLM has a chance to update it.
+
+Notes:
+
+* [Hint files are available here](https://github.com/gordonwatts/hep-programming-hints) (and are used by everything, including the cut-and-paste).
 
 #### Running the analysis
 
-You can re-generate reports with the following commands:
+You can use [`direct-query.py`](direct-query.py) and [`plan-query.py`](plan-query.py) to run a model and question (use --help to see options). Use [`query-all.py`](query-all.py) to run against all questions listed in this `README.md` file. You'll need `docker` installed in your directory, and you'll need to do a `docker build` on the `Dockerfile`. A docker volume is used to cache downloads from servicex to improve re-running speed.
+
+Start to finish running everything and updating the reports:
+
+1. Run the `query-all` to re-run the direct or plan queries
+1. Copy the `.md` files and the `img` directory into the `notebooks/adl-benchmark/results/xxx` directory
+1. Look through each output `.md` file and look for hallucinations. Record these in the `query-analysis.ipynb` file you find in this directory.
+1. Run the following `papermill` commands to generate the _reports_ in each results directory:
 
 ```bash
 cd notebooks/adl-benchmarks
@@ -61,33 +68,28 @@ papermill query-analysis.ipynb results/direct-query/analysis.ipynb -p results_di
 papermill query-analysis.ipynb results/plan-query/analysis.ipynb -p results_dir plan-query
 ```
 
-**Models**: It is hard to tell where they work and don't - there is just too much!
+How did I come up with what models to test?
 
-The selection of models to run came from various sources:
-
-- Ones that I have used before
-- Ones recommended by others
-- The [openrouter](https://openrouter.ai/rankings?category=programming#categories) leader board for code.
+* Ones that I have used before
+* Ones recommended by others
+* The [openrouter](https://openrouter.ai/rankings?category=programming#categories) leader board for code.
 
 The complete list can be pulled from the [models.yaml](models.yaml) file.
 
-- GPT5
-  - Sometimes creates a `def main` and calls it. Seems like it would work fine.
-  - GPT5 also parses the text in such a way it convinces itself that the user wants the whole dataset. This is an interesting problem - the user probably did. However, we don't want to emit code like that when testing! So we'll have to do something about that.
-    - Makes me wonder if we need a *compliance* phase when this actually runs - to make sure certain policies are followed (like running tests first).
-    - gpt5 mini includes the `nfiles=1`, and says "remove it once testing is done.
-  - Seems to understand using `np.stack` vs `ak.stack`!
-- gpt5-mini adds a bunch of extra stats (like numbers of events, etc.). Things it "thinks" might be helpful.
-- gpt5-nano seems to be concise and not add anything extra for q1!
-- gpt5-nano also converts `to_numpy` often, rather than staying in awkward. Sometimes it converts, and then converts back.
-- Where do the models obviously tap out?
-  - gpt 4o: Question 5 it gets in SX `e.Muons()` rather than each column.
-  - o4-mini: forgets the flatten in question 6
-  - gpt5-nano: inserts the b-tag tool stuff, but as a comment, not as actual code.
-  - I'm guessing the others have problems - but we need to run them to see! I just couldn't identify issues I'd seen previously.
+### Cut-and-Paste Query
 
-**Open Source Models**: Added a few OSS models run on `together.ai`. The results are about what you expect, though they seem cheaper than the `openai`. But we need an independent way of evaluating this.
+This is older and how I tested out this work by hand.
 
-**Running the Python**:
+#### Codespaces
 
-- Note that downloads are cached in a `docker` volume to make constant-re-running faster.
+**Models:** Used a variety of models (`o4-mini`, `gpt-4.1`, `Claude Sonnet 4`). The best was probably `Claude Sonnet 4`. Questions 1-5 were simple enough that `4.1` could handle the task. After that `o4-mini` or `Claude`. That said, no one could do 6-8 in a single shot. All required modifications in order to make them run. Errors ranged from simple `ak.stack` rather than `np.stack`, so more subtle masking errors. Errors were often ones I'd have made as a person writing this code. Another interesting fact - if a model generated an answer I didn't like, I could re-run it with the same prompt and it would generate a different answer.
+
+**Hints:** Often had to update hint files after catching the model's mistakes. The updates were in two forms: fixes where the hint files were incorrect, and trying to emphasize taking one approach or the other. Most models were good at following the hints, despite how big the hint files have gotten. That said, there are some things (like `ak.stack`) that seem to be totally baked into the model's training and nothing I can do will dissuade them. Might be one place where fine tuning our own models would be an advantage.
+
+**General Comments & Future Directions:**
+
+* Writing some of this code to manipulate arrays is subtle! And some of it is not obvious why you need to do it, even after you've written it (at least to me).
+* Complex queries will need a planning step.
+* The approach taken for ServiceX will affect things downstream. So probably best to split the task in two, tackle the ServiceX step, and then go back and revisit the downstream method.
+* Some of the awkward code will need to be run in order to sort out what went wrong.
+* Running on many files will require a different strategy than running on one file. But it might be worth getting the 1 file run working and then translating to a many file run. Much like how we as humans do it.

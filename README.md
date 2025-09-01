@@ -4,6 +4,8 @@ Atlas Plot Agent is a tool designed to facilitate the creation and management of
 
 The above is what I'd like it to become. That statement is 100% aspirational.
 
+**ADL BENCHMARK Results** Please see the [benchmark subdirectory](notebooks/adl-benchmarks/README.md)!
+
 ## Features
 
 As things get implemented, I'll add them here.
