@@ -36,24 +36,24 @@ The _Steered Query_ is much more developed. The `Cut-And-Paste` query was a by-h
 
 In all cases, the LLM is guided to do the following:
 
-1. Use `ServiceX` to fetch the data from the dataset on the GRID
-1. Use `Awkward` and `vector` to process the data (filter, combine, 4-vector math, etc.)
-1. Use `hist` to build the histogram and then plot it.
+1. Use [`ServiceX`](https://servicex-frontend.readthedocs.io/en/stable/) to fetch the data from the dataset on the GRID
+1. Use [`Awkward`](https://awkward-array.org/doc/main/index.html) and [`vector`](https://vector.readthedocs.io/en/latest/index.html) to process the data (filter, combine, 4-vector math, etc.)
+1. Use [`hist`](https://hist.readthedocs.io/en/latest/) to build the histogram and then plot it.
 
 ### Steered Query
 
 You can find results for two types of steered queries:
 
-1. Direct Query: The query contains everything and the LLM is asked to produce the code start-to-finish in one go. Results can be found in this notebook, and this directory contains a markdown file for each question with entries for every model, including LLM response, code, and results of running the code. If the code fails to run, the LLM has a chance to update it.
-1. Plan Query: The plotting is broken down into steps: planning, implementing the data fetch, data manipulation, and plotting. Results can be found in this notebook, and this directory contains a markdown file for each question with entries for every model, including LLM response, code, and results of running the code. If the code fails to run, the LLM has a chance to update it.
+1. [Direct Query](direct-query.py): The query contains everything and the LLM is asked to produce the code start-to-finish in one go ([config-info](direct-query-config.yaml)). Results can be found in [this notebook](results/direct-query/analysis.ipynb), and [this directory](results/direct-query/) contains a markdown file for each question with entries for every model, including LLM response, code, and results of running the code. If the code fails to run, the LLM has a chance to update it.
+1. [Plan Query](plan-query.py): The plotting is broken down into steps: planning, implementing the data fetch, data manipulation, and plotting ([config-info](plan-query-config.yaml)). Results can be found in [this notebook](results/plan-query/analysis.ipynb), and [this directory](results/plan-query/) contains a markdown file for each question with entries for every model, including LLM response, code, and results of running the code. If the code fails to run, the LLM has a chance to update it.
 
 Notes:
 
-* Hint files are available here (and are used by everything, including the cut-and-paste).
+* [Hint files are available here](https://github.com/gordonwatts/hep-programming-hints) (and are used by everything, including the cut-and-paste).
 
 #### Running the analysis
 
-You can use `direct-query.py` and `plan-query.py` to run a model and question (use --help to see options). Use `query-all.py` to run against all questions listed in this `README.md` file. You'll need `docker` installed in your directory, and you'll need to do a `docker build` on the `Dockerfile`. A docker volume is used to cache downloads from servicex to improve re-running speed.
+You can use [`direct-query.py`](direct-query.py) and [`plan-query.py`](plan-query.py) to run a model and question (use --help to see options). Use [`query-all.py`](query-all.py) to run against all questions listed in this `README.md` file. You'll need `docker` installed in your directory, and you'll need to do a `docker build` on the `Dockerfile`. A docker volume is used to cache downloads from servicex to improve re-running speed.
 
 Start to finish running everything and updating the reports:
 
