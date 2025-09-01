@@ -27,7 +27,7 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          python notebooks/adl-benchmarks/direct-query.py "${{ matrix.question }}" ${{ matrix.nick-name }}.md --models gpt-5-mini -n 3
+          python notebooks/adl-benchmarks/direct-query.py "${{ matrix.question }}" ${{ matrix.nick-name }}.md --models gpt-5-mini -n 1
 
       - name: Clone output repo
         run: |
@@ -36,7 +36,7 @@ jobs:
       - name: Copy output files
         run: |
           cp ${{ matrix.nick-name }}.md output-repo/
-          cp -r img output-repo/
+          if [ -d img ]; then cp -r img output-repo/; fi
 
       - name: Commit and push to output repo
         run: |
