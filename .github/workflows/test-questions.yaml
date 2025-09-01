@@ -43,6 +43,7 @@ jobs:
           cd output-repo
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add ${{ matrix.nick-name }}.md img
+          git add ${{ matrix.nick-name }}.md
+          if [ -d img ]; then git add img; fi
           git commit -m "Update ${{ matrix.nick-name }} and images from CI"
           git push https://x-access-token:${{ secrets.MAPBP_PUSH_TOKEN }}@github.com/gordonwatts/MAPbP-Big-Or-Smart.git HEAD:main
