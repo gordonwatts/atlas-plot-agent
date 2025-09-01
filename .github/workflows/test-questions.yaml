@@ -24,6 +24,8 @@ jobs:
         run: pip install -e .[notebook]
 
       - name: Run direct-query.py
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           python notebooks/adl-benchmarks/direct-query.py "${{ matrix.question }}" ${{ matrix.nick-name }}.md --models gpt-5-mini -n 3
 
