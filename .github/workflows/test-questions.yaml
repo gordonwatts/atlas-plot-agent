@@ -29,6 +29,14 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
+      - name: Create servicex.yaml
+        run: |
+          echo "api_endpoints:" > servicex.yaml
+          echo "  - name: servicex" >> servicex.yaml
+          echo "    endpoint: https://servicex.af.uchicago.edu/" >> servicex.yaml
+          echo "    token: ${{ secrets.SERVICEX_TOKEN }}" >> servicex.yaml
+          echo "default_endpoint: servicex" >> servicex.yaml
+
       - name: Run direct-query.py
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
