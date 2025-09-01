@@ -41,7 +41,7 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          python notebooks/adl-benchmarks/direct-query.py "${{ matrix.question }}" ${{ matrix.nick-name }}.md --models gpt-5-mini -n 1 --docker-image gordonwatts/atlasplotagent:1.0.0
+          python notebooks/adl-benchmarks/direct-query.py "${{ matrix.question }}" ${{ matrix.nick-name }}.md --models gpt-5 -n 3 --docker-image gordonwatts/atlasplotagent:1.0.0
 
       - name: Clone output repo
         run: |
