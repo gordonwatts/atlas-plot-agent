@@ -1,6 +1,6 @@
 # ADL Benchmarks
 
-The files in this folder contain examples of using various AI systems to generate code for the [ADL benchmarks](https://github.com/iris-hep/adl-benchmarks-index) along with 6 extra questions proposed by @rrutaa and David Lange.
+The files in this folder contain examples of using various AI systems to generate code for the [ADL benchmarks](https://github.com/iris-hep/adl-benchmarks-index) along with 6 extra questions proposed by @rrutaa and @davidlange6.
 
 ## Questions
 
